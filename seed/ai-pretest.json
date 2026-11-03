@@ -1,0 +1,273 @@
+{
+  "title": "Süni İntellekt: Haradan başlayırıq?",
+  "description": "NextGen HR Leaders · AI təlimi üçün ilkin bilik yoxlaması",
+  "coverEmoji": "🤖",
+  "settings": {
+    "mode": "host",
+    "scoring": "speed",
+    "defaultTime": 45,
+    "streakBonus": true,
+    "shuffleOptions": true,
+    "showCorrect": true,
+    "leaderboardEvery": 1,
+    "music": {
+      "on": true,
+      "volume": 60,
+      "theme": "energetic"
+    }
+  },
+  "questions": [
+    {
+      "type": "single",
+      "text": "LLM qısaltması nə deməkdir?",
+      "timeLimit": 20,
+      "points": "standard",
+      "options": [
+        {
+          "id": "a",
+          "text": "Large Language Model"
+        },
+        {
+          "id": "b",
+          "text": "Low Latency Machine"
+        },
+        {
+          "id": "c",
+          "text": "Linear Learning Method"
+        },
+        {
+          "id": "d",
+          "text": "Logical Language Module"
+        }
+      ],
+      "correct": [
+        "a"
+      ],
+      "explanation": "LLM — Böyük Dil Modeli: çox böyük həcmdə mətn üzərində öyrədilmiş və dili anlayıb yaradan model."
+    },
+    {
+      "type": "truefalse",
+      "text": "ChatGPT, Claude və Gemini generativ süni intellekt nümunələridir.",
+      "timeLimit": 15,
+      "points": "standard",
+      "options": [
+        {
+          "id": "t",
+          "text": "Doğru"
+        },
+        {
+          "id": "f",
+          "text": "Yanlış"
+        }
+      ],
+      "correct": [
+        "t"
+      ],
+      "explanation": "Hər üçü yeni məzmun (mətn, kod və s.) yaradan generativ AI sistemləridir."
+    },
+    {
+      "type": "single",
+      "text": "LLM cavabı əsasən necə yaradır?",
+      "timeLimit": 30,
+      "points": "standard",
+      "options": [
+        {
+          "id": "a",
+          "text": "Növbəti söz parçasını (tokeni) ehtimala görə təxmin edərək"
+        },
+        {
+          "id": "b",
+          "text": "İnternetdən hazır cavabı kopyalayaraq"
+        },
+        {
+          "id": "c",
+          "text": "Proqramçıların hər sual üçün yazdığı cavabları seçərək"
+        },
+        {
+          "id": "d",
+          "text": "Verilənlər bazasında açar söz axtararaq"
+        }
+      ],
+      "correct": [
+        "a"
+      ],
+      "explanation": "Model hər addımda ən uyğun növbəti tokeni ehtimala görə seçir və cavabı token-token qurur."
+    },
+    {
+      "type": "single",
+      "text": "AI kontekstində “token” nədir?",
+      "timeLimit": 20,
+      "points": "standard",
+      "options": [
+        {
+          "id": "a",
+          "text": "Modelin emal etdiyi mətn parçası (söz və ya söz hissəsi)"
+        },
+        {
+          "id": "b",
+          "text": "Giriş şifrəsi"
+        },
+        {
+          "id": "c",
+          "text": "Kriptovalyuta"
+        },
+        {
+          "id": "d",
+          "text": "Modelin adı"
+        }
+      ],
+      "correct": [
+        "a"
+      ],
+      "explanation": "Mətn modelə verilməzdən əvvəl tokenlərə bölünür; həm limitlər, həm qiymət tokenlərlə ölçülür."
+    },
+    {
+      "type": "single",
+      "text": "AI-da “halüsinasiya” nəyə deyilir?",
+      "timeLimit": 30,
+      "points": "standard",
+      "options": [
+        {
+          "id": "a",
+          "text": "Modelin inamla, lakin səhv və ya uydurma məlumat verməsinə"
+        },
+        {
+          "id": "b",
+          "text": "Modelin şəkil yaratmasına"
+        },
+        {
+          "id": "c",
+          "text": "Modelin yavaş işləməsinə"
+        },
+        {
+          "id": "d",
+          "text": "Modelin cavab verməkdən imtina etməsinə"
+        }
+      ],
+      "correct": [
+        "a"
+      ],
+      "explanation": "Buna görə AI-ın verdiyi fakt, rəqəm və qanun istinadlarını həmişə yoxlamaq lazımdır."
+    },
+    {
+      "type": "multi",
+      "text": "Yaxşı promptun elementləri hansılardır? (bir neçə cavab)",
+      "timeLimit": 45,
+      "points": "standard",
+      "options": [
+        {
+          "id": "a",
+          "text": "Rol"
+        },
+        {
+          "id": "b",
+          "text": "Kontekst"
+        },
+        {
+          "id": "c",
+          "text": "Nəticənin formatı"
+        },
+        {
+          "id": "d",
+          "text": "Mümkün qədər qısa, bir sözlük sual"
+        }
+      ],
+      "correct": [
+        "a",
+        "b",
+        "c"
+      ],
+      "explanation": "Rol, kontekst, tapşırıq, format, nümunə və məhdudiyyətlər nəticəni kəskin yaxşılaşdırır."
+    },
+    {
+      "type": "single",
+      "text": "Agentic AI adi çatbotdan nə ilə fərqlənir?",
+      "timeLimit": 30,
+      "points": "standard",
+      "options": [
+        {
+          "id": "a",
+          "text": "Məqsədə görə plan qurur, alətlərdən istifadə edir və addımları özü icra edir"
+        },
+        {
+          "id": "b",
+          "text": "Daha sürətli yazır"
+        },
+        {
+          "id": "c",
+          "text": "Yalnız səslə işləyir"
+        },
+        {
+          "id": "d",
+          "text": "İnternetsiz işləyir"
+        }
+      ],
+      "correct": [
+        "a"
+      ],
+      "explanation": "Agent məqsəd alır, plan qurur, alətləri (axtarış, fayl, e-poçt, GitHub) işlədir və nəticəni yoxlayır."
+    },
+    {
+      "type": "truefalse",
+      "text": "İşçilərin fərdi məlumatlarını (FİN, maaş) istənilən pulsuz AI çatbotuna yükləmək təhlükəsizdir.",
+      "timeLimit": 15,
+      "points": "double",
+      "options": [
+        {
+          "id": "t",
+          "text": "Doğru"
+        },
+        {
+          "id": "f",
+          "text": "Yanlış"
+        }
+      ],
+      "correct": [
+        "f"
+      ],
+      "explanation": "Fərdi məlumatlar yalnız şirkətin təsdiqlədiyi, məxfiliyi təmin edən həllərdə və ya anonimləşdirilərək istifadə olunmalıdır."
+    },
+    {
+      "type": "single",
+      "text": "Dil modelinin öyrədilmə mərhələlərinin düzgün ardıcıllığı hansıdır?",
+      "timeLimit": 30,
+      "points": "standard",
+      "options": [
+        {
+          "id": "a",
+          "text": "Pre-training → Fine-tuning → RLHF"
+        },
+        {
+          "id": "b",
+          "text": "RLHF → Pre-training → Fine-tuning"
+        },
+        {
+          "id": "c",
+          "text": "Fine-tuning → RLHF → Pre-training"
+        },
+        {
+          "id": "d",
+          "text": "Pre-training → RLHF → Fine-tuning"
+        }
+      ],
+      "correct": [
+        "a"
+      ],
+      "explanation": "Əvvəl geniş mətnlərdən ümumi bilik (pre-training), sonra köməkçi kimi davranış (fine-tuning), sonda insan rəyi ilə tənzimləmə (RLHF)."
+    },
+    {
+      "type": "type",
+      "text": "Transformer modelində sözlər arasındakı əlaqəni tapan mexanizmin adı nədir? (bir söz, ingiliscə)",
+      "timeLimit": 45,
+      "points": "standard",
+      "accepted": [
+        "attention",
+        "self-attention",
+        "self attention"
+      ],
+      "correct": [],
+      "explanation": "“Attention” mexanizmi modelə cümlədəki hər sözün digər sözlərlə əlaqəsini “diqqətlə” qiymətləndirməyə imkan verir."
+    }
+  ],
+  "coverColor": "#E4202E"
+}

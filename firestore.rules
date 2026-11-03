@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isAdmin() { return signedIn() && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
+    function game(gameId) { return get(/databases/$(db)/documents/games/$(gameId)).data; }
+    function nameOk(v) { return v is string && v.size() >= 2 && v.size() <= 20; }
+
+    match /admins/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false; // yalnız Console / Admin SDK
+    }
+
+    match /quizzes/{quizId} {
+      allow read, write: if isAdmin();
+      match /questions/{qid} { allow read, write: if isAdmin(); }
+    }
+
+    match /pins/{pin} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /settings/{doc} {          // settings/current → { activeGameId }, settings/app → admin ayarları
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /games/{gameId} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+
+      match /secret/{doc} { allow read, write: if isAdmin(); }
+
+      match /players/{uid} {
+        allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+        allow create: if signedIn() && request.auth.uid == uid
+          && game(gameId).locked == false
+          && game(gameId).phase != 'finished'
+          && (game(gameId).phase == 'lobby' || game(gameId).settings.lateJoin == true)
+          && nameOk(request.resource.data.firstName)
+          && nameOk(request.resource.data.lastName)
+          && request.resource.data.avatar is map
+          && request.resource.data.keys().hasOnly(['firstName','lastName','avatar','joinedAt','lastSeen','kicked','score','correctCount','streak','bestStreak','totalCorrectTimeMs','lastResult','history'])
+          && request.resource.data.score == 0
+          && request.resource.data.correctCount == 0
+          && request.resource.data.history.size() == 0
+          && request.resource.data.kicked == false;
+        // oyunçu yalnız profil və heartbeat sahələrini dəyişə bilər
+        allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['firstName','lastName','avatar','lastSeen'])
+          && nameOk(request.resource.data.firstName)
+          && nameOk(request.resource.data.lastName));
+        allow delete: if isAdmin();
+      }
+
+      match /answers/{answerId} {
+        allow read: if isAdmin();
+        allow create: if signedIn()
+          && answerId == request.auth.uid + '_' + string(request.resource.data.questionIndex)
+          && request.resource.data.keys().hasOnly(['uid','questionIndex','value','answeredAt'])
+          && request.resource.data.uid == request.auth.uid
+          && game(gameId).phase == 'question'
+          && request.resource.data.questionIndex == game(gameId).questionIndex
+          && request.resource.data.answeredAt == request.time
+          && game(gameId).questionEndsAt != null
+          && request.time <= game(gameId).questionEndsAt + duration.value(2, 's')
+          && exists(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid))
+          && get(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid)).data.kicked == false;
+        allow update, delete: if false;
+      }
+
+      match /reactions/{rid} {
+        allow read: if isAdmin();
+        allow create: if signedIn()
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.emoji is string && request.resource.data.emoji.size() <= 8;
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
