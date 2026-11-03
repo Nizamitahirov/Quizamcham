@@ -13,3 +13,4 @@
 - Oyun bitəndə suallar + düzgün cavablar `games/{id}.review`-a yazılır ki, oyunçular “Cavablarıma bax” edə bilsin.
 - `self` (öz tempində) rejimi, power-ups və komanda rejimi hələ edilməyib (M6, istəyə bağlı).
 - Sessiya branch qaydasına görə iş `claude/quirky-galileo-mk297c` branch-ində aparılır; `main`-ə merge istifadəçinin təsdiqi ilə.
+- Firebase web config koda standart dəyər kimi yazıldı (ictimai məlumatdır, Rules qoruyur); env dəyişənləri varsa, onlar üstünlük alır. Səbəb: Vercel-də env olmadan da işləsin.

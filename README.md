@@ -35,7 +35,7 @@ Servis hesabına əlavə IAM rolları vermək üçün Google Cloud Shell-də bir
 
 ## Vercel
 1. vercel.com → **Add New → Project** → `Quizamcham` reposu. Framework: **Vite**.
-2. **Environment Variables**: `.env.example`-dakı 6 dəyişən (`VITE_FIREBASE_*`) — dəyərlər Firebase Console → Project settings → Your apps bölməsindədir.
+2. Environment Variables lazım deyil — Firebase config kodda standart dəyər kimi var (istəsəniz `VITE_FIREBASE_*` ilə əvəz edə bilərsiniz).
 3. **Deploy**. Bundan sonra `main`-ə hər push avtomatik deploy olunur. `vercel.json` SPA yönləndirməsini edir.
 
 ## Təlim günü
