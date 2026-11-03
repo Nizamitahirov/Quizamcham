@@ -1,0 +1,120 @@
+import { useMemo, useState } from 'react'
+import { DndContext, PointerSensor, TouchSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { AnswerTile, TILE_COLORS, Shape } from '../../components/AnswerTile'
+import { seededShuffle } from '../../lib/shuffle'
+import { t } from '../../i18n/az'
+import type { AnswerValue, Option, PublicQuestion } from '../../types'
+
+interface Props { q: PublicQuestion; uid: string; disabled: boolean; onSubmit: (v: AnswerValue) => void }
+
+/** Variantları oyunçuya görə qarışdırır; rəng/forma variantın öz indeksinə bağlı qalır (host ekranı ilə uyğun). */
+function useArranged(q: PublicQuestion, uid: string) {
+  return useMemo(() => {
+    const indexed = q.options.map((o, i) => ({ o, i }))
+    return q.shuffle ? seededShuffle(indexed, uid + q.id) : indexed
+  }, [q, uid])
+}
+
+export function ChoiceInput({ q, uid, disabled, onSubmit }: Props) {
+  const items = useArranged(q, uid)
+  const [picked, setPicked] = useState<string | null>(null)
+  const cols = q.options.length <= 2 ? 'grid-cols-1' : 'grid-cols-2'
+  return (
+    <div className={`grid ${cols} gap-3`}>
+      {items.map(({ o, i }) => (
+        <AnswerTile key={o.id} index={i} text={o.text} disabled={disabled || picked !== null} selected={picked === o.id} dimmed={picked !== null && picked !== o.id}
+          onClick={() => { setPicked(o.id); onSubmit([o.id]) }} />
+      ))}
+    </div>
+  )
+}
+
+export function MultiInput({ q, uid, disabled, onSubmit }: Props) {
+  const items = useArranged(q, uid)
+  const [sel, setSel] = useState<string[]>([])
+  const toggle = (id: string) => setSel((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-center text-sm font-bold opacity-90">{t.game.selectMany}{q.multiCount ? ` (${q.multiCount})` : ''}</p>
+      <div className="grid grid-cols-2 gap-3">
+        {items.map(({ o, i }) => (
+          <AnswerTile key={o.id} index={i} text={o.text} disabled={disabled} checked={sel.includes(o.id)} onClick={() => toggle(o.id)} />
+        ))}
+      </div>
+      <button type="button" className="btn btn-secondary text-xl" disabled={disabled || sel.length === 0} onClick={() => onSubmit(sel)}>{t.game.submit}</button>
+    </div>
+  )
+}
+
+export function TextInput({ disabled, onSubmit, max = 60 }: Props & { max?: number }) {
+  const [v, setV] = useState('')
+  return (
+    <form className="flex flex-col gap-3" onSubmit={(e) => { e.preventDefault(); if (v.trim()) onSubmit(v.trim()) }}>
+      <input className="input text-xl" value={v} maxLength={max} placeholder={t.game.typeHere} autoFocus disabled={disabled} onChange={(e) => setV(e.target.value)} enterKeyHint="send" />
+      <div className="text-right text-xs opacity-80">{v.length} / {max}</div>
+      <button className="btn btn-secondary text-xl" disabled={disabled || !v.trim()}>{t.game.submit}</button>
+    </form>
+  )
+}
+
+export function SliderInput({ q, disabled, onSubmit }: Props) {
+  const s = q.slider ?? { min: 0, max: 100, step: 1 }
+  const [v, setV] = useState(Math.round((s.min + s.max) / 2 / s.step) * s.step)
+  return (
+    <div className="card flex flex-col gap-5 p-6">
+      <div className="text-center"><span className="text-sm font-bold text-slate-500">{t.game.sliderValue}</span><div className="font-display text-6xl text-ink">{v.toLocaleString('az-AZ')}</div></div>
+      <input type="range" min={s.min} max={s.max} step={s.step} value={v} disabled={disabled} onChange={(e) => setV(Number(e.target.value))} className="h-10 w-full accent-[#E4202E]" aria-label={t.game.sliderValue} />
+      <div className="flex justify-between text-sm font-bold text-slate-500"><span>{s.min}</span><span>{s.max}</span></div>
+      <button type="button" className="btn btn-primary text-xl" disabled={disabled} onClick={() => onSubmit(v)}>{t.game.submit}</button>
+    </div>
+  )
+}
+
+function SortItem({ o, i, idx }: { o: Option; i: number; idx: number }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: o.id })
+  return (
+    <li ref={setNodeRef} {...attributes} {...listeners}
+      style={{ transform: CSS.Transform.toString(transform), transition, background: TILE_COLORS[i % 6], zIndex: isDragging ? 10 : undefined }}
+      className={`flex min-h-16 touch-none items-center gap-3 rounded-2xl p-4 text-lg font-extrabold text-white shadow-[0_5px_0_rgba(0,0,0,.25)] ${isDragging ? 'scale-105 ring-4 ring-white' : ''}`}>
+      <span className="font-display w-6 text-center">{idx + 1}</span>
+      <Shape i={i} size={22} />
+      <span className="flex-1">{o.text}</span>
+      <span aria-hidden className="text-2xl opacity-80">⠿</span>
+    </li>
+  )
+}
+
+export function OrderInput({ q, disabled, onSubmit }: Props) {
+  const [items, setItems] = useState(() => q.options.map((o, i) => ({ o, i })))
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(TouchSensor, { activationConstraint: { delay: 80, tolerance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
+  const onEnd = (e: DragEndEvent) => {
+    if (!e.over || e.active.id === e.over.id) return
+    setItems((s) => arrayMove(s, s.findIndex((x) => x.o.id === e.active.id), s.findIndex((x) => x.o.id === e.over!.id)))
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-center text-sm font-bold opacity-90">{t.game.dragToOrder}</p>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onEnd}>
+        <SortableContext items={items.map((x) => x.o.id)} strategy={verticalListSortingStrategy}>
+          <ul className="flex flex-col gap-2">{items.map((x, idx) => <SortItem key={x.o.id} o={x.o} i={x.i} idx={idx} />)}</ul>
+        </SortableContext>
+      </DndContext>
+      <button type="button" className="btn btn-secondary text-xl" disabled={disabled} onClick={() => onSubmit(items.map((x) => x.o.id))}>{t.game.submit}</button>
+    </div>
+  )
+}
+
+export function QuestionInput(props: Props) {
+  switch (props.q.type) {
+    case 'single': case 'truefalse': case 'poll': return <ChoiceInput {...props} />
+    case 'multi': return <MultiInput {...props} />
+    case 'type': return <TextInput {...props} max={60} />
+    case 'wordcloud': return <TextInput {...props} max={30} />
+    case 'open': return <TextInput {...props} max={140} />
+    case 'slider': return <SliderInput {...props} />
+    case 'order': return <OrderInput {...props} />
+    default: return null
+  }
+}
