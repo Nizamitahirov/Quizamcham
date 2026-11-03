@@ -6,7 +6,7 @@ import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, COUNTDOWN_MS, createGame, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  answersQuery, createGame, grantFifty, readMsFor, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -16,7 +16,10 @@ import { Spinner } from '../../components/ui'
 import { useMuted } from '../../components/MuteButton'
 import { FloatingShapes } from '../../components/FloatingShapes'
 import { FloatingEmojis, useFlying } from '../../components/FloatingEmojis'
-import { Countdown } from '../../components/Countdown'
+import { QuestionIntro } from '../../components/QuestionIntro'
+import { FuturisticBg } from '../../components/FuturisticBg'
+import { Logo } from '../../components/Brand'
+import { Lock, Unlock, Maximize, Volume2, VolumeX, Pause, Play, SkipForward, Flag, ChevronRight, Users } from 'lucide-react'
 import { celebrate } from '../../components/Confetti'
 import { HostLobby } from './HostLobby'
 import { HostQuestion, HostReveal } from './HostQuestion'
@@ -27,10 +30,10 @@ import type { Game, Player, Question } from '../../types'
 export default function HostGame() {
   const { gameId } = useParams()
   const admin = useAdmin()
-  if (admin.loading) return <div className="flex min-h-dvh items-center justify-center bg-deep"><Spinner /></div>
+  if (admin.loading) return <div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>
   if (!admin.isAdmin) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-deep p-6 text-center">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-night p-6 text-center">
         <p className="text-xl">{t.host.notHost}</p>
         <Link className="btn btn-primary" to="/admin/login">{t.admin.signIn}</Link>
       </div>
@@ -117,9 +120,23 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
     if (!game || !questions || game.phase !== 'countdown') return
     const q = questions[game.questionIndex]
     if (!q) return
-    const id = setTimeout(() => void once(`q-${game.questionIndex}`, () => toQuestion(gameId, q, game.settings)), COUNTDOWN_MS)
+    const id = setTimeout(() => void once(`q-${game.questionIndex}`, () => toQuestion(gameId, q, game.settings)), game.preview?.readMs ?? readMsFor(game.settings, q))
     return () => clearTimeout(id)
   }, [game, questions, gameId, once])
+
+  // 50/50 sorğularını emal et
+  useEffect(() => {
+    if (!game || !questions || game.phase !== 'question' || game.settings.powerUps === false) return
+    const q = questions[game.questionIndex]
+    if (!q) return
+    players.forEach((p) => {
+      if (p.kicked || p.power?.type !== 'fifty' || p.power.q !== game.questionIndex || p.fiftyHide?.q === game.questionIndex) return
+      const key = `ff-${game.questionIndex}-${p.uid}`
+      if (guard.current.has(key)) return
+      guard.current.add(key)
+      void grantFifty(gameId, p, q, game.questionIndex).catch(() => guard.current.delete(key))
+    })
+  }, [game, questions, players, gameId])
 
   const activeCount = active.length
   useEffect(() => {
@@ -144,23 +161,23 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
       case 'lobby':
         if (activeCount === 0) return
         audio.unlock()
-        void once('start', () => toCountdown(gameId, 0, { startedAt: Timestamp.fromMillis(serverNow()) }))
+        void once('start', () => toCountdown(gameId, 0, questions[0], game.settings, { startedAt: Timestamp.fromMillis(serverNow()) }))
         break
       case 'question':
         if (game.currentQuestion?.type === 'slide') {
           if (i >= game.totalQuestions - 1) void once(`p`, () => toPhase(gameId, 'podium'))
-          else void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1))
+          else void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1, questions[i + 1], game.settings))
         } else void once(`e-${i}`, () => endTimeNow(gameId))
         break
       case 'reveal': {
         const step = nextAfterReveal(game)
         if (step === 'leaderboard') void once(`l-${i}`, () => toPhase(gameId, 'leaderboard'))
         else if (step === 'podium') void once('p', () => toPhase(gameId, 'podium'))
-        else void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1))
+        else void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1, questions[i + 1], game.settings))
         break
       }
       case 'leaderboard':
-        void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1))
+        void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1, questions[i + 1], game.settings))
         break
       case 'podium':
         void once('fin', () => finishGame(game, questions))
@@ -175,11 +192,11 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   }, [game])
 
   const skip = useCallback(() => {
-    if (!game) return
+    if (!game || !questions) return
     const i = game.questionIndex
     if (i >= game.totalQuestions - 1) void once('p', () => toPhase(gameId, 'podium'))
-    else void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1))
-  }, [game, gameId, once])
+    else void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1, questions[i + 1], game.settings))
+  }, [game, questions, gameId, once])
 
   const endGame = useCallback(() => {
     if (!game || !questions || !confirm(t.host.endGameConfirm)) return
@@ -206,31 +223,46 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
     nav(`/host/${id}`)
   }
 
-  if (loading || !questions) return <div className="flex min-h-dvh items-center justify-center bg-deep"><Spinner /></div>
-  if (missing || !game) return <div className="flex min-h-dvh items-center justify-center bg-deep text-2xl">{t.app.notFound}</div>
+  if (loading || !questions) return <div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>
+  if (missing || !game) return <div className="flex min-h-dvh items-center justify-center bg-night text-2xl">{t.app.notFound}</div>
 
   const nextLabel = game.phase === 'lobby' ? t.host.start
     : game.phase === 'reveal' ? ({ leaderboard: t.host.showLeaderboard, podium: t.host.showPodium, question: t.host.next })[nextAfterReveal(game)]
       : game.phase === 'podium' ? t.host.fullList : t.host.next
-
-  const bg = game.phase === 'question' || game.phase === 'countdown' || game.phase === 'reveal' ? 'bg-deep' : game.phase === 'podium' ? 'bg-grad-hot' : 'bg-grad'
   const ctx: HostCtx = { game, questions, players: active, answered, busy }
+  const progress = game.totalQuestions ? Math.max(0, (game.questionIndex + (game.phase === 'reveal' || game.phase === 'leaderboard' ? 1 : 0)) / game.totalQuestions) : 0
+  const isQ = game.phase === 'question' && game.currentQuestion?.type !== 'slide'
 
   return (
-    <div className={`relative flex h-dvh flex-col overflow-hidden ${bg}`}>
-      {(game.phase === 'lobby' || game.phase === 'podium' || game.phase === 'leaderboard') && <FloatingShapes count={18} />}
+    <div className={`noise relative flex h-dvh flex-col overflow-hidden ${game.phase === 'podium' ? 'bg-brand' : 'bg-night'}`}>
+      {game.phase !== 'podium' && <FuturisticBg floor={game.phase === 'lobby' || game.phase === 'leaderboard'} intensity={isQ ? 0.5 : 1} />}
+      {(game.phase === 'podium' || game.phase === 'leaderboard') && <FloatingShapes count={16} />}
       <FloatingEmojis items={flying.items} size={64} />
       {!opened && game.phase !== 'finished' && (
-        <button className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/70 text-white" onClick={() => { audio.unlock(); setOpened(true) }}>
-          <span className="font-display text-6xl">{t.host.openLobby}</span>
-          <span className="text-xl opacity-80">{t.host.openLobbyHint}</span>
+        <button className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-night/90 text-white backdrop-blur" onClick={() => { audio.unlock(); setOpened(true) }}>
+          <Logo size={72} />
+          <span className="btn btn-primary btn-lg text-2xl"><Play className="fill-current" />{t.host.openLobby}</span>
+          <span className="text-lg text-white/60">{t.host.openLobbyHint}</span>
         </button>
       )}
+      <header className="relative z-20 flex items-center gap-4 px-8 pt-5">
+        <Logo size={36} mono={game.phase === 'podium'} />
+        <span className="chip chip-dark"><span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />{t.host.live}</span>
+        {game.phase !== 'lobby' && game.phase !== 'finished' && (
+          <div className="mx-6 h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+            <motion.div className="h-full rounded-full" style={{ background: 'var(--grad)' }} animate={{ width: `${progress * 100}%` }} />
+          </div>
+        )}
+        <span className="ml-auto flex items-center gap-3">
+          <span className="chip chip-dark text-base"><Users className="h-4 w-4" />{active.length}</span>
+          <span className="font-display rounded-xl border border-white/15 bg-white/[.06] px-4 py-1.5 text-xl font-black tracking-widest">PIN {game.pin}</span>
+        </span>
+      </header>
       <main className="relative z-10 flex min-h-0 flex-1 flex-col">
         <AnimatePresence mode="wait">
           <motion.div key={game.phase + game.questionIndex} className="flex min-h-0 flex-1 flex-col" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
             {game.phase === 'lobby' && <HostLobby {...ctx} onKick={(p) => confirm(t.host.kickConfirm(`${p.firstName} ${p.lastName}`)) && void kickPlayer(gameId, p.uid)} />}
-            {game.phase === 'countdown' && <div className="m-auto"><Countdown big label={t.game.questionOf(game.questionIndex + 1, game.totalQuestions)} /></div>}
+            {game.phase === 'countdown' && game.preview && <div className="m-auto w-full"><QuestionIntro big preview={game.preview} total={game.totalQuestions} /></div>}
             {game.phase === 'question' && <HostQuestion {...ctx} />}
             {game.phase === 'reveal' && <HostReveal {...ctx} />}
             {game.phase === 'leaderboard' && <HostLeaderboard game={game} />}
@@ -240,24 +272,23 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
         </AnimatePresence>
       </main>
       {game.phase !== 'finished' && (
-        <footer className="relative z-20 flex flex-wrap items-center gap-3 bg-black/30 px-6 py-3 backdrop-blur">
-          <span className="font-display rounded-xl bg-white/15 px-4 py-2 text-xl">PIN {game.pin}</span>
+        <footer className="relative z-20 m-4 mt-0 flex flex-wrap items-center gap-2 rounded-2xl border border-white/10 bg-night2/80 px-4 py-3 backdrop-blur-xl">
           {game.phase === 'lobby' && (
-            <button className="btn btn-ghost" onClick={() => void setLocked(gameId, !game.locked)}>{game.locked ? t.host.unlock : t.host.lock}</button>
+            <button className="btn btn-ghost" onClick={() => void setLocked(gameId, !game.locked)}>{game.locked ? <><Unlock />{t.host.unlock}</> : <><Lock />{t.host.lock}</>}</button>
           )}
-          {game.phase === 'question' && game.currentQuestion?.type !== 'slide' && (
+          {isQ && (
             <>
-              <button className="btn btn-ghost" onClick={togglePause}>{game.pausedRemainingMs != null ? t.host.resume : t.host.pause}</button>
-              <button className="btn btn-ghost" onClick={skip} disabled={busy}>{t.host.skip}</button>
+              <button className="btn btn-ghost" onClick={togglePause}>{game.pausedRemainingMs != null ? <><Play />{t.host.resume}</> : <><Pause />{t.host.pause}</>}</button>
+              <button className="btn btn-ghost" onClick={skip} disabled={busy}><SkipForward />{t.host.skip}</button>
             </>
           )}
-          <button className="btn btn-ghost" onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? '🔇' : t.host.music}</button>
-          <button className="btn btn-ghost" onClick={toggleFs}>{t.host.fullscreen}</button>
-          {game.phase !== 'lobby' && <button className="btn btn-ghost" onClick={endGame}>{t.host.endGame}</button>}
-          <span className="ml-auto hidden text-sm opacity-60 xl:inline">{t.host.shortcuts}</span>
+          <button className="btn btn-ghost btn-icon" aria-label="musiqi" onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? <VolumeX /> : <Volume2 />}</button>
+          <button className="btn btn-ghost btn-icon" aria-label="tam ekran" onClick={toggleFs}><Maximize /></button>
+          {game.phase !== 'lobby' && <button className="btn btn-ghost" onClick={endGame}><Flag />{t.host.endGame}</button>}
+          <span className="ml-auto hidden text-xs text-white/40 xl:inline">{t.host.shortcuts}</span>
           {game.phase !== 'countdown' && (
-            <button className="btn btn-primary min-w-48 text-xl" onClick={next} disabled={busy || (game.phase === 'lobby' && activeCount === 0)} title={game.phase === 'lobby' && activeCount === 0 ? t.host.minPlayers : undefined}>
-              {game.phase === 'question' && game.currentQuestion?.type !== 'slide' ? t.host.endTime : nextLabel}
+            <button className="btn btn-primary btn-lg min-w-52" onClick={next} disabled={busy || (game.phase === 'lobby' && activeCount === 0)} title={game.phase === 'lobby' && activeCount === 0 ? t.host.minPlayers : undefined}>
+              {isQ ? t.host.endTime : nextLabel}<ChevronRight />
             </button>
           )}
         </footer>

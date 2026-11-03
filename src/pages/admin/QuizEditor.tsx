@@ -7,7 +7,8 @@ import { loadAppSettings, loadQuiz, quizToJson, saveQuizFull } from '../../fireb
 import { createGame, toPublic } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { download } from '../../lib/csv'
-import { ALL_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
+import { ALL_TYPES, READ_TIMES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
+import { ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
 import { TILE_COLORS, Shape } from '../../components/AnswerTile'
@@ -43,7 +44,7 @@ export default function QuizEditor() {
   useEffect(() => {
     if (!quizId) return
     void loadQuiz(quizId).then((d) => {
-      if (!d) return nav('/admin')
+      if (!d) return nav('/admin/quizzes')
       setQuiz(d.quiz)
       setQuestions(d.questions)
       setSel(d.questions[0]?.id ?? null)
@@ -159,25 +160,29 @@ export default function QuizEditor() {
     : savedAt ? t.editor.saved(savedAt.toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })) : ''
 
   return (
-    <div className="mx-auto max-w-[1600px] p-3 sm:p-4">
+    <div className="mx-auto max-w-[1600px] p-3 sm:p-6">
       {/* Yuxarı panel */}
       <div className="card mb-4 flex flex-wrap items-center gap-2 p-3">
-        <Link to="/admin" className="btn btn-ghost-dark min-h-10 px-3" aria-label={t.app.back}>←</Link>
-        <input className="input max-w-16 text-center text-2xl" aria-label={t.editor.coverEmoji} value={quiz.coverEmoji} maxLength={4} onChange={(e) => setQuizField({ coverEmoji: e.target.value })} />
-        <input type="color" aria-label={t.editor.coverColor} className="h-12 w-12 cursor-pointer rounded-xl border-2 border-slate-200" value={quiz.coverColor} onChange={(e) => setQuizField({ coverColor: e.target.value })} />
-        <input className="input min-w-48 flex-1 text-lg" aria-label={t.editor.title} placeholder={t.editor.title} value={quiz.title} maxLength={80} onChange={(e) => setQuizField({ title: e.target.value })} />
-        <button className="btn btn-ghost-dark" onClick={() => setShowSettings(true)}>{t.editor.quizSettings}</button>
-        <button className="btn btn-ghost-dark" disabled={!current} onClick={() => setShowPreview(true)}>{t.editor.preview}</button>
-        <button className="btn btn-ghost-dark" onClick={() => download(`${quiz.title || 'quiz'}.json`, JSON.stringify(quizToJson(quiz, questions), null, 2), 'application/json')}>{t.editor.exportJson}</button>
-        <button className="btn btn-ghost-dark" disabled={!undoCount} onClick={undo}>{t.editor.undo}</button>
-        <span className={`text-sm font-bold ${state === 'error' ? 'text-red-600' : 'text-slate-500'}`} role="status">{status}</span>
-        <button className="btn btn-secondary" onClick={() => void save()}>{t.app.save}</button>
-        <button className="btn btn-ok" disabled={launching || errCount > 0 || !questions.length} title={errCount ? t.admin.cannotLaunch : undefined} onClick={() => void launch()}>
-          {launching ? t.admin.launching : t.admin.launch}
+        <Link to="/admin/quizzes" className="btn btn-ghost-dark btn-icon" aria-label={t.app.back}><ArrowLeft /></Link>
+        <input className="input w-14 px-1 text-center text-2xl" aria-label={t.editor.coverEmoji} value={quiz.coverEmoji} maxLength={4} onChange={(e) => setQuizField({ coverEmoji: e.target.value })} />
+        <input type="color" aria-label={t.editor.coverColor} className="h-[46px] w-12 cursor-pointer rounded-xl border border-line bg-white p-1" value={quiz.coverColor} onChange={(e) => setQuizField({ coverColor: e.target.value })} />
+        <input className="input min-w-48 flex-1 text-base font-bold" aria-label={t.editor.title} placeholder={t.editor.title} value={quiz.title} maxLength={80} onChange={(e) => setQuizField({ title: e.target.value })} />
+        <div className="flex flex-wrap items-center gap-1">
+          <button className="btn btn-ghost-dark btn-icon" title={t.editor.quizSettings} onClick={() => setShowSettings(true)}><Settings2 /></button>
+          <button className="btn btn-ghost-dark btn-icon" title={t.editor.preview} disabled={!current} onClick={() => setShowPreview(true)}><Eye /></button>
+          <button className="btn btn-ghost-dark btn-icon" title={t.editor.exportJson} onClick={() => download(`${quiz.title || 'quiz'}.json`, JSON.stringify(quizToJson(quiz, questions), null, 2), 'application/json')}><Download /></button>
+          <button className="btn btn-ghost-dark btn-icon" title={t.editor.undo} disabled={!undoCount} onClick={undo}><Undo2 /></button>
+        </div>
+        <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-600' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
+          {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' && savedAt ? <CheckCircle2 className="h-4 w-4" /> : state === 'error' ? <AlertTriangle className="h-4 w-4" /> : null}{status}
+        </span>
+        <button className="btn btn-secondary" onClick={() => void save()}><Save />{t.app.save}</button>
+        <button className="btn btn-primary" disabled={launching || errCount > 0 || !questions.length} title={errCount ? t.admin.cannotLaunch : undefined} onClick={() => void launch()}>
+          <Play className="fill-current" />{launching ? t.admin.launching : t.admin.launch}
         </button>
       </div>
       <textarea className="input mb-4 min-h-12" placeholder={t.editor.description} value={quiz.description} maxLength={300} rows={1} onChange={(e) => setQuizField({ description: e.target.value })} />
-      {errCount > 0 && <p className="mb-3 rounded-xl bg-red-100 px-4 py-2 font-bold text-red-700">⚠ {t.editor.issues(errCount)}</p>}
+      {errCount > 0 && <p className="mb-3 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700"><AlertTriangle className="h-4 w-4" />{t.editor.issues(errCount)}</p>}
 
       <div className="grid gap-4 lg:grid-cols-[300px_1fr_280px]">
         <QuestionList questions={questions} sel={sel} errors={errors} onSelect={setSel} onReorder={reorder} onAdd={addQ} onDup={dupQ} onDel={delQ} />
@@ -205,17 +210,19 @@ function SortRow({ q, i, active, hasErr, onSelect, onDup, onDel }: { q: Question
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id })
   return (
     <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : undefined }}
-      className={`group flex items-center gap-2 rounded-xl border-2 bg-white p-2 ${active ? 'border-brand shadow-md' : 'border-transparent'} ${isDragging ? 'shadow-xl' : ''}`}>
-      <button className="cursor-grab touch-none px-1 text-slate-400" {...attributes} {...listeners} aria-label="↕">⠿</button>
+      className={`group flex items-center gap-2 rounded-xl border bg-white p-2 transition ${active ? 'border-brand shadow-[0_0_0_3px_rgba(232,32,42,.12)]' : 'border-line hover:border-[#d5d8e6]'} ${isDragging ? 'shadow-xl' : ''}`}>
+      <button className="cursor-grab touch-none text-muted" {...attributes} {...listeners} aria-label="↕"><GripVertical className="h-4 w-4" /></button>
       <button className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={onSelect}>
-        <span className="font-display w-6 text-center text-slate-400">{i + 1}</span>
-        <span className="w-6 text-center" title={t.types[q.type]}>{TYPE_ICON[q.type]}</span>
-        <span className="min-w-0 flex-1 truncate text-sm font-bold">{q.text || '—'}</span>
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${active ? 'text-white' : 'bg-surface text-muted'}`} style={active ? { background: 'var(--grad)' } : undefined}>{i + 1}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold">{q.text || '—'}</span>
+          <span className="text-[11px] text-muted">{TYPE_ICON[q.type]} {t.types[q.type]}{q.type !== 'slide' ? ` · ${q.timeLimit}s` : ''}</span>
+        </span>
         {hasErr && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500" aria-label="!" />}
       </button>
       <div className="hidden gap-1 group-hover:flex">
-        <button className="rounded-lg px-1.5 text-sm hover:bg-slate-100" onClick={onDup} title={t.editor.duplicate}>⧉</button>
-        <button className="rounded-lg px-1.5 text-sm text-red-600 hover:bg-red-50" onClick={onDel} title={t.editor.delete}>🗑</button>
+        <button className="rounded-lg p-1.5 text-muted hover:bg-surface" onClick={onDup} title={t.editor.duplicate}><Copy className="h-4 w-4" /></button>
+        <button className="rounded-lg p-1.5 text-red-600 hover:bg-red-50" onClick={onDel} title={t.editor.delete}><Trash2 className="h-4 w-4" /></button>
       </div>
     </li>
   )
@@ -235,7 +242,7 @@ function QuestionList({ questions, sel, errors, onSelect, onReorder, onAdd, onDu
     <aside className="card flex max-h-[75dvh] flex-col gap-2 overflow-hidden p-3 lg:sticky lg:top-20">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onEnd}>
         <SortableContext items={questions.map((q) => q.id)} strategy={verticalListSortingStrategy}>
-          <ol className="flex flex-col gap-1.5 overflow-auto bg-slate-50 p-1">
+          <ol className="scrollbar-thin flex flex-col gap-1.5 overflow-auto p-0.5">
             {questions.map((q, i) => (
               <SortRow key={q.id} q={q} i={i} active={q.id === sel} hasErr={(errors.get(q.id) ?? []).length > 0} onSelect={() => onSelect(q.id)} onDup={() => onDup(q)} onDel={() => onDel(q)} />
             ))}
@@ -246,7 +253,7 @@ function QuestionList({ questions, sel, errors, onSelect, onReorder, onAdd, onDu
         <select className="input min-h-11 flex-1 py-1 text-sm" value={type} onChange={(e) => setType(e.target.value as QuestionType)} aria-label={t.editor.type}>
           {ALL_TYPES.map((x) => <option key={x} value={x}>{TYPE_ICON[x]} {t.types[x]}</option>)}
         </select>
-        <button className="btn btn-primary min-h-11 px-3 text-sm" onClick={() => onAdd(type)}>{t.editor.addQuestion}</button>
+        <button className="btn btn-primary btn-icon min-h-11 w-11" title={t.editor.addQuestion} onClick={() => onAdd(type)}><Plus /></button>
       </div>
     </aside>
   )
@@ -296,7 +303,7 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
               const ok = q.correct.includes(o.id)
               const canMark = q.type === 'single' || q.type === 'multi' || q.type === 'truefalse'
               return (
-                <div key={o.id} className="flex items-center gap-2 rounded-xl p-2" style={{ background: TILE_COLORS[i % 6] }}>
+                <div key={o.id} className="flex items-center gap-2 rounded-2xl p-2 shadow-sm" style={{ background: TILE_COLORS[i % 6] }}>
                   <Shape i={i} size={22} />
                   {q.type === 'order' && <span className="font-display text-white">{i + 1}.</span>}
                   <input className="input min-h-10 flex-1 py-1" aria-label={t.editor.option(i + 1)} placeholder={t.editor.option(i + 1)} value={o.text} maxLength={90} disabled={q.type === 'truefalse'} onChange={(e) => setOpt(o.id, e.target.value)} />
@@ -441,6 +448,15 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
           </select>
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label">{S.readTime}</label>
+          <select className="input" value={s.readTime ?? 4} onChange={(e) => onChange({ readTime: Number(e.target.value) })}>
+            {READ_TIMES.map((x) => <option key={x} value={x}>{x === 0 ? S.readNone : t.editor.sec(x)}</option>)}
+          </select>
+        </div>
+      </div>
+      <Toggle checked={s.powerUps !== false} onChange={(v) => onChange({ powerUps: v })} label={S.powerUps} />
       <Toggle checked={s.streakBonus} onChange={(v) => onChange({ streakBonus: v })} label={S.streakBonus} />
       <Toggle checked={s.shuffleQuestions} onChange={(v) => onChange({ shuffleQuestions: v })} label={S.shuffleQuestions} />
       <Toggle checked={s.shuffleOptions} onChange={(v) => onChange({ shuffleOptions: v })} label={S.shuffleOptions} />
@@ -449,8 +465,8 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
       <Toggle checked={s.nameFilter} onChange={(v) => onChange({ nameFilter: v })} label={S.nameFilter} />
       <Toggle checked={s.music.on} onChange={(v) => onChange({ music: { ...s.music, on: v } })} label={S.music} />
       <label className="flex items-center gap-3">
-        <span className="w-24 font-bold">{S.volume}</span>
-        <input type="range" min={0} max={100} value={s.music.volume} className="flex-1 accent-[#E4202E]" onChange={(e) => onChange({ music: { ...s.music, volume: Number(e.target.value) } })} />
+        <span className="w-24 text-sm font-semibold">{S.volume}</span>
+        <input type="range" min={0} max={100} value={s.music.volume} className="flex-1 accent-[#E8202A]" onChange={(e) => onChange({ music: { ...s.music, volume: Number(e.target.value) } })} />
         <span className="w-10 text-right">{s.music.volume}</span>
       </label>
     </div>
@@ -460,7 +476,7 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
 function PhonePreview({ q, shuffle }: { q: Question; shuffle: boolean }) {
   const pub = useMemo(() => toPublic(q, { shuffleOptions: shuffle } as QuizSettings), [q, shuffle])
   return (
-    <div className="mx-auto w-[300px] rounded-[2.5rem] border-[10px] border-slate-900 bg-deep p-3 text-white shadow-2xl">
+    <div className="mx-auto w-[300px] rounded-[2.5rem] border-[10px] border-slate-900 bg-night p-3 text-white shadow-2xl" style={{ backgroundImage: 'radial-gradient(20rem 16rem at 110% -10%, rgba(255,122,26,.3), transparent 60%), radial-gradient(20rem 16rem at -10% 110%, rgba(232,32,42,.3), transparent 60%)' }}>
       <div className="flex min-h-[520px] flex-col gap-3">
         <div className="text-center text-xs opacity-70">{t.types[q.type]} · {t.editor.sec(q.timeLimit)}</div>
         <h3 className="text-center text-lg leading-snug">{q.text || '—'}</h3>

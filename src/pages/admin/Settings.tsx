@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { loadAppSettings, saveAppSettings } from '../../firebase/db'
 import { TIME_OPTIONS } from '../../lib/defaults'
 import { t } from '../../i18n/az'
-import { Spinner } from '../../components/ui'
+import { PageHeader, Spinner } from '../../components/ui'
+import { Save } from 'lucide-react'
 import type { AppSettings } from '../../types'
 
 export default function Settings() {
@@ -17,8 +18,8 @@ export default function Settings() {
     try { await saveAppSettings(next); setS(next); setMsg(S.saved) } catch { setMsg(t.app.error) }
   }
   return (
-    <div className="mx-auto max-w-2xl p-4 sm:p-6">
-      <h1 className="mb-6 text-3xl">{S.appTitle}</h1>
+    <div className="mx-auto max-w-2xl p-4 sm:p-8">
+      <PageHeader title={S.appTitle} />
       <div className="card flex flex-col gap-4 p-5">
         <div>
           <label className="label">{S.appDefaultTime}</label>
@@ -28,7 +29,7 @@ export default function Settings() {
         </div>
         <div>
           <label className="label">{S.appMusicVolume}: {s.musicVolume}</label>
-          <input type="range" min={0} max={100} value={s.musicVolume} className="w-full accent-[#E4202E]" onChange={(e) => setS({ ...s, musicVolume: Number(e.target.value) })} />
+          <input type="range" min={0} max={100} value={s.musicVolume} className="w-full accent-[#E8202A]" onChange={(e) => setS({ ...s, musicVolume: Number(e.target.value) })} />
         </div>
         <div>
           <label className="label">{S.brandText}</label>
@@ -38,9 +39,10 @@ export default function Settings() {
           <label className="label">{S.bannedWords}</label>
           <textarea className="input" rows={3} value={words} onChange={(e) => setWords(e.target.value)} />
         </div>
-        {msg && <p className="font-bold text-green-700" role="status">{msg}</p>}
-        <button className="btn btn-primary" onClick={() => void save()}>{t.app.save}</button>
+        {msg && <p className="text-sm font-semibold text-ok" role="status">{msg}</p>}
+        <button className="btn btn-primary" onClick={() => void save()}><Save />{t.app.save}</button>
       </div>
+      <p className="mt-6 text-xs leading-relaxed text-muted">{t.admin.credits}</p>
     </div>
   )
 }

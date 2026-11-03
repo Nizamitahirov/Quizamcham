@@ -7,6 +7,7 @@ import { SCORED_TYPES } from '../../lib/scoring'
 import { download } from '../../lib/csv'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
+import { ArrowLeft, Download } from 'lucide-react'
 import { Avatar } from '../../components/Avatar'
 import { TILE_COLORS } from '../../components/AnswerTile'
 import type { Game } from '../../types'
@@ -23,19 +24,19 @@ export default function GameReport() {
   if (!r || !game) return <div className="p-10"><Spinner /></div>
   const pct = (x: number) => `${Math.round(x * 100)}%`
   return (
-    <div className="mx-auto max-w-7xl p-4 sm:p-6">
+    <div className="mx-auto max-w-7xl p-4 sm:p-8">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <Link to="/admin/games" className="btn btn-ghost-dark min-h-10">←</Link>
+        <Link to="/admin/games" className="btn btn-ghost-dark btn-icon"><ArrowLeft /></Link>
         <div className="mr-auto">
-          <h1 className="text-3xl">{t.games.report}</h1>
-          <p className="text-slate-500">{game.title} · PIN {game.pin} · {game.createdAt?.toDate().toLocaleString('az-AZ')}</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.games.report}</h1>
+          <p className="text-sm text-muted">{game.title} · PIN {game.pin} · {game.createdAt?.toDate().toLocaleString('az-AZ')}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => download(`quizamcham-${game.pin}.csv`, reportCsv(r))}>{t.host.exportCsv}</button>
+        <button className="btn btn-primary" onClick={() => download(`quizamcham-${game.pin}.csv`, reportCsv(r))}><Download />{t.host.exportCsv}</button>
       </div>
 
       <div className="card mb-8 overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+          <thead className="bg-surface text-[11px] uppercase tracking-wider text-muted">
             <tr>
               <th className="p-3">#</th><th className="p-3">{t.games.player}</th><th className="p-3">{t.games.score}</th><th className="p-3">{t.games.correct}</th><th className="p-3">{t.games.accuracy}</th><th className="p-3">{t.games.avgTime}</th>
               {r.qstats.map((s) => <th key={s.index} className="p-3 text-center" title={s.q.text}>S{s.index + 1}</th>)}
@@ -45,7 +46,7 @@ export default function GameReport() {
             {r.players.map((p) => {
               const times = p.history.filter((h) => h.answer != null && h.timeMs != null).map((h) => h.timeMs as number)
               return (
-                <tr key={p.uid} className="border-t border-slate-100">
+                <tr key={p.uid} className="border-t border-line">
                   <td className="p-3 font-display">{p.rank}</td>
                   <td className="p-3"><span className="flex items-center gap-2"><Avatar avatar={p.avatar} size={28} /><b>{p.firstName} {p.lastName}</b></span></td>
                   <td className="p-3 font-bold">{p.score}</td>
@@ -64,15 +65,15 @@ export default function GameReport() {
         </table>
       </div>
 
-      <h2 className="mb-4 text-2xl">{t.games.questionStats}</h2>
+      <h2 className="mb-4 text-xl font-bold">{t.games.questionStats}</h2>
       <div className="grid gap-4 md:grid-cols-2">
         {r.qstats.map((s) => {
           const total = Math.max(1, s.answered)
           const scored = SCORED_TYPES.has(s.q.type)
           return (
             <div key={s.index} className="card p-4">
-              <p className="mb-1 text-xs font-extrabold uppercase text-slate-400">S{s.index + 1} · {t.types[s.q.type]}</p>
-              <p className="mb-3 font-extrabold">{s.q.text}</p>
+              <p className="mb-1 text-xs font-extrabold uppercase text-muted">S{s.index + 1} · {t.types[s.q.type]}</p>
+              <p className="mb-3 font-bold">{s.q.text}</p>
               <div className="mb-3 flex flex-wrap gap-4 text-sm">
                 {scored && <span><b>{t.games.accuracy}:</b> {pct(s.accuracy)}</span>}
                 <span><b>{t.games.avgTime}:</b> {(s.avgTimeMs / 1000).toFixed(1)} s</span>
@@ -85,7 +86,7 @@ export default function GameReport() {
                     return (
                       <div key={o.id} className="flex items-center gap-2 text-sm">
                         <span className="w-40 truncate">{s.q.correct.includes(o.id) && s.q.type !== 'poll' ? '✅ ' : ''}{o.text}</span>
-                        <div className="h-5 flex-1 rounded bg-slate-100"><div className="h-5 rounded" style={{ width: `${(n / total) * 100}%`, background: TILE_COLORS[i % 6] }} /></div>
+                        <div className="h-5 flex-1 rounded bg-surface"><div className="h-5 rounded" style={{ width: `${(n / total) * 100}%`, background: TILE_COLORS[i % 6] }} /></div>
                         <span className="w-8 text-right font-bold">{n}</span>
                       </div>
                     )
@@ -93,7 +94,7 @@ export default function GameReport() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {Object.entries(s.distribution).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([k, n]) => <span key={k} className="rounded-lg bg-slate-100 px-2 py-1 text-sm">{k} ×{n}</span>)}
+                  {Object.entries(s.distribution).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([k, n]) => <span key={k} className="rounded-lg bg-surface px-2 py-1 text-sm">{k} ×{n}</span>)}
                 </div>
               )}
               {s.mostWrong && <p className="mt-3 text-sm text-red-700"><b>{t.games.mostWrong}:</b> {s.mostWrong}</p>}

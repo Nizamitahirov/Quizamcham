@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { useMemo } from 'react'
 import { t } from '../../i18n/az'
+import { Check, Lightbulb, Zap } from 'lucide-react'
 import { AnswerTile, TILE_COLORS, Shape } from '../../components/AnswerTile'
 import { TimerRing } from '../../components/TimerRing'
 import { Avatar } from '../../components/Avatar'
@@ -25,16 +26,19 @@ export function HostQuestion({ game, players, answered }: HostCtx) {
     <div className="flex min-h-0 flex-1 flex-col gap-6 p-8">
       <div className="flex items-start gap-8">
         <div className="flex-1">
-          <div className="font-display mb-2 text-2xl opacity-70">{t.game.questionOf(game.questionIndex + 1, game.totalQuestions)} · {t.types[q.type]}</div>
-          <h1 className={`${fitText(q.text)} leading-tight`}>{q.text}</h1>
+          <div className="chip chip-dark mb-3 text-lg">{t.game.questionOf(game.questionIndex + 1, game.totalQuestions)} · {t.types[q.type]}{q.points === 'double' && <span className="ml-2 rounded-full bg-yellow-300 px-2 text-ink">2x</span>}</div>
+          <h1 className={`${fitText(q.text)} font-black leading-tight`}>{q.text}</h1>
         </div>
         <TimerRing endsAt={game.questionEndsAt} total={q.timeLimit} pausedMs={game.pausedRemainingMs} size={170} />
       </div>
       <div className="flex min-h-0 flex-1 items-center justify-center gap-8">
         {q.imageUrl && <img src={q.imageUrl} alt="" className="max-h-full max-w-[40%] rounded-3xl object-contain shadow-2xl" />}
         <div className="flex flex-col items-center gap-4">
-          <motion.div key={answered.size} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="font-display text-[9rem] leading-none">{answered.size}</motion.div>
-          <div className="text-3xl opacity-80">{t.host.answered(answered.size, players.length)}</div>
+          <div className="glass-strong flex flex-col items-center gap-2 px-14 py-6">
+            <motion.div key={answered.size} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="font-display text-grad text-[8rem] font-black leading-none">{answered.size}</motion.div>
+            <div className="text-2xl text-white/70">{t.host.answered(answered.size, players.length)}</div>
+            <div className="h-2 w-64 overflow-hidden rounded-full bg-white/10"><motion.div className="h-full rounded-full" style={{ background: 'var(--grad)' }} animate={{ width: `${players.length ? (answered.size / players.length) * 100 : 0}%` }} /></div>
+          </div>
           <div className="flex max-w-3xl flex-wrap justify-center gap-1">
             {players.map((p) => (
               <motion.span key={p.uid} animate={{ opacity: answered.has(p.uid) ? 1 : 0.2, scale: answered.has(p.uid) ? 1 : 0.85 }}>
@@ -92,8 +96,14 @@ export function HostReveal({ game, questions }: HostCtx) {
   const maxCount = Math.max(1, ...Object.values(r.distribution))
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6 p-8">
-      <h1 className={`${fitText(q.text)} leading-tight`}>{q.text}</h1>
-      <div className="text-2xl opacity-70">{t.host.answered(r.answeredCount, game.playerCount)}</div>
+      <div className="flex items-start gap-6">
+        <h1 className={`${fitText(q.text)} flex-1 font-black leading-tight`}>{q.text}</h1>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <span className="chip chip-dark text-lg">{t.host.answered(r.answeredCount, game.playerCount)}</span>
+          {q.type !== 'poll' && r.correctCount != null && game.playerCount > 0 && <span className="chip bg-green-500/20 text-lg text-green-300"><Check className="h-5 w-5" />{t.host.correctPct(Math.round((r.correctCount / game.playerCount) * 100))}</span>}
+          {r.fastest && <span className="chip bg-yellow-300 text-lg text-ink"><Zap className="h-5 w-5" />{r.fastest.name} · {(r.fastest.ms / 1000).toFixed(2)} s</span>}
+        </div>
+      </div>
       {isChoice && (
         <div className="flex min-h-0 flex-1 items-end justify-center gap-6 px-10">
           {q.options.map((o, i) => {
@@ -101,11 +111,11 @@ export function HostReveal({ game, questions }: HostCtx) {
             const ok = r.correct.includes(o.id)
             const dim = q.type !== 'poll' && showCorrect && !ok
             return (
-              <div key={o.id} className="flex h-full max-w-72 flex-1 flex-col items-center justify-end gap-3" style={{ opacity: dim ? 0.35 : 1 }}>
+              <div key={o.id} className="flex h-full max-w-96 flex-1 flex-col items-center justify-end gap-3" style={{ opacity: dim ? 0.35 : 1 }}>
                 <div className="font-display text-5xl">{n}</div>
-                <motion.div initial={{ height: 0 }} animate={{ height: `${(n / maxCount) * 100}%` }} transition={{ duration: 0.9, ease: 'easeOut' }} className="w-full rounded-t-2xl" style={{ background: TILE_COLORS[i % 6], minHeight: 12 }} />
-                <div className="flex w-full items-center gap-2 rounded-2xl p-3 text-2xl font-extrabold" style={{ background: TILE_COLORS[i % 6] }}>
-                  <Shape i={i} size={30} /><span className="min-w-0 flex-1 truncate">{o.text}</span>{ok && showCorrect && q.type !== 'poll' && <span>✅</span>}
+                <motion.div initial={{ height: 0 }} animate={{ height: `${(n / maxCount) * 100}%` }} transition={{ duration: 0.9, ease: 'easeOut' }} className="w-full rounded-t-2xl" style={{ background: `linear-gradient(180deg, color-mix(in srgb, ${TILE_COLORS[i % 6]} 70%, white), ${TILE_COLORS[i % 6]})`, minHeight: 12, boxShadow: ok && showCorrect ? '0 0 40px -6px rgba(255,255,255,.5)' : undefined }} />
+                <div className="flex w-full items-center gap-2 rounded-2xl p-3 text-2xl font-bold" style={{ background: TILE_COLORS[i % 6] }}>
+                  <Shape i={i} size={30} /><span className="line-clamp-2 min-w-0 flex-1 text-xl leading-tight">{o.text}</span>{ok && showCorrect && q.type !== 'poll' && <span>✅</span>}
                 </div>
                 {q.type === 'poll' && <div className="text-2xl">{Math.round((n / total) * 100)}%</div>}
               </div>
@@ -147,7 +157,7 @@ export function HostReveal({ game, questions }: HostCtx) {
           {(r.texts ?? []).length === 0 && <p className="col-span-4 text-center text-3xl opacity-70">{t.host.nobodyAnswered}</p>}
         </div>
       )}
-      {r.explanation && <div className="rounded-3xl bg-white/12 p-5 text-3xl" style={{ background: 'rgba(255,255,255,.12)' }}>💡 {r.explanation}</div>}
+      {r.explanation && <div className="glass flex items-start gap-4 p-5 text-3xl leading-snug"><Lightbulb className="mt-1 h-9 w-9 shrink-0 text-yellow-300" />{r.explanation}</div>}
     </div>
   )
 }

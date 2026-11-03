@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowRight, Rocket } from 'lucide-react'
 import { doc, getDoc } from 'firebase/firestore'
 import { motion } from 'framer-motion'
 import { db } from '../../firebase/config'
@@ -9,8 +10,9 @@ import { joinGame, lookupPin } from '../../lib/gameEngine'
 import { isValidPin } from '../../lib/pin'
 import { cleanName, isNameAllowed } from '../../lib/nameFilter'
 import { t } from '../../i18n/az'
-import { FullScreen, Page, Spinner } from '../../components/ui'
-import { FloatingShapes } from '../../components/FloatingShapes'
+import { Spinner } from '../../components/ui'
+import { FuturisticBg } from '../../components/FuturisticBg'
+import { Logo } from '../../components/Brand'
 import { AvatarPicker, randomAvatar } from '../../components/AvatarPicker'
 import { useSession } from '../../store/gameStore'
 import { audio } from '../../audio/AudioEngine'
@@ -101,49 +103,67 @@ export default function Join() {
     }
   }
 
+  const steps = [t.join.step1, t.join.step2, t.join.step3]
+  const cur = step === 'pin' ? 0 : 1
   return (
-    <FullScreen>
-      <FloatingShapes count={10} />
-      <Page>
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-5 p-4 pb-10">
-          <div className="text-center">
-            <div className="text-6xl">🎯</div>
-            <h1 className="mt-1 text-4xl">{t.app.name}</h1>
-          </div>
-          {!uid ? <Spinner /> : step === 'pin' ? (
-            <motion.form key={shakeKey} className={`card flex flex-col gap-4 p-5 ${shakeKey ? 'shake' : ''}`} onSubmit={(e) => { e.preventDefault(); void checkPin(pin) }}>
-              <label className="label" htmlFor="pin">{t.join.pin}</label>
-              <input
-                id="pin" className="input font-display text-center text-4xl tracking-[.3em]" inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
-                maxLength={6} placeholder={t.join.pinPlaceholder} value={pin} autoFocus
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              />
-              {error && <p className="text-center font-extrabold text-red-600" role="alert">{error}</p>}
-              <button className="btn btn-primary text-xl" disabled={busy || pin.length !== 6}>{busy ? t.app.loading : t.join.continue}</button>
-            </motion.form>
-          ) : (
-            <motion.form initial={{ x: 60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); void doJoin() }}>
-              <h2 className="text-center text-2xl">{t.join.profileTitle}</h2>
-              <div className="card grid grid-cols-2 gap-3 p-4">
-                <div>
-                  <label className="label" htmlFor="fn">{t.join.firstName}</label>
-                  <input id="fn" className="input" value={first} maxLength={20} autoComplete="given-name" onChange={(e) => setFirst(cleanName(e.target.value))} />
-                </div>
-                <div>
-                  <label className="label" htmlFor="ln">{t.join.lastName}</label>
-                  <input id="ln" className="input" value={last} maxLength={20} autoComplete="family-name" onChange={(e) => setLast(cleanName(e.target.value))} />
-                </div>
-                <p className="col-span-2 -mt-1 text-xs text-slate-500">{t.join.nameHint}</p>
+    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night">
+      <FuturisticBg floor={false} intensity={0.8} />
+      <header className="relative z-10 mx-auto flex w-full max-w-md items-center justify-between px-4 pt-5">
+        <Link to="/" aria-label={t.app.home}><Logo size={34} /></Link>
+      </header>
+      <main className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pb-8 pt-6">
+        <ol className="flex items-center gap-2" aria-label="progress">
+          {steps.map((label, i) => (
+            <li key={label} className="flex flex-1 items-center gap-2">
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${i <= cur ? 'text-white' : 'bg-white/10 text-white/50'}`} style={i <= cur ? { background: 'var(--grad)' } : undefined}>{i + 1}</span>
+              <span className={`text-xs font-bold ${i <= cur ? 'text-white' : 'text-white/45'}`}>{label}</span>
+              {i < steps.length - 1 && <span className={`h-0.5 flex-1 rounded-full ${i < cur ? 'bg-orange-500' : 'bg-white/10'}`} />}
+            </li>
+          ))}
+        </ol>
+        {!uid ? <Spinner /> : step === 'pin' ? (
+          <motion.form key={shakeKey} className={`glass-strong gradient-border flex flex-col gap-5 p-6 ${shakeKey ? 'shake' : ''}`} onSubmit={(e) => { e.preventDefault(); void checkPin(pin) }}>
+            <div>
+              <h1 className="text-3xl font-black">{t.join.title}</h1>
+              <p className="mt-1 text-sm text-white/60">{t.home.subtitle}</p>
+            </div>
+            <label className="label-dark mb-0" htmlFor="pin">{t.join.pin}</label>
+            <input
+              id="pin" className="input-dark font-display h-20 text-center text-5xl font-black tracking-[.35em]" inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
+              maxLength={6} placeholder="••••••" value={pin} autoFocus
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            />
+            {error && <p className="rounded-xl bg-red-500/15 px-3 py-2 text-center text-sm font-bold text-red-300" role="alert">{error}</p>}
+            <button className="btn btn-primary btn-lg" disabled={busy || pin.length !== 6}>{busy ? t.app.loading : <>{t.join.continue}<ArrowRight /></>}</button>
+          </motion.form>
+        ) : (
+          <motion.form initial={{ x: 60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); void doJoin() }}>
+            <div>
+              <p className="text-sm font-bold text-orange-300">{t.join.hello}</p>
+              <h1 className="text-3xl font-black">{t.join.profileTitle}</h1>
+            </div>
+            <div className="glass grid grid-cols-2 gap-3 p-4">
+              <div>
+                <label className="label-dark" htmlFor="fn">{t.join.firstName}</label>
+                <input id="fn" className="input-dark" value={first} maxLength={20} autoComplete="given-name" onChange={(e) => setFirst(cleanName(e.target.value))} />
               </div>
-              <div className="rounded-3xl bg-white/10 p-4 backdrop-blur">
-                <AvatarPicker value={avatar} onChange={(a) => { setAvatar(a); audio.unlock(); audio.click() }} />
+              <div>
+                <label className="label-dark" htmlFor="ln">{t.join.lastName}</label>
+                <input id="ln" className="input-dark" value={last} maxLength={20} autoComplete="family-name" onChange={(e) => setLast(cleanName(e.target.value))} />
               </div>
-              {error && <p key={shakeKey} className="shake rounded-xl bg-white py-2 text-center font-extrabold text-red-600" role="alert">{error}</p>}
-              <button className="btn btn-primary sticky bottom-3 text-2xl" disabled={busy || first.trim().length < 2 || last.trim().length < 2}>{busy ? t.join.joining : t.join.go}</button>
-            </motion.form>
-          )}
-        </div>
-      </Page>
-    </FullScreen>
+              <p className="col-span-2 -mt-1 text-xs text-white/45">{t.join.nameHint}</p>
+            </div>
+            <div className="glass p-4">
+              <span className="label-dark">{t.join.chooseAvatar}</span>
+              <AvatarPicker value={avatar} onChange={(a) => { setAvatar(a); audio.unlock(); audio.click() }} />
+            </div>
+            {error && <p key={shakeKey} className="shake rounded-xl bg-red-500/15 py-2 text-center text-sm font-bold text-red-300" role="alert">{error}</p>}
+            <button className="btn btn-primary btn-lg sticky bottom-4 text-xl" disabled={busy || first.trim().length < 2 || last.trim().length < 2}>
+              {busy ? t.join.joining : <><Rocket />{t.join.go}</>}
+            </button>
+          </motion.form>
+        )}
+      </main>
+    </div>
   )
 }

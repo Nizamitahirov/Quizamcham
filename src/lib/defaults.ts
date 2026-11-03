@@ -15,7 +15,12 @@ export const DEFAULT_SETTINGS: QuizSettings = {
   music: { on: true, volume: 60, theme: 'energetic' },
   nameFilter: true,
   maxPlayers: 100,
+  powerUps: true,
+  readTime: 4,
 }
+
+export const READ_TIMES = [0, 3, 4, 5, 8]
+export const POWER_START = { fifty: 1, double: 1, shield: 1 } as const
 
 export const DEFAULT_APP_SETTINGS: AppSettings = { defaultTime: 45, musicVolume: 60, brandText: 'Quizamcham', bannedWords: [] }
 

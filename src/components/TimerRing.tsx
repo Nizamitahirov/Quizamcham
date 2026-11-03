@@ -1,12 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { Timestamp } from 'firebase/firestore'
+import { Pause } from 'lucide-react'
 import { serverNow } from '../lib/timeSync'
 import { audio } from '../audio/AudioEngine'
 
-/** Server vaxtına sinxron dairəvi taymer. */
+/** Server vaxtına sinxron dairəvi taymer (brend qradiyenti). */
 export function TimerRing({ endsAt, total, size = 72, pausedMs, sound = true, onTick }: { endsAt: Timestamp | null; total: number; size?: number; pausedMs?: number | null; sound?: boolean; onTick?: (remainingMs: number) => void }) {
   const [now, setNow] = useState(serverNow())
   const lastSec = useRef<number | null>(null)
+  const gid = useId().replace(/:/g, '')
   useEffect(() => {
     let raf = 0
     const loop = () => { setNow(serverNow()); raf = requestAnimationFrame(loop) }
@@ -32,13 +34,16 @@ export function TimerRing({ endsAt, total, size = 72, pausedMs, sound = true, on
   const r = 44
   const c = 2 * Math.PI * r
   return (
-    <div className={`relative ${danger ? 'pulse-red' : ''}`} style={{ width: size, height: size }} role="timer" aria-live="off" aria-label={`${sec}`}>
+    <div className={`relative shrink-0 ${danger ? 'pulse-red' : ''}`} style={{ width: size, height: size }} role="timer" aria-label={`${sec}`}>
       <svg viewBox="0 0 100 100" width={size} height={size} className="-rotate-90">
-        <circle cx="50" cy="50" r={r} fill="rgba(0,0,0,.35)" stroke="rgba(255,255,255,.18)" strokeWidth="9" />
-        <circle cx="50" cy="50" r={r} fill="none" stroke={danger ? '#ef4444' : '#FFD166'} strokeWidth="9" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - frac)} />
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FFB020" /><stop offset="100%" stopColor="#FF4D1F" /></linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r={r} fill="rgba(10,11,22,.55)" stroke="rgba(255,255,255,.12)" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={danger ? '#ef4444' : `url(#${gid})`} strokeWidth="8" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - frac)} style={{ filter: `drop-shadow(0 0 6px ${danger ? '#ef4444' : '#FF7A1A'})` }} />
       </svg>
-      <span className="font-display absolute inset-0 flex items-center justify-center text-white" style={{ fontSize: size * 0.36 }}>
-        {pausedMs != null ? '⏸' : sec}
+      <span className="font-display absolute inset-0 flex items-center justify-center font-black tabular-nums text-white" style={{ fontSize: size * 0.34 }}>
+        {pausedMs != null ? <Pause style={{ width: size * 0.34, height: size * 0.34 }} /> : sec}
       </span>
     </div>
   )

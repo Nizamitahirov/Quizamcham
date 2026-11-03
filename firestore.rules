@@ -42,14 +42,18 @@ service cloud.firestore {
           && nameOk(request.resource.data.firstName)
           && nameOk(request.resource.data.lastName)
           && request.resource.data.avatar is map
-          && request.resource.data.keys().hasOnly(['firstName','lastName','avatar','joinedAt','lastSeen','kicked','score','correctCount','streak','bestStreak','totalCorrectTimeMs','lastResult','history'])
+          && request.resource.data.keys().hasOnly(['firstName','lastName','avatar','joinedAt','lastSeen','kicked','score','correctCount','streak','bestStreak','totalCorrectTimeMs','lastResult','history','powerups','power','fiftyHide'])
           && request.resource.data.score == 0
+          && (!('fiftyHide' in request.resource.data) || request.resource.data.fiftyHide == null)
+          && (!('powerups' in request.resource.data) || (request.resource.data.powerups.fifty <= 1 && request.resource.data.powerups.double <= 1 && request.resource.data.powerups.shield <= 1))
           && request.resource.data.correctCount == 0
           && request.resource.data.history.size() == 0
           && request.resource.data.kicked == false;
-        // oyunçu yalnız profil və heartbeat sahələrini dəyişə bilər
+        // oyunçu yalnız profil, heartbeat və güc artırıcı seçimini dəyişə bilər (inventarı host idarə edir)
         allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['firstName','lastName','avatar','lastSeen'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['firstName','lastName','avatar','lastSeen','power'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['power']) || request.resource.data.power == null
+              || (request.resource.data.power.type in ['fifty','double','shield'] && request.resource.data.power.q == game(gameId).questionIndex))
           && nameOk(request.resource.data.firstName)
           && nameOk(request.resource.data.lastName));
         allow delete: if isAdmin();

@@ -38,7 +38,15 @@ export interface QuizSettings {
   music: MusicSettings
   nameFilter: boolean
   maxPlayers: number
+  powerUps: boolean
+  readTime: number // sualı cavablardan əvvəl göstərmə (s)
 }
+
+export type PowerType = 'fifty' | 'double' | 'shield'
+export type PowerInventory = Record<PowerType, number>
+export interface PowerUse { q: number; type: PowerType }
+export interface Award { key: 'fastest' | 'streak' | 'perfect' | 'sharp'; uid: string; name: string; avatar: AvatarData; value: string }
+export interface Fastest { uid: string; name: string; avatar: AvatarData; ms: number }
 
 export interface Quiz {
   id: string
@@ -80,7 +88,11 @@ export interface Reveal {
   distribution: Record<string, number>
   answeredCount: number
   texts?: string[]
+  fastest?: Fastest | null
+  correctCount?: number
 }
+
+export interface Preview { index: number; text: string; type: QuestionType; imageUrl?: string; points: PointsMode; readMs: number }
 
 export interface Game {
   id: string
@@ -108,14 +120,16 @@ export interface Game {
   stats?: GameStats | null
   review?: ReviewItem[]
   scoredCount?: number
+  preview?: Preview | null
+  awards?: Award[]
 }
 
 export interface ReviewItem { type: QuestionType; text: string; options: Option[]; correct: string[]; accepted: string[] | null; sliderAnswer: number | null; explanation: string | null; scored: boolean }
 
 export interface GameStats { players: number; avgAccuracy: number; hardest?: { index: number; text: string; accuracy: number }; easiest?: { index: number; text: string; accuracy: number } }
 
-export interface HistoryItem { q: number; answer: AnswerValue | null; correct: boolean; points: number; timeMs: number | null }
-export interface LastResult { questionIndex: number; correct: boolean; points: number; streakBonus: number; rank: number; prevRank: number; answered: boolean; poll?: boolean; streak: number; total: number }
+export interface HistoryItem { q: number; answer: AnswerValue | null; correct: boolean; points: number; timeMs: number | null; power?: PowerType | null }
+export interface LastResult { questionIndex: number; correct: boolean; points: number; streakBonus: number; rank: number; prevRank: number; answered: boolean; poll?: boolean; streak: number; total: number; timeMs?: number | null; power?: PowerType | null; shielded?: boolean }
 
 export interface Player {
   uid: string
@@ -132,6 +146,9 @@ export interface Player {
   totalCorrectTimeMs: number
   lastResult: LastResult | null
   history: HistoryItem[]
+  powerups?: PowerInventory
+  power?: PowerUse | null
+  fiftyHide?: { q: number; ids: string[] } | null
 }
 
 export type AnswerValue = string[] | string | number
