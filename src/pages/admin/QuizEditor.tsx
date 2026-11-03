@@ -7,7 +7,10 @@ import { loadAppSettings, loadQuiz, quizToJson, saveQuizFull } from '../../fireb
 import { createGame, toPublic } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { download } from '../../lib/csv'
-import { ALL_TYPES, READ_TIMES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
+import { ALL_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
+import { Tabs } from '../../components/kit'
+import { SettingsForm } from '../../components/QuizSettingsForm'
+import { ListChecks } from 'lucide-react'
 import { ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
@@ -30,7 +33,7 @@ export default function QuizEditor() {
   const [sel, setSel] = useState<string | null>(null)
   const [state, setState] = useState<SaveState>('saved')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
+  const [tab, setTab] = useState<'questions' | 'settings'>('questions')
   const [showPreview, setShowPreview] = useState(false)
   const [launching, setLaunching] = useState(false)
   const [defaultTime, setDefaultTime] = useState<number | null>(null)
@@ -168,7 +171,6 @@ export default function QuizEditor() {
         <input type="color" aria-label={t.editor.coverColor} className="h-[46px] w-12 cursor-pointer rounded-xl border border-line bg-white p-1" value={quiz.coverColor} onChange={(e) => setQuizField({ coverColor: e.target.value })} />
         <input className="input min-w-48 flex-1 text-base font-bold" aria-label={t.editor.title} placeholder={t.editor.title} value={quiz.title} maxLength={80} onChange={(e) => setQuizField({ title: e.target.value })} />
         <div className="flex flex-wrap items-center gap-1">
-          <button className="btn btn-ghost-dark btn-icon" title={t.editor.quizSettings} onClick={() => setShowSettings(true)}><Settings2 /></button>
           <button className="btn btn-ghost-dark btn-icon" title={t.editor.preview} disabled={!current} onClick={() => setShowPreview(true)}><Eye /></button>
           <button className="btn btn-ghost-dark btn-icon" title={t.editor.exportJson} onClick={() => download(`${quiz.title || 'quiz'}.json`, JSON.stringify(quizToJson(quiz, questions), null, 2), 'application/json')}><Download /></button>
           <button className="btn btn-ghost-dark btn-icon" title={t.editor.undo} disabled={!undoCount} onClick={undo}><Undo2 /></button>
@@ -184,6 +186,9 @@ export default function QuizEditor() {
       <textarea className="input mb-4 min-h-12" placeholder={t.editor.description} value={quiz.description} maxLength={300} rows={1} onChange={(e) => setQuizField({ description: e.target.value })} />
       {errCount > 0 && <p className="mb-3 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700"><AlertTriangle className="h-4 w-4" />{t.editor.issues(errCount)}</p>}
 
+      <div className="mb-4"><Tabs value={tab} onChange={setTab} tabs={[{ value: 'questions', label: `${t.admin.editorTabs.questions} (${questions.length})`, icon: ListChecks, badge: errCount }, { value: 'settings', label: t.admin.editorTabs.settings, icon: Settings2 }]} /></div>
+
+      {tab === 'settings' ? <SettingsForm s={quiz.settings} onChange={setSettings} /> : (
       <div className="grid gap-4 lg:grid-cols-[300px_1fr_280px]">
         <QuestionList questions={questions} sel={sel} errors={errors} onSelect={setSel} onReorder={reorder} onAdd={addQ} onDup={dupQ} onDel={delQ} />
         {current ? (
@@ -192,13 +197,11 @@ export default function QuizEditor() {
             <QuestionSettings q={current} onChange={updateQ} />
           </>
         ) : (
-          <div className="card col-span-2 p-10 text-center text-slate-500">{t.editor.noQuestion}</div>
+          <div className="card col-span-2 p-10 text-center text-muted">{t.editor.noQuestion}</div>
         )}
       </div>
+      )}
 
-      <Modal open={showSettings} onClose={() => setShowSettings(false)} title={t.editor.quizSettings}>
-        <SettingsForm s={quiz.settings} onChange={setSettings} />
-      </Modal>
       <Modal open={showPreview && !!current} onClose={() => setShowPreview(false)} title={t.editor.preview}>
         {current && <PhonePreview q={current} shuffle={quiz.settings.shuffleOptions} />}
       </Modal>
@@ -402,74 +405,6 @@ function QuestionSettings({ q, onChange }: { q: Question; onChange: (q: Question
         </div>
       )}
     </aside>
-  )
-}
-
-export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: Partial<QuizSettings>) => void }) {
-  const S = t.settings
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label">{S.mode}</label>
-          <select className="input" value={s.mode} onChange={(e) => onChange({ mode: e.target.value as QuizSettings['mode'] })}>
-            <option value="host">{S.modeHost}</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">{S.scoring}</label>
-          <select className="input" value={s.scoring} onChange={(e) => onChange({ scoring: e.target.value as QuizSettings['scoring'] })}>
-            <option value="speed">{S.scoringSpeed}</option>
-            <option value="accuracy">{S.scoringAccuracy}</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">{S.defaultTime}</label>
-          <select className="input" value={s.defaultTime} onChange={(e) => onChange({ defaultTime: Number(e.target.value) })}>
-            {TIME_OPTIONS.map((x) => <option key={x} value={x}>{t.editor.sec(x)}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">{S.leaderboardEvery}</label>
-          <select className="input" value={s.leaderboardEvery} onChange={(e) => onChange({ leaderboardEvery: Number(e.target.value) as QuizSettings['leaderboardEvery'] })}>
-            <option value={1}>{S.lbEach}</option>
-            <option value={3}>{S.lb3}</option>
-            <option value={0}>{S.lbEnd}</option>
-          </select>
-        </div>
-        <div>
-          <label className="label">{S.maxPlayers}</label>
-          <input type="number" min={10} max={200} className="input" value={s.maxPlayers} onChange={(e) => onChange({ maxPlayers: Math.max(10, Math.min(200, Number(e.target.value) || 100)) })} />
-        </div>
-        <div>
-          <label className="label">{S.theme}</label>
-          <select className="input" value={s.music.theme} onChange={(e) => onChange({ music: { ...s.music, theme: e.target.value as QuizSettings['music']['theme'] } })}>
-            {(['energetic', 'chill', 'retro'] as const).map((x) => <option key={x} value={x}>{S.themes[x]}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label">{S.readTime}</label>
-          <select className="input" value={s.readTime ?? 4} onChange={(e) => onChange({ readTime: Number(e.target.value) })}>
-            {READ_TIMES.map((x) => <option key={x} value={x}>{x === 0 ? S.readNone : t.editor.sec(x)}</option>)}
-          </select>
-        </div>
-      </div>
-      <Toggle checked={s.powerUps !== false} onChange={(v) => onChange({ powerUps: v })} label={S.powerUps} />
-      <Toggle checked={s.streakBonus} onChange={(v) => onChange({ streakBonus: v })} label={S.streakBonus} />
-      <Toggle checked={s.shuffleQuestions} onChange={(v) => onChange({ shuffleQuestions: v })} label={S.shuffleQuestions} />
-      <Toggle checked={s.shuffleOptions} onChange={(v) => onChange({ shuffleOptions: v })} label={S.shuffleOptions} />
-      <Toggle checked={s.showCorrect} onChange={(v) => onChange({ showCorrect: v })} label={S.showCorrect} />
-      <Toggle checked={s.lateJoin} onChange={(v) => onChange({ lateJoin: v })} label={S.lateJoin} />
-      <Toggle checked={s.nameFilter} onChange={(v) => onChange({ nameFilter: v })} label={S.nameFilter} />
-      <Toggle checked={s.music.on} onChange={(v) => onChange({ music: { ...s.music, on: v } })} label={S.music} />
-      <label className="flex items-center gap-3">
-        <span className="w-24 text-sm font-semibold">{S.volume}</span>
-        <input type="range" min={0} max={100} value={s.music.volume} className="flex-1 accent-[#E8202A]" onChange={(e) => onChange({ music: { ...s.music, volume: Number(e.target.value) } })} />
-        <span className="w-10 text-right">{s.music.volume}</span>
-      </label>
-    </div>
   )
 }
 

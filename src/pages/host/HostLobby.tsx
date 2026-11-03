@@ -42,6 +42,12 @@ export function HostLobby({ game, players, onKick }: HostCtx & { onKick: (p: Pla
             <div className="label-dark">{t.app.tagline}</div>
             <h1 className="truncate text-5xl font-black">{game.title}</h1>
           </div>
+          {game.host?.name && (
+            <div className="glass flex shrink-0 items-center gap-3 py-2 pl-2 pr-5">
+              {game.host.photoUrl ? <img src={game.host.photoUrl} alt="" className="h-12 w-12 rounded-full object-cover" /> : game.host.avatar ? <Avatar avatar={game.host.avatar} size={48} /> : null}
+              <div><div className="text-[10px] font-bold uppercase tracking-widest text-white/50">{t.profile.trainer}</div><div className="text-lg font-bold">{game.host.name}</div>{game.host.title && <div className="text-xs text-white/55">{game.host.title}</div>}</div>
+            </div>
+          )}
           <motion.div key={players.length} initial={{ scale: 1.3 }} animate={{ scale: 1 }} className="flex shrink-0 items-center gap-3 rounded-2xl px-6 py-3" style={{ background: 'var(--grad)', boxShadow: 'var(--glow)' }}>
             <span className="font-display text-5xl font-black">{players.length}</span>
             <span className="text-lg font-bold leading-tight">{t.games.players}</span>

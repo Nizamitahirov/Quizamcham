@@ -1,33 +1,12 @@
 /**
- * Web Audio API ilə kodla yaradılan musiqi və səs effektləri.
- * Fayl və lisenziya tələb etmir. public/audio/{lobby,question,podium}.mp3 varsa, onlar üstünlük alır.
+ * Web Audio API ilə kodla yaradılan musiqi (14 mövzu) və səs effektləri.
+ * Düz/səhv cavab üçün admin yüklədiyi səs parçası varsa, o çalınır.
  */
-type Theme = 'energetic' | 'chill' | 'retro'
+import type { MusicTheme, SoundSettings } from '../types'
+import { THEMES } from './themes'
+
 type Track = 'lobby' | 'question' | null
-
 const MUTE_KEY = 'qz.muted'
-
-const THEMES: Record<Theme, { bpm: number; wave: OscillatorType; lead: OscillatorType; chords: number[][]; bass: number[]; melody: (number | null)[] }> = {
-  energetic: {
-    bpm: 122, wave: 'sawtooth', lead: 'square',
-    chords: [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]],
-    bass: [45, 41, 36, 43],
-    melody: [69, null, 72, 71, 69, null, 67, 69, 65, null, 69, 67, 64, null, 67, 71],
-  },
-  chill: {
-    bpm: 116, wave: 'triangle', lead: 'sine',
-    chords: [[60, 64, 67, 71], [57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 65]],
-    bass: [48, 45, 41, 43],
-    melody: [76, null, null, 74, 72, null, 71, null, 72, null, null, 69, 67, null, null, null],
-  },
-  retro: {
-    bpm: 124, wave: 'square', lead: 'square',
-    chords: [[60, 64, 67], [57, 60, 64], [53, 57, 60], [55, 59, 62]],
-    bass: [36, 33, 29, 31],
-    melody: [72, 76, 79, 76, 72, 76, 79, 84, 81, 77, 74, 77, 79, 74, 71, 74],
-  },
-}
-
 const midi = (n: number) => 440 * Math.pow(2, (n - 69) / 12)
 
 class Engine {
@@ -37,15 +16,17 @@ class Engine {
   sfxGain: GainNode | null = null
   muted = false
   volume = 0.6
-  theme: Theme = 'energetic'
+  theme: MusicTheme = 'energetic'
   track: Track = null
   private timer: number | null = null
   private step = 0
   private nextTime = 0
   private tension = 0
-  private fileEl: HTMLAudioElement | null = null
-  private fileAvailable: Record<string, boolean | undefined> = {}
   private listeners = new Set<() => void>()
+  private clips: { correct?: AudioBuffer; wrong?: AudioBuffer } = {}
+  private clipSrc: AudioBufferSourceNode | null = null
+  private pendingClips: SoundSettings | null = null
+  private previewTimer: number | null = null
 
   constructor() {
     try { this.muted = localStorage.getItem(MUTE_KEY) === '1' } catch { /* noop */ }
@@ -54,7 +35,6 @@ class Engine {
   subscribe(fn: () => void) { this.listeners.add(fn); return () => { this.listeners.delete(fn) } }
   private emit() { this.listeners.forEach((f) => f()) }
 
-  /** İstifadəçi toxunuşundan sonra çağırılmalıdır. */
   unlock() {
     if (!this.ctx) {
       const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
@@ -68,6 +48,7 @@ class Engine {
       this.sfxGain.gain.value = 0.9
       this.sfxGain.connect(this.master)
       this.applyGain()
+      if (this.pendingClips) void this.loadClips(this.pendingClips)
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume()
   }
@@ -77,11 +58,9 @@ class Engine {
   private applyGain() {
     if (this.master) this.master.gain.value = this.muted ? 0 : 1
     if (this.musicGain) this.musicGain.gain.value = 0.35 * this.volume
-    if (this.fileEl) this.fileEl.volume = this.muted ? 0 : this.volume
   }
-
   setVolume(v0to100: number) { this.volume = Math.max(0, Math.min(1, v0to100 / 100)); this.applyGain() }
-  setTheme(t: Theme) { this.theme = t }
+  setTheme(t: MusicTheme) { this.theme = THEMES[t] ? t : 'energetic' }
   setMuted(m: boolean) {
     this.muted = m
     try { localStorage.setItem(MUTE_KEY, m ? '1' : '0') } catch { /* noop */ }
@@ -89,15 +68,28 @@ class Engine {
     this.emit()
   }
   toggleMute() { this.setMuted(!this.muted) }
-
   setTension(t: number) { this.tension = t }
 
-  async play(track: Exclude<Track, null>) {
+  /** Admin yüklədiyi düz/səhv cavab parçaları. */
+  async loadClips(s: SoundSettings | null) {
+    this.pendingClips = s
+    this.clips = {}
+    if (!s || !s.enabled || !this.ctx) return
+    for (const k of ['correct', 'wrong'] as const) {
+      const c = s[k]
+      if (!c?.data) continue
+      try {
+        const buf = await fetch(c.data).then((r) => r.arrayBuffer())
+        this.clips[k] = await this.ctx.decodeAudioData(buf)
+      } catch { /* yararsız fayl */ }
+    }
+  }
+
+  play(track: Exclude<Track, null>) {
     if (this.track === track) return
     this.stopMusic()
     this.track = track
-    if (await this.tryFile(track)) return
-    if (this.track !== track || !this.ctx) return
+    if (!this.ctx) return
     this.step = 0
     this.nextTime = this.ctx.currentTime + 0.05
     this.timer = window.setInterval(() => this.schedule(), 25)
@@ -106,38 +98,28 @@ class Engine {
   stopMusic() {
     this.track = null
     if (this.timer) { clearInterval(this.timer); this.timer = null }
-    if (this.fileEl) { this.fileEl.pause(); this.fileEl = null }
+    if (this.previewTimer) { clearTimeout(this.previewTimer); this.previewTimer = null }
   }
 
-  private async tryFile(name: string): Promise<boolean> {
-    if (this.fileAvailable[name] === false) return false
-    try {
-      if (this.fileAvailable[name] === undefined) {
-        const res = await fetch(`/audio/${name}.mp3`, { method: 'HEAD' })
-        this.fileAvailable[name] = res.ok && (res.headers.get('content-type') ?? '').includes('audio')
-      }
-      if (!this.fileAvailable[name]) return false
-      const el = new Audio(`/audio/${name}.mp3`)
-      el.loop = name !== 'podium'
-      el.volume = this.muted ? 0 : this.volume
-      this.fileEl = el
-      await el.play()
-      return true
-    } catch {
-      this.fileAvailable[name] = false
-      return false
-    }
+  /** Admin panelində mövzunu 8 saniyəlik dinləmək. */
+  preview(theme: MusicTheme) {
+    this.unlock()
+    this.setTheme(theme)
+    this.track = null
+    this.play('lobby')
+    this.previewTimer = window.setTimeout(() => this.stopMusic(), 8000)
   }
 
   private schedule() {
     if (!this.ctx) return
     const th = THEMES[this.theme]
-    const bpm = this.track === 'question' ? th.bpm + 8 + this.tension * 30 : th.bpm
+    const bpm = this.track === 'question' ? th.bpm + 6 + this.tension * 30 : th.bpm
     const sixteenth = 60 / bpm / 4
     while (this.nextTime < this.ctx.currentTime + 0.12) {
-      this.scheduleStep(this.step, this.nextTime, sixteenth)
+      const swing = this.step % 2 === 1 ? th.swing * sixteenth : 0
+      this.scheduleStep(this.step, this.nextTime + swing, sixteenth)
       this.nextTime += sixteenth
-      this.step = (this.step + 1) % 128 // 8 takt × 16
+      this.step = (this.step + 1) % 128
     }
   }
 
@@ -145,32 +127,40 @@ class Engine {
     const th = THEMES[this.theme]
     const s16 = step % 16
     const bar = Math.floor(step / 16) % 8
-    const chordIdx = Math.floor(bar / 2) % th.chords.length
+    const chord = th.chords[Math.floor(bar / 2) % th.chords.length]
+    const root = chord[0] - 12
     const out = this.musicGain!
+    const on = (pat: string) => pat[s16] === 'x'
     if (this.track === 'lobby') {
-      if (s16 % 4 === 0) this.kick(t, out)
-      if (s16 === 4 || s16 === 12) this.snare(t, out)
-      if (s16 % 2 === 1) this.hat(t, out, 0.05)
-      if (s16 % 4 === 2) this.tone(midi(th.bass[chordIdx]), t, dur * 1.8, th.wave === 'square' ? 'square' : 'triangle', 0.22, out)
-      if (s16 === 0 || s16 === 8) th.chords[chordIdx].forEach((n) => this.tone(midi(n), t, dur * 6, th.wave, 0.045, out, 1800))
+      if (on(th.kick)) this.kick(t, out)
+      if (on(th.snare)) this.snare(t, out)
+      if (on(th.hat)) this.hat(t, out, th.hatGain)
+      const b = th.bass[s16]
+      if (b && b !== '.') this.tone(midi(root + (b === 'o' ? 12 : Number(b) || 0)), t, dur * 1.6, th.bassWave, 0.18, out, 900)
+      if (th.pad && (s16 === 0 || s16 === 8)) chord.forEach((n) => this.tone(midi(n), t, dur * 7.5, th.pad!, th.padGain, out, th.cutoff))
       const m = th.melody[s16]
-      if (m && bar % 2 === 1) this.tone(midi(m), t, dur * 1.6, th.lead, 0.06, out, 3000)
+      if (m && bar % th.leadEvery === th.leadEvery - 1) this.tone(midi(m), t, dur * 1.7, th.lead, 0.055, out, th.cutoff * 1.6)
     } else if (this.track === 'question') {
       if (s16 % 4 === 0) this.kick(t, out, 0.6)
-      if (s16 % 2 === 0) this.hat(t, out, 0.04 + this.tension * 0.05)
-      if (s16 === 0 || s16 === 6 || s16 === 10) this.tone(midi(th.bass[chordIdx] - 12 + (this.tension > 0.6 ? 1 : 0)), t, dur * 1.5, 'sawtooth', 0.12, out, 600)
-      if (s16 === 0 && bar % 2 === 0) this.tone(midi(th.chords[chordIdx][0] + 12), t, dur * 8, 'sine', 0.03, out)
+      if (s16 % 2 === 0) this.hat(t, out, 0.035 + this.tension * 0.05)
+      if (s16 === 0 || s16 === 6 || s16 === 10) this.tone(midi(root - 12 + (this.tension > 0.6 ? 1 : 0)), t, dur * 1.5, 'sawtooth', 0.12, out, 600)
+      if (s16 === 0 && bar % 2 === 0) this.tone(midi(chord[0] + 12), t, dur * 8, th.pad ?? 'sine', 0.03, out, th.cutoff)
     }
   }
 
-  private tone(freq: number, t: number, dur: number, type: OscillatorType, gain: number, out: AudioNode, cutoff?: number) {
+  private tone(freq: number, t: number, dur: number, type: OscillatorType, gain: number, out: AudioNode, cutoff?: number, vibrato = 0) {
     const ctx = this.ctx!
     const o = ctx.createOscillator()
     const g = ctx.createGain()
     o.type = type
     o.frequency.setValueAtTime(freq, t)
+    if (vibrato) {
+      const lfo = ctx.createOscillator(); const lg = ctx.createGain()
+      lfo.frequency.value = 5.5; lg.gain.value = vibrato
+      lfo.connect(lg); lg.connect(o.frequency); lfo.start(t); lfo.stop(t + dur + 0.1)
+    }
     g.gain.setValueAtTime(0.0001, t)
-    g.gain.exponentialRampToValueAtTime(gain, t + 0.01)
+    g.gain.exponentialRampToValueAtTime(gain, t + 0.012)
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
     let node: AudioNode = o
     if (cutoff) {
@@ -184,6 +174,7 @@ class Engine {
     g.connect(out)
     o.start(t)
     o.stop(t + dur + 0.05)
+    return o
   }
 
   private noise(t: number, dur: number, gain: number, out: AudioNode, hp = 6000) {
@@ -200,49 +191,68 @@ class Engine {
     const g = ctx.createGain()
     g.gain.setValueAtTime(gain, t)
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
-    src.connect(f)
-    f.connect(g)
-    g.connect(out)
+    src.connect(f); f.connect(g); g.connect(out)
     src.start(t)
   }
-
   private kick(t: number, out: AudioNode, gain = 0.8) {
     const ctx = this.ctx!
-    const o = ctx.createOscillator()
-    const g = ctx.createGain()
+    const o = ctx.createOscillator(); const g = ctx.createGain()
     o.frequency.setValueAtTime(150, t)
     o.frequency.exponentialRampToValueAtTime(40, t + 0.12)
     g.gain.setValueAtTime(gain, t)
     g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18)
-    o.connect(g)
-    g.connect(out)
-    o.start(t)
-    o.stop(t + 0.2)
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.2)
   }
-  private snare(t: number, out: AudioNode) { this.noise(t, 0.15, 0.25, out, 1500) }
-  private hat(t: number, out: AudioNode, gain: number) { this.noise(t, 0.04, gain, out, 7000) }
+  private snare(t: number, out: AudioNode) { this.noise(t, 0.15, 0.22, out, 1500) }
+  private hat(t: number, out: AudioNode, gain: number) { if (gain > 0) this.noise(t, 0.04, gain, out, 7000) }
 
   // ---------- Effektlər ----------
   private sfx(fn: (t: number, out: AudioNode) => void) {
     if (!this.ctx || !this.sfxGain) return
     fn(this.ctx.currentTime + 0.01, this.sfxGain)
   }
+  private playClip(k: 'correct' | 'wrong') {
+    const buf = this.clips[k]
+    if (!buf || !this.ctx || !this.sfxGain) return false
+    this.clipSrc?.stop()
+    const src = this.ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(this.sfxGain)
+    src.start()
+    this.clipSrc = src
+    return true
+  }
   pop() { this.sfx((t, o) => { this.tone(midi(84), t, 0.08, 'sine', 0.3, o); this.tone(midi(91), t + 0.05, 0.1, 'sine', 0.25, o) }) }
   click() { this.sfx((t, o) => this.tone(1200, t, 0.05, 'square', 0.12, o, 4000)) }
-  correct() { this.sfx((t, o) => { this.tone(midi(76), t, 0.15, 'triangle', 0.35, o); this.tone(midi(84), t + 0.12, 0.35, 'triangle', 0.35, o) }) }
-  wrong() { this.sfx((t, o) => { this.tone(midi(43), t, 0.35, 'sawtooth', 0.25, o, 500); this.tone(midi(38), t + 0.15, 0.45, 'sawtooth', 0.25, o, 400) }) }
+
+  /** Qələbə: orijinal diskofank fanfarı (oktava bas + akkord ştabı + yüksələn arpecio). */
+  correct() {
+    if (this.playClip('correct')) return
+    this.sfx((t, o) => {
+      const b = 60 / 116 / 2
+      ;[0, 1, 2, 3].forEach((i) => { this.kick(t + i * b, o, 0.7); this.tone(midi(i % 2 ? 50 : 38), t + i * b, b * 0.9, 'sawtooth', 0.22, o, 900) })
+      ;[[62, 66, 69, 73], [64, 68, 71, 74]].forEach((ch, k) => ch.forEach((n) => this.tone(midi(n), t + b * (1 + k * 2), b * 0.7, 'square', 0.06, o, 3200)))
+      ;[74, 78, 81, 86].forEach((n, i) => this.tone(midi(n), t + b * 2 + i * 0.07, 0.35, 'triangle', 0.16, o))
+      this.noise(t + b * 3.5, 0.5, 0.08, o, 5000)
+    })
+  }
+  /** Məyus: orijinal enən "vah-vah" melodiyası, vibrato ilə. */
+  wrong() {
+    if (this.playClip('wrong')) return
+    this.sfx((t, o) => {
+      const seq = [[55, 0, 0.32], [54, 0.36, 0.32], [53, 0.72, 0.32], [52, 1.08, 1.1]] as const
+      seq.forEach(([n, d, l]) => this.tone(midi(n), t + d, l, 'sawtooth', 0.16, o, 700, d > 1 ? 9 : 2.5))
+    })
+  }
   beep(high = false) { this.sfx((t, o) => this.tone(high ? 1320 : 880, t, 0.14, 'sine', 0.3, o)) }
   tick() { this.sfx((t, o) => this.tone(2000, t, 0.03, 'square', 0.12, o, 5000)) }
   whoosh() { this.sfx((t, o) => this.noise(t, 0.3, 0.15, o, 2500)) }
   fanfare() {
     this.stopMusic()
-    void this.tryFile('podium').then((ok) => {
-      if (ok) return
-      this.sfx((t, o) => {
-        const seq = [[60, 0], [64, 0.15], [67, 0.3], [72, 0.45], [67, 0.75], [72, 0.9]]
-        seq.forEach(([n, d]) => this.tone(midi(n), t + d, d >= 0.9 ? 1.0 : 0.25, 'square', 0.18, o, 3500))
-        ;[60, 64, 67, 72].forEach((n) => this.tone(midi(n), t + 0.9, 1.2, 'sawtooth', 0.06, o, 2500))
-      })
+    this.sfx((t, o) => {
+      const seq = [[60, 0], [64, 0.15], [67, 0.3], [72, 0.45], [67, 0.75], [72, 0.9]]
+      seq.forEach(([n, d]) => this.tone(midi(n), t + d, d >= 0.9 ? 1.0 : 0.25, 'square', 0.18, o, 3500))
+      ;[60, 64, 67, 72].forEach((n) => this.tone(midi(n), t + 0.9, 1.2, 'sawtooth', 0.06, o, 2500))
     })
   }
 }

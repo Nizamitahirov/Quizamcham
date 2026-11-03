@@ -2,7 +2,8 @@ import type { Timestamp } from 'firebase/firestore'
 
 export type QuestionType = 'single' | 'multi' | 'truefalse' | 'type' | 'poll' | 'order' | 'slider' | 'wordcloud' | 'open' | 'slide'
 export type PointsMode = 'standard' | 'double' | 'none'
-export type Phase = 'lobby' | 'countdown' | 'question' | 'reveal' | 'leaderboard' | 'podium' | 'finished'
+export type Phase = 'lobby' | 'countdown' | 'question' | 'reveal' | 'leaderboard' | 'podium' | 'finished' | 'self'
+export type GameMode = 'host' | 'auto' | 'self'
 
 export interface Option { id: string; text: string }
 export interface SliderCfg { min: number; max: number; step: number; answer: number; tolerance: number }
@@ -23,10 +24,13 @@ export interface Question {
   shuffleOptions?: boolean
 }
 
-export interface MusicSettings { on: boolean; volume: number; theme: 'energetic' | 'chill' | 'retro' }
+export type MusicTheme = 'energetic' | 'chill' | 'retro' | 'synthwave' | 'lofi' | 'house' | 'funk' | 'arcade' | 'epic' | 'jazz' | 'latin' | 'techno' | 'bossa' | 'space'
+export interface MusicSettings { on: boolean; volume: number; theme: MusicTheme }
 
 export interface QuizSettings {
-  mode: 'host' | 'self'
+  mode: GameMode
+  autoDelay: number // avtomatik rejimdə nəticə/reytinq ekranlarının müddəti (s)
+  selfMinutes: number // öz tempində rejimdə ümumi vaxt (dəq)
   scoring: 'speed' | 'accuracy'
   defaultTime: number
   streakBonus: boolean
@@ -122,14 +126,21 @@ export interface Game {
   scoredCount?: number
   preview?: Preview | null
   awards?: Award[]
+  publicQuestions?: PublicQuestion[]
+  selfEndsAt?: Timestamp | null
+  host?: HostProfile | null
 }
+
+export interface HostProfile { name: string; title?: string; org?: string; avatar?: AvatarData | null; photoUrl?: string }
+export interface TrainerProfile extends HostProfile { bio?: string; email?: string; defaults?: Partial<QuizSettings> }
+export interface SelfReveal { correct: string[]; accepted?: string[] | null; sliderAnswer?: number | null; explanation?: string | null }
 
 export interface ReviewItem { type: QuestionType; text: string; options: Option[]; correct: string[]; accepted: string[] | null; sliderAnswer: number | null; explanation: string | null; scored: boolean }
 
 export interface GameStats { players: number; avgAccuracy: number; hardest?: { index: number; text: string; accuracy: number }; easiest?: { index: number; text: string; accuracy: number } }
 
 export interface HistoryItem { q: number; answer: AnswerValue | null; correct: boolean; points: number; timeMs: number | null; power?: PowerType | null }
-export interface LastResult { questionIndex: number; correct: boolean; points: number; streakBonus: number; rank: number; prevRank: number; answered: boolean; poll?: boolean; streak: number; total: number; timeMs?: number | null; power?: PowerType | null; shielded?: boolean }
+export interface LastResult { questionIndex: number; correct: boolean; points: number; streakBonus: number; rank: number; prevRank: number; answered: boolean; poll?: boolean; streak: number; total: number; timeMs?: number | null; power?: PowerType | null; shielded?: boolean; reveal?: SelfReveal | null }
 
 export interface Player {
   uid: string
@@ -153,6 +164,9 @@ export interface Player {
 
 export type AnswerValue = string[] | string | number
 
-export interface Answer { uid: string; questionIndex: number; value: AnswerValue; answeredAt: Timestamp | null }
+export interface Answer { uid: string; questionIndex: number; value: AnswerValue | null; answeredAt: Timestamp | null }
 
 export interface AppSettings { defaultTime: number; musicVolume: number; brandText: string; bannedWords: string[] }
+
+export interface SoundClip { data: string; name: string; start: number; duration: number }
+export interface SoundSettings { correct?: SoundClip | null; wrong?: SoundClip | null; enabled: boolean }

@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Clock, Divide, Flame, Hourglass, Shield, Trophy, Zap } from 'lucide-react'
+import { Clock, Flame, Hourglass, Trophy } from 'lucide-react'
 import { ensureAnonymous } from '../../firebase/auth'
 import { useGame, usePlayer, useInterval } from '../../lib/hooks'
-import { activatePower, heartbeat, sendReaction, submitAnswer } from '../../lib/gameEngine'
+import { heartbeat, sendReaction, submitAnswer } from '../../lib/gameEngine'
 import { syncClock } from '../../lib/timeSync'
 import { shortName } from '../../lib/nameFilter'
 import { t } from '../../i18n/az'
@@ -25,7 +25,10 @@ import PlayerResults from './PlayerResults'
 import { CORRECT, WRONG, STICKERS_OK, STICKERS_BAD, pick, streakText } from '../../content/feedback'
 import { audio } from '../../audio/AudioEngine'
 import { useSession } from '../../store/gameStore'
-import type { AnswerValue, Game, Player, PowerType } from '../../types'
+import type { AnswerValue, Game, Player } from '../../types'
+import { SelfPlay } from './SelfPlay'
+import { PowerBar, POWERS } from './PowerBar'
+import { loadSounds } from '../../firebase/db'
 
 export default function PlayerGame() {
   const { gameId } = useParams()
@@ -56,6 +59,7 @@ export default function PlayerGame() {
     audio.setTheme(game.settings.music?.theme ?? 'energetic')
     audio.setVolume(game.settings.music?.on === false ? 0 : game.settings.music?.volume ?? 60)
     if (phase === 'lobby') void audio.play('lobby')
+    else if (phase === 'self') audio.stopMusic()
     else if (phase === 'question' && game.currentQuestion?.type !== 'slide') void audio.play('question')
     else if (phase === 'podium') audio.fanfare()
     else audio.stopMusic()
@@ -63,6 +67,8 @@ export default function PlayerGame() {
   }, [phase, game?.questionIndex])
   useEffect(() => () => audio.stopMusic(), [])
   useEffect(() => { if (game?.phase === 'finished') setGame(null) }, [game?.phase, setGame])
+  // Admin yüklədiyi düz/səhv cavab səsləri
+  useEffect(() => { void loadSounds().then((snd) => audio.loadClips(snd)) }, [])
 
   if (!gameId) return <Navigate to="/join" replace />
   if (gl || pl || !uid) return <div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>
@@ -127,6 +133,7 @@ function PhaseView({ game, player, uid, onReact }: { game: Game; player: Player;
     case 'leaderboard': return <LeaderboardView game={game} player={player} />
     case 'podium': return <PodiumWait player={player} />
     case 'finished': return <PlayerResults game={game} player={player} />
+    case 'self': return <SelfPlay game={game} player={player} uid={uid} />
   }
 }
 
@@ -145,6 +152,16 @@ function LobbyView({ game, player, onReact }: { game: Game; player: Player; onRe
         <p className="text-2xl font-black">{player.firstName} {player.lastName}</p>
         <p className="mt-1 text-sm text-white/60">{t.lobby.waiting}</p>
       </div>
+      {game.host?.name && (
+        <div className="glass flex w-full items-center gap-3 p-3 text-left">
+          {game.host.photoUrl ? <img src={game.host.photoUrl} alt="" className="h-11 w-11 rounded-full object-cover" /> : game.host.avatar ? <Avatar avatar={game.host.avatar} size={44} /> : <span className="flex h-11 w-11 items-center justify-center rounded-full font-black" style={{ background: 'var(--grad)' }}>{game.host.name[0]}</span>}
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-widest text-white/50">{t.profile.trainer}</div>
+            <div className="truncate font-bold">{game.host.name}</div>
+            {(game.host.title || game.host.org) && <div className="truncate text-xs text-white/55">{[game.host.title, game.host.org].filter(Boolean).join(' · ')}</div>}
+          </div>
+        </div>
+      )}
       <AnimatePresence mode="wait">
         <motion.p key={tip} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="glass w-full px-4 py-3 text-sm font-semibold">
           {t.lobby.tips[tip]}
@@ -173,38 +190,6 @@ function LobbyView({ game, player, onReact }: { game: Game; player: Player; onRe
         </div>
       </div>
       <div className="mt-auto w-full pb-2"><ReactionBar onReact={onReact} /></div>
-    </div>
-  )
-}
-
-const POWERS: { type: PowerType; icon: typeof Zap; label: string; desc: string; bg: string }[] = [
-  { type: 'fifty', icon: Divide, label: t.power.fifty, desc: t.power.fiftyDesc, bg: 'linear-gradient(135deg,#2563EB,#7C3AED)' },
-  { type: 'double', icon: Zap, label: t.power.double, desc: t.power.doubleDesc, bg: 'var(--grad)' },
-  { type: 'shield', icon: Shield, label: t.power.shield, desc: t.power.shieldDesc, bg: 'linear-gradient(135deg,#059669,#0EA5E9)' },
-]
-
-function PowerBar({ game, player, disabled }: { game: Game; player: Player; disabled: boolean }) {
-  const q = game.currentQuestion
-  if (!q || game.settings.powerUps === false || !['single', 'multi', 'truefalse', 'type', 'order', 'slider'].includes(q.type)) return null
-  const active = player.power?.q === game.questionIndex ? player.power.type : null
-  const fiftyOk = ['single', 'multi'].includes(q.type) && q.options.length >= 3
-  const use = (type: PowerType) => { audio.pop(); void activatePower(game.id, player.uid, game.questionIndex, type).catch(() => {}) }
-  return (
-    <div className="grid grid-cols-3 gap-2" aria-label={t.power.title}>
-      {POWERS.map((p) => {
-        const left = player.powerups?.[p.type] ?? 0
-        const isActive = active === p.type || (p.type === 'fifty' && player.fiftyHide?.q === game.questionIndex)
-        const can = !disabled && !active && left > 0 && (p.type !== 'fifty' || fiftyOk)
-        return (
-          <motion.button key={p.type} type="button" whileTap={can ? { scale: 0.9 } : undefined} disabled={!can && !isActive} onClick={() => can && use(p.type)} title={p.desc}
-            className={`relative flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-bold transition disabled:opacity-35 ${isActive ? 'border-transparent text-white' : 'border-white/12 bg-white/[.06] text-white'}`}
-            style={isActive ? { background: p.bg, boxShadow: '0 0 20px -4px rgba(255,138,26,.7)' } : undefined}>
-            <p.icon className="h-4 w-4" />{p.label}
-            {!isActive && <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black text-ink">{left}</span>}
-            {isActive && <span className="text-[10px] opacity-90">✓</span>}
-          </motion.button>
-        )
-      })}
     </div>
   )
 }

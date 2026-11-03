@@ -3,7 +3,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { loadQuiz } from '../firebase/db'
-import type { Answer, AvatarData, Award, Fastest, Game, GameStats, HistoryItem, LeaderEntry, LobbyEntry, Player, PowerType, PublicQuestion, Question, QuizSettings, Reveal } from '../types'
+import type { Answer, AvatarData, Award, Fastest, Game, GameStats, HistoryItem, HostProfile, LeaderEntry, LobbyEntry, Player, PowerType, PublicQuestion, Question, QuizSettings, Reveal, TrainerProfile } from '../types'
 import { POWER_START } from './defaults'
 import { evaluateAnswer, normalizeText, rankPlayers, SCORED_TYPES, basePoints, streakBonus } from './scoring'
 import { randomPin } from './pin'
@@ -33,8 +33,13 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   }
   if (!pin) throw new Error('pin-failed')
 
+  const prof = await getDoc(doc(db, 'profiles', hostUid)).catch(() => null)
+  const p = prof?.exists() ? (prof.data() as TrainerProfile) : null
+  const host: HostProfile | null = p?.name ? { name: p.name, title: p.title || '', org: p.org || '', avatar: p.avatar ?? null, photoUrl: p.photoUrl || '' } : null
+
   const gameRef = doc(collection(db, 'games'))
   const game: Omit<Game, 'id'> = {
+    host,
     pin, quizId, hostUid, title: quiz.title, settings: quiz.settings,
     phase: 'lobby', locked: false, questionIndex: -1, totalQuestions: questions.length,
     currentQuestion: null, questionStartedAt: null, questionEndsAt: null, pausedRemainingMs: null,
@@ -260,11 +265,78 @@ export function nextAfterReveal(game: Game): 'leaderboard' | 'question' | 'podiu
 
 export const toPhase = (gameId: string, phase: Game['phase']) => updateDoc(gref(gameId), { phase })
 
+// ============ Öz tempində rejimi ============
+
+/** Bütün sualların ictimai hissəsini yayımlayır; hər oyunçu öz sürəti ilə irəliləyir. */
+export async function startSelf(game: Game, questions: Question[]) {
+  const minutes = game.settings.selfMinutes || 15
+  await updateDoc(gref(game.id), {
+    phase: 'self', questionIndex: questions.length - 1, startedAt: Timestamp.fromMillis(serverNow()),
+    publicQuestions: JSON.parse(JSON.stringify(questions.map((q) => toPublic(q, game.settings)))),
+    selfEndsAt: Timestamp.fromMillis(serverNow() + minutes * 60_000),
+  })
+}
+
+export const startSelfQuestion = (gameId: string, uid: string, qi: number) =>
+  setDoc(doc(db, 'games', gameId, 'starts', `${uid}_${qi}`), { uid, q: qi, startedAt: serverTimestamp() })
+
+export const selfAnswersQuery = (gameId: string) => collection(db, 'games', gameId, 'answers')
+
+/** Öz tempində rejimində bir cavabı dərhal qiymətləndirir və oyunçuya fərdi nəticə yazır. */
+export async function scoreSelfAnswer(game: Game, questions: Question[], player: Player, answer: Answer) {
+  const qi = answer.questionIndex
+  const q = questions[qi]
+  if (!q || (player.history ?? []).some((h) => h.q === qi)) return null
+  const st = await getDoc(doc(db, 'games', game.id, 'starts', `${player.uid}_${qi}`))
+  const startedMs = (st.get('startedAt') as Timestamp | undefined)?.toMillis() ?? answer.answeredAt?.toMillis() ?? 0
+  const raw = answer.answeredAt ? answer.answeredAt.toMillis() - startedMs : null
+  const late = raw != null && raw > q.timeLimit * 1000 + GRACE_MS
+  const value = late || answer.value === null || answer.value === undefined ? null : answer.value
+  const timeMs = value === null ? null : Math.max(0, raw ?? 0)
+  const settings = game.settings
+  const ev0 = evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring)
+  const used: PowerType | null = settings.powerUps !== false && ev0.scored && player.power?.q === qi && player.power.type !== 'fifty' && (player.powerups?.[player.power.type] ?? 0) > 0 ? player.power.type : null
+  const ev = used === 'double' ? { ...ev0, points: ev0.points * 2 } : ev0
+  const shielded = used === 'shield' && !ev.correct && value !== null
+  const np: Player = { ...player }
+  if (used) np.powerups = { ...(player.powerups ?? { ...POWER_START }), [used]: Math.max(0, (player.powerups?.[used] ?? 0) - 1) }
+  let bonus = 0
+  if (ev.scored) {
+    if (ev.correct) {
+      np.streak = (player.streak ?? 0) + 1
+      np.bestStreak = Math.max(player.bestStreak ?? 0, np.streak)
+      np.correctCount = (player.correctCount ?? 0) + 1
+      np.totalCorrectTimeMs = (player.totalCorrectTimeMs ?? 0) + (timeMs ?? 0)
+      if (settings.streakBonus && basePoints(q.points) > 0) bonus = streakBonus(np.streak)
+    } else if (!shielded) np.streak = 0
+    np.score = (player.score ?? 0) + ev.points + bonus
+  }
+  const fifty = player.fiftyHide?.q === qi ? 'fifty' as const : null
+  np.history = [...(player.history ?? []), { q: qi, answer: value, correct: ev.correct, points: ev.points + bonus, timeMs, power: used ?? fifty }]
+  await updateDoc(doc(db, 'games', game.id, 'players', player.uid), {
+    score: np.score ?? 0, correctCount: np.correctCount ?? 0, streak: np.streak ?? 0, bestStreak: np.bestStreak ?? 0,
+    totalCorrectTimeMs: np.totalCorrectTimeMs ?? 0, history: np.history, ...(np.powerups ? { powerups: np.powerups } : {}),
+    lastResult: JSON.parse(JSON.stringify({
+      questionIndex: qi, correct: ev.correct, points: ev.points, streakBonus: bonus, rank: 0, prevRank: 0, answered: value !== null,
+      poll: !ev.scored, streak: np.streak ?? 0, total: 0, timeMs, power: used ?? fifty, shielded,
+      reveal: { correct: q.type === 'poll' ? [] : q.correct, accepted: q.accepted ?? null, sliderAnswer: q.slider?.answer ?? null, explanation: q.explanation ?? null },
+    })),
+  })
+  return np
+}
+
+/** Canlı reytinqi (top 10) yeniləyir. */
+export async function updateLeaderboard(gameId: string, players: Player[], prev: LeaderEntry[] = []) {
+  const ranked = rankPlayers(players.filter((p) => !p.kicked))
+  const prevRank = new Map(prev.map((e) => [e.uid, e.rank]))
+  await updateDoc(gref(gameId), { leaderboard: leaderboardOf(ranked, prevRank), playerCount: ranked.length })
+}
+
 /** Oyunu bitir: statistika + oyunçular üçün sual icmalı. */
 export async function finishGame(game: Game, questions: Question[]) {
   const players = (await fetchPlayers(game.id)).filter((p) => !p.kicked)
   const ranked = rankPlayers(players)
-  const asked = Math.max(0, Math.min(game.totalQuestions, game.questionIndex + (game.phase === 'question' || game.phase === 'countdown' ? 0 : 1)))
+  const asked = game.phase === 'self' || game.settings.mode === 'self' ? questions.length : Math.max(0, Math.min(game.totalQuestions, game.questionIndex + (game.phase === 'question' || game.phase === 'countdown' ? 0 : 1)))
   const scoredIdx = questions.slice(0, asked).map((q, i) => ({ q, i })).filter(({ q }) => SCORED_TYPES.has(q.type))
   const perQ = scoredIdx.map(({ q, i }) => {
     const answered = players.filter((p) => p.history?.some((h) => h.q === i))
@@ -292,7 +364,7 @@ export async function finishGame(game: Game, questions: Question[]) {
     awards: JSON.parse(JSON.stringify(awards)),
     phase: 'finished', finishedAt: serverTimestamp(), stats: JSON.parse(JSON.stringify(stats)),
     leaderboard: leaderboardOf(ranked, prevRank, 200), review: JSON.parse(JSON.stringify(review)), scoredCount: scoredIdx.length,
-    currentQuestion: null, questionEndsAt: null,
+    currentQuestion: null, questionEndsAt: null, selfEndsAt: null,
   })
   batch.update(doc(db, 'pins', game.pin), { active: false })
   await batch.commit()
@@ -338,7 +410,7 @@ export async function joinGame(gameId: string, uid: string, firstName: string, l
   })
 }
 
-export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value']) =>
+export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value'] | null) =>
   setDoc(doc(db, 'games', gameId, 'answers', `${uid}_${questionIndex}`), { uid, questionIndex, value, answeredAt: serverTimestamp() })
 
 export const heartbeat = (gameId: string, uid: string) => updateDoc(doc(db, 'games', gameId, 'players', uid), { lastSeen: serverTimestamp() })

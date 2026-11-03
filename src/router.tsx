@@ -12,6 +12,8 @@ const Login = lazy(() => import('./pages/admin/Login'))
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const QuizList = lazy(() => import('./pages/admin/QuizList'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
+const Profile = lazy(() => import('./pages/admin/Profile'))
+const Sounds = lazy(() => import('./pages/admin/Sounds'))
 const QuizEditor = lazy(() => import('./pages/admin/QuizEditor'))
 const Games = lazy(() => import('./pages/admin/Games'))
 const GameReport = lazy(() => import('./pages/admin/GameReport'))
@@ -41,6 +43,8 @@ export const router = createBrowserRouter([
           { path: 'games', element: S(<Games />) },
           { path: 'games/:gameId', element: S(<GameReport />) },
           { path: 'settings', element: S(<Settings />) },
+          { path: 'profile', element: S(<Profile />) },
+          { path: 'sounds', element: S(<Sounds />) },
         ],
       },
       { path: '*', element: S(<NotFound />) },

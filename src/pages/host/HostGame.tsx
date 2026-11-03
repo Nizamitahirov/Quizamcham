@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { collection, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore'
+import { collection, doc, getDoc, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore'
 import { AnimatePresence, motion } from 'framer-motion'
 import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, createGame, grantFifty, readMsFor, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  answersQuery, createGame, grantFifty, readMsFor, startSelf, selfAnswersQuery, scoreSelfAnswer, updateLeaderboard, fetchPlayers, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -25,7 +25,8 @@ import { HostLobby } from './HostLobby'
 import { HostQuestion, HostReveal } from './HostQuestion'
 import { HostLeaderboard, HostPodium } from './HostPodium'
 import HostSummary from './HostSummary'
-import type { Game, Player, Question } from '../../types'
+import { HostSelf } from './HostSelf'
+import type { Answer, Game, Player, Question } from '../../types'
 
 export default function HostGame() {
   const { gameId } = useParams()
@@ -99,7 +100,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
     if (!game || !opened) return
     audio.setTheme(game.settings.music?.theme ?? 'energetic')
     audio.setVolume(game.settings.music?.on === false ? 0 : game.settings.music?.volume ?? 60)
-    if (game.phase === 'lobby') void audio.play('lobby')
+    if (game.phase === 'lobby' || game.phase === 'self') void audio.play('lobby')
     else if (game.phase === 'question' && game.currentQuestion?.type !== 'slide') void audio.play('question')
     else if (game.phase === 'podium') { audio.fanfare(); celebrate(5000) }
     else audio.stopMusic()
@@ -126,15 +127,15 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
 
   // 50/50 sorğularını emal et
   useEffect(() => {
-    if (!game || !questions || game.phase !== 'question' || game.settings.powerUps === false) return
-    const q = questions[game.questionIndex]
-    if (!q) return
+    if (!game || !questions || (game.phase !== 'question' && game.phase !== 'self') || game.settings.powerUps === false) return
     players.forEach((p) => {
-      if (p.kicked || p.power?.type !== 'fifty' || p.power.q !== game.questionIndex || p.fiftyHide?.q === game.questionIndex) return
-      const key = `ff-${game.questionIndex}-${p.uid}`
+      const qi = game.phase === 'self' ? p.power?.q ?? -1 : game.questionIndex
+      const q = questions[qi]
+      if (!q || p.kicked || p.power?.type !== 'fifty' || p.power.q !== qi || p.fiftyHide?.q === qi) return
+      const key = `ff-${qi}-${p.uid}`
       if (guard.current.has(key)) return
       guard.current.add(key)
-      void grantFifty(gameId, p, q, game.questionIndex).catch(() => guard.current.delete(key))
+      void grantFifty(gameId, p, q, qi).catch(() => guard.current.delete(key))
     })
   }, [game, questions, players, gameId])
 
@@ -153,6 +154,47 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
     return () => clearInterval(id)
   }, [game, questions, answered, activeCount, once])
 
+  // ---- Öz tempində: cavabları gəldikcə qiymətləndir ----
+  const gameRef = useRef(game)
+  useEffect(() => { gameRef.current = game }, [game])
+  const chains = useRef(new Map<string, Promise<unknown>>())
+  const lbTimer = useRef<number | null>(null)
+  const isSelf = game?.phase === 'self'
+  useEffect(() => {
+    if (!isSelf || !questions) return
+    return onSnapshot(selfAnswersQuery(gameId), (snap) => {
+      snap.docChanges().forEach((c) => {
+        if (c.type !== 'added') return
+        const a = c.doc.data() as Answer
+        if (!a.answeredAt) return
+        const key = `sa-${c.doc.id}`
+        if (guard.current.has(key)) return
+        guard.current.add(key)
+        const prev = chains.current.get(a.uid) ?? Promise.resolve()
+        const job = prev.then(async () => {
+          const ps = await getDoc(doc(db, 'games', gameId, 'players', a.uid))
+          if (!ps.exists()) return
+          const g = gameRef.current
+          if (g) await scoreSelfAnswer(g, questions, { ...(ps.data() as Player), uid: a.uid }, a)
+          if (lbTimer.current) clearTimeout(lbTimer.current)
+          lbTimer.current = window.setTimeout(() => { void fetchPlayers(gameId).then((pl) => updateLeaderboard(gameId, pl, gameRef.current?.leaderboard ?? [])) }, 1500)
+        }).catch((e) => { console.error(e); guard.current.delete(key) })
+        chains.current.set(a.uid, job)
+      })
+    })
+  }, [isSelf, questions, gameId])
+  // Öz tempində: vaxt bitdikdə və ya hamı bitirəndə avtomatik yekunlaşdır
+  useEffect(() => {
+    if (!game || !questions || game.phase !== 'self') return
+    const check = () => {
+      const ends = game.selfEndsAt?.toMillis() ?? Infinity
+      const allDone = active.length > 0 && active.every((p) => (p.history?.length ?? 0) >= game.totalQuestions)
+      if (serverNow() > ends + 6000 || allDone) void once('fin', () => finishGame(game, questions))
+    }
+    const id = setInterval(check, 1000)
+    return () => clearInterval(id)
+  }, [game, questions, active, once])
+
   // ---- İdarə ----
   const next = useCallback(() => {
     if (!game || !questions || busy) return
@@ -161,7 +203,11 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
       case 'lobby':
         if (activeCount === 0) return
         audio.unlock()
-        void once('start', () => toCountdown(gameId, 0, questions[0], game.settings, { startedAt: Timestamp.fromMillis(serverNow()) }))
+        if (game.settings.mode === 'self') void once('start', () => startSelf(game, questions))
+        else void once('start', () => toCountdown(gameId, 0, questions[0], game.settings, { startedAt: Timestamp.fromMillis(serverNow()) }))
+        break
+      case 'self':
+        void once('fin', () => finishGame(game, questions))
         break
       case 'question':
         if (game.currentQuestion?.type === 'slide') {
@@ -184,6 +230,30 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
         break
     }
   }, [game, questions, busy, activeCount, gameId, once])
+
+  // Avtomatik rejim: nəticə / reytinq / podium ekranlarından özü keçir
+  const [autoLeft, setAutoLeft] = useState<number | null>(null)
+  const nextRef = useRef(next)
+  useEffect(() => { nextRef.current = next }, [next])
+  useEffect(() => {
+    if (!game || game.settings.mode !== 'auto' || !['reveal', 'leaderboard', 'podium'].includes(game.phase)) { setAutoLeft(null); return }
+    const total = (game.phase === 'podium' ? 10 : game.settings.autoDelay || 6) * 1000
+    const start = Date.now()
+    const startPhase = game.phase
+    const startQi = game.questionIndex
+    setAutoLeft(Math.ceil(total / 1000))
+    const id = setInterval(() => {
+      const left = total - (Date.now() - start)
+      setAutoLeft(Math.max(0, Math.ceil(left / 1000)))
+      if (left <= 0) {
+        // host əməliyyatı hələ bitməyibsə (busy), növbəti tikdə yenidən cəhd et
+        nextRef.current()
+        if (gameRef.current?.phase !== startPhase || gameRef.current?.questionIndex !== startQi) clearInterval(id)
+      }
+    }, 250)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.phase, game?.questionIndex, game?.settings.mode])
 
   const togglePause = useCallback(() => {
     if (!game || game.phase !== 'question') return
@@ -268,6 +338,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
             {game.phase === 'leaderboard' && <HostLeaderboard game={game} />}
             {game.phase === 'podium' && <HostPodium game={game} />}
             {game.phase === 'finished' && <HostSummary game={game} onNewGame={newGame} />}
+            {game.phase === 'self' && <HostSelf game={game} players={active} />}
           </motion.div>
         </AnimatePresence>
       </main>
@@ -286,9 +357,10 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
           <button className="btn btn-ghost btn-icon" aria-label="tam ekran" onClick={toggleFs}><Maximize /></button>
           {game.phase !== 'lobby' && <button className="btn btn-ghost" onClick={endGame}><Flag />{t.host.endGame}</button>}
           <span className="ml-auto hidden text-xs text-white/40 xl:inline">{t.host.shortcuts}</span>
+          {autoLeft != null && <span className="chip chip-dark text-sm">{t.host.autoNext(autoLeft)}</span>}
           {game.phase !== 'countdown' && (
             <button className="btn btn-primary btn-lg min-w-52" onClick={next} disabled={busy || (game.phase === 'lobby' && activeCount === 0)} title={game.phase === 'lobby' && activeCount === 0 ? t.host.minPlayers : undefined}>
-              {isQ ? t.host.endTime : nextLabel}<ChevronRight />
+              {isQ ? t.host.endTime : game.phase === 'self' ? t.host.finish : nextLabel}<ChevronRight />
             </button>
           )}
         </footer>

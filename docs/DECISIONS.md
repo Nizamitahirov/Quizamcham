@@ -19,3 +19,8 @@
 - Sual önizləməsi `countdown` fazasında `preview` sahəsi ilə göstərilir (min. 3 s); köhnə 3-2-1 geri sayımını əvəz edir.
 - “Haqqında” pəncərəsi girişdən çıxarıldı; DiceBear atributu Admin → Ayarlar səhifəsinin altında saxlanır (CC BY 4.0 tələbi).
 - Admin `/admin` artıq Paneldir, quizlər `/admin/quizzes`-dədir.
+- Öz tempində rejimi: `games/{id}/starts/{uid_q}` (yalnız bir dəfə yazılır) sualın başlama vaxtını server vaxtı ilə qeyd edir; host hər cavabı gəldikcə qiymətləndirir və fərdi nəticəni (düzgün cavab daxil) yalnız həmin oyunçunun sənədinə yazır.
+- Avtomatik rejim host klientində işləyir (host ekranı açıq olmalıdır); keçid ən son `next` funksiyası ilə ref vasitəsilə çağırılır.
+- Düz/səhv cavab səs parçaları Firebase Storage olmadan (Spark planı) Firestore-da `sounds/{correct|wrong}` sənədlərində mono 16 kHz WAV data-URL kimi saxlanılır (≤ 8 s ≈ 350 KB).
+- Müəllif hüquqlu mahnı parçaları platformaya daxil edilmir; admin istifadə hüququ olan faylı özü yükləyir.
+- Təlimçi profili `profiles/{uid}`-də saxlanılır (hamı oxuyur, yalnız sahibi admin yazır); oyun yaradılanda `games/{id}.host`-a kopyalanır.

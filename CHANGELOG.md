@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-11-03
+- 3 oyun rejimi: Təlimçi idarə edir, Avtomatik (ekranlar özü keçir), Öz tempində (hər oyunçu öz sürəti ilə, ümumi vaxt limiti; host canlı irəliləyişi izləyir).
+- Quiz ayarları pəncərədən çıxarıldı → redaktorda “Suallar / Ayarlar” tabları, seçim kartları, seqment düymələr, vahid bölmə kartları.
+- 14 generativ musiqi mövzusu, hər biri 8 saniyəlik dinləmə ilə.
+- Yeni orijinal qələbə və məyus səsləri; Admin → Səslər: istənilən audio fayldan seçilmiş hissəni (≤ 8 s) kəsib düz/səhv cavab səsi kimi təyin etmək.
+- Təlimçi profili: ad, vəzifə, təşkilat, bio, foto/avatar, şifrə dəyişmə, yeni quizlər üçün standart ayarlar; profil lobbidə göstərilir.
+- CSS komponent sinifləri Tailwind qatlarına köçürüldü (utility sinifləri düzgün işləyir).
+
 ## 0.2.0 — 2026-11-03
 - Dizayn yenidən quruldu: yalnız Montserrat, Birbank üslubunda qırmızı → narıncı qradiyent, lucide ikonları.
 - Futuristik giriş səhifəsi (PIN birbaşa ana səhifədə, işıq parıltıları, perspektiv tor); “Haqqında” girişdən çıxarıldı.

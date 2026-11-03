@@ -47,6 +47,7 @@
   --color-deep: #0A0B16;
 }
 
+@layer base {
 * { box-sizing: border-box; }
 html, body, #root { min-height: 100%; }
 body {
@@ -64,6 +65,9 @@ h1, h2, h3, h4, .font-display { font-family: "Montserrat", sans-serif; font-weig
 ::selection { background: var(--brand); color: #fff; }
 :focus-visible { outline: 3px solid var(--brand-3); outline-offset: 2px; }
 
+}
+
+@layer components {
 /* ---------- Fonlar ---------- */
 .bg-night {
   background-color: var(--night);
@@ -151,6 +155,8 @@ h1, h2, h3, h4, .font-display { font-family: "Montserrat", sans-serif; font-weig
 
 .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(127,127,150,.35); border-radius: 8px; }
+
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
