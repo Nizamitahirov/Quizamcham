@@ -2,7 +2,7 @@ import {
   collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch, limit as qLimit,
 } from 'firebase/firestore'
 import { db } from './config'
-import type { AppSettings, Question, Quiz } from '../types'
+import type { AppSettings, Question, Quiz, SoundClip, SoundSettings, TrainerProfile } from '../types'
 import { DEFAULT_APP_SETTINGS, convertType, uid6, withDefaults } from '../lib/defaults'
 
 // ---------------- Quizlər ----------------
@@ -68,7 +68,9 @@ export async function saveQuizFull(quiz: Quiz, questions: Question[], dirtyIds: 
 
 export async function createQuiz(ownerUid: string, partial: Partial<Quiz> = {}, questions: Question[] = []): Promise<string> {
   const ref = doc(collection(db, 'quizzes'))
-  const quiz = normalizeQuiz({ ...partial, id: ref.id, ownerUid })
+  // təlimçinin standart ayarları (profil) → quizin öz ayarları üstündür
+  const defaults = (await loadProfile(ownerUid))?.defaults ?? {}
+  const quiz = normalizeQuiz({ ...partial, settings: { ...withDefaults(defaults as Quiz['settings']), ...(partial.settings ?? {}) } as Quiz['settings'], id: ref.id, ownerUid })
   const batch = writeBatch(db)
   batch.set(ref, { ...quizMeta(quiz, questions), createdAt: serverTimestamp() })
   questions.forEach((q) => batch.set(doc(db, 'quizzes', ref.id, 'questions', q.id), cleanQuestion(q)))
@@ -159,6 +161,26 @@ export async function loadAppSettings(): Promise<AppSettings> {
   }
 }
 export const saveAppSettings = (s: AppSettings) => setDoc(doc(db, 'settings', 'app'), s)
+
+// ---------------- Səslər (düz / səhv cavab) ----------------
+
+export async function loadSounds(): Promise<SoundSettings> {
+  try {
+    const [m, c, w] = await Promise.all(['meta', 'correct', 'wrong'].map((k) => getDoc(doc(db, 'sounds', k))))
+    return { enabled: m.exists() ? m.get('enabled') !== false : true, correct: c.exists() ? (c.data() as SoundClip) : null, wrong: w.exists() ? (w.data() as SoundClip) : null }
+  } catch {
+    return { enabled: false }
+  }
+}
+export const saveSoundClip = (kind: 'correct' | 'wrong', clip: SoundClip | null) => (clip ? setDoc(doc(db, 'sounds', kind), clip) : deleteDoc(doc(db, 'sounds', kind)))
+export const setSoundsEnabled = (enabled: boolean) => setDoc(doc(db, 'sounds', 'meta'), { enabled })
+
+// ---------------- Təlimçi profili ----------------
+
+export async function loadProfile(uid: string): Promise<TrainerProfile | null> {
+  try { const s = await getDoc(doc(db, 'profiles', uid)); return s.exists() ? (s.data() as TrainerProfile) : null } catch { return null }
+}
+export const saveProfile = (uid: string, p: TrainerProfile) => setDoc(doc(db, 'profiles', uid), JSON.parse(JSON.stringify(p)))
 
 // ---------------- Oyunlar (admin) ----------------
 

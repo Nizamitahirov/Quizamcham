@@ -3,14 +3,16 @@ import {
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
 import { loadQuiz } from '../firebase/db'
-import type { Answer, AvatarData, Game, GameStats, HistoryItem, LeaderEntry, LobbyEntry, Player, PublicQuestion, Question, QuizSettings, Reveal } from '../types'
+import type { Answer, AvatarData, Award, Fastest, Game, GameStats, HistoryItem, HostProfile, LeaderEntry, LobbyEntry, Player, PowerType, PublicQuestion, Question, QuizSettings, Reveal, TrainerProfile } from '../types'
+import { POWER_START } from './defaults'
 import { evaluateAnswer, normalizeText, rankPlayers, SCORED_TYPES, basePoints, streakBonus } from './scoring'
 import { randomPin } from './pin'
 import { shuffle } from './shuffle'
 import { serverNow } from './timeSync'
 import { shortName } from './nameFilter'
 
-export const COUNTDOWN_MS = 3000
+export const MIN_READ_MS = 3000
+export const readMsFor = (settings: QuizSettings | undefined, q?: Question) => (q?.type === 'slide' ? 1500 : Math.max(MIN_READ_MS, (settings?.readTime ?? 4) * 1000))
 export const GRACE_MS = 1500
 export const ACTIVE_GAME_KEY = 'qz.activeGame'
 
@@ -31,8 +33,13 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   }
   if (!pin) throw new Error('pin-failed')
 
+  const prof = await getDoc(doc(db, 'profiles', hostUid)).catch(() => null)
+  const p = prof?.exists() ? (prof.data() as TrainerProfile) : null
+  const host: HostProfile | null = p?.name ? { name: p.name, title: p.title || '', org: p.org || '', avatar: p.avatar ?? null, photoUrl: p.photoUrl || '' } : null
+
   const gameRef = doc(collection(db, 'games'))
   const game: Omit<Game, 'id'> = {
+    host,
     pin, quizId, hostUid, title: quiz.title, settings: quiz.settings,
     phase: 'lobby', locked: false, questionIndex: -1, totalQuestions: questions.length,
     currentQuestion: null, questionStartedAt: null, questionEndsAt: null, pausedRemainingMs: null,
@@ -79,17 +86,18 @@ export const setLocked = (gameId: string, locked: boolean) => updateDoc(gref(gam
 
 export const kickPlayer = (gameId: string, uid: string) => updateDoc(doc(db, 'games', gameId, 'players', uid), { kicked: true })
 
-/** Növbəti sualın geri sayımı. */
-export const toCountdown = (gameId: string, index: number, extra: Record<string, unknown> = {}) =>
+/** Növbəti sual: əvvəlcə yalnız mətn göstərilir (oxuma vaxtı), sonra cavablar açılır. */
+export const toCountdown = (gameId: string, index: number, q: Question, settings: QuizSettings, extra: Record<string, unknown> = {}) =>
   updateDoc(gref(gameId), {
     phase: 'countdown', questionIndex: index, currentQuestion: null, reveal: null,
+    preview: JSON.parse(JSON.stringify({ index, text: q.text, type: q.type, imageUrl: q.imageUrl || undefined, points: q.points, readMs: readMsFor(settings, q) })),
     questionStartedAt: null, questionEndsAt: null, pausedRemainingMs: null, answeredCount: 0, ...extra,
   })
 
 /** Sualı aç: əvvəl server vaxtı ilə başlanğıc, sonra bitmə vaxtı. */
 export async function toQuestion(gameId: string, q: Question, settings: QuizSettings) {
   await updateDoc(gref(gameId), {
-    phase: 'question', currentQuestion: JSON.parse(JSON.stringify(toPublic(q, settings))), questionStartedAt: serverTimestamp(), questionEndsAt: null, pausedRemainingMs: null,
+    phase: 'question', currentQuestion: JSON.parse(JSON.stringify(toPublic(q, settings))), preview: null, questionStartedAt: serverTimestamp(), questionEndsAt: null, pausedRemainingMs: null,
   })
   if (q.type === 'slide') return
   const snap = await getDocFromServer(gref(gameId))
@@ -111,6 +119,16 @@ export async function resumeQuestion(game: Game) {
 
 /** Vaxtı dərhal bitir (bir az gecikmə ilə cavabların çatması üçün). */
 export const endTimeNow = (gameId: string) => updateDoc(gref(gameId), { questionEndsAt: Timestamp.fromMillis(serverNow()), pausedRemainingMs: null })
+
+/** 50/50: oyunçunun sorğusuna cavab olaraq iki səhv variantı gizlədir (yalnız həmin oyunçuya). */
+export async function grantFifty(gameId: string, p: Player, q: Question, qi: number) {
+  const inv = p.powerups?.fifty ?? 0
+  if (inv <= 0 || p.fiftyHide?.q === qi) return
+  const wrong = shuffle(q.options.filter((o) => !q.correct.includes(o.id)).map((o) => o.id))
+  const n = Math.min(2, wrong.length, Math.floor(q.options.length / 2))
+  if (n <= 0) return
+  await updateDoc(doc(db, 'games', gameId, 'players', p.uid), { fiftyHide: { q: qi, ids: wrong.slice(0, n) }, 'powerups.fifty': inv - 1 })
+}
 
 export const answersQuery = (gameId: string, qIndex: number) => query(collection(db, 'games', gameId, 'answers'), where('questionIndex', '==', qIndex))
 
@@ -154,7 +172,7 @@ export async function finishQuestion(game: Game, questions: Question[]) {
   if (['single', 'multi', 'truefalse', 'poll'].includes(q.type)) q.options.forEach((o) => (distribution[o.id] = 0))
 
   const updated = players.map((p) => {
-    if (p.kicked) return { p, item: null as HistoryItem | null, bonus: 0, answered: false }
+    if (p.kicked) return { p, item: null as HistoryItem | null, bonus: 0, answered: false, ev: null, used: null as PowerType | null, shielded: false, timeMs: null as number | null }
     const a = answers.get(p.uid)
     const answered = !!a
     const timeMs = a?.answeredAt ? Math.max(0, a.answeredAt.toMillis() - startedMs) : null
@@ -166,9 +184,15 @@ export async function finishQuestion(game: Game, questions: Question[]) {
       else if (q.type === 'slider') { const k = String(a.value); distribution[k] = (distribution[k] ?? 0) + 1 }
       if (q.type === 'type') { const k = normalizeText(String(a.value)); distribution[k] = (distribution[k] ?? 0) + 1 }
     }
-    const ev = evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring)
+    const ev0 = evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring)
+    // güc artırıcı (yalnız bu sual üçün aktivləşdirilibsə və inventarda varsa)
+    const used: PowerType | null = settings.powerUps !== false && ev0.scored && p.power?.q === qi && p.power.type !== 'fifty' && (p.powerups?.[p.power.type] ?? 0) > 0 ? p.power.type : null
+    const ev = used === 'double' ? { ...ev0, points: ev0.points * 2 } : ev0
+    const shielded = used === 'shield' && !ev.correct && answered
     let bonus = 0
     const np = { ...p }
+    if (used) np.powerups = { ...(p.powerups ?? { ...POWER_START }), [used]: Math.max(0, (p.powerups?.[used] ?? 0) - 1) }
+    const fiftyUsed = p.fiftyHide?.q === qi ? 'fifty' as const : null
     if (ev.scored) {
       if (ev.correct) {
         np.streak = (p.streak ?? 0) + 1
@@ -176,15 +200,22 @@ export async function finishQuestion(game: Game, questions: Question[]) {
         np.correctCount = (p.correctCount ?? 0) + 1
         np.totalCorrectTimeMs = (p.totalCorrectTimeMs ?? 0) + (timeMs ?? 0)
         if (settings.streakBonus && basePoints(q.points) > 0) bonus = streakBonus(np.streak)
-      } else {
+      } else if (!shielded) {
         np.streak = 0
       }
       np.score = (p.score ?? 0) + ev.points + bonus
     }
-    const item: HistoryItem = { q: qi, answer: value, correct: ev.correct, points: ev.points + bonus, timeMs }
+    const item: HistoryItem = { q: qi, answer: value, correct: ev.correct, points: ev.points + bonus, timeMs, power: used ?? fiftyUsed }
     np.history = [...(p.history ?? []), item]
-    return { p: np, item, bonus, answered, ev }
+    return { p: np, item, bonus, answered, ev, used: used ?? fiftyUsed, shielded, timeMs }
   })
+
+  let fastest: Fastest | null = null
+  for (const u of updated) {
+    if (u.p.kicked || !u.ev?.correct || u.timeMs == null) continue
+    if (!fastest || u.timeMs < fastest.ms) fastest = { uid: u.p.uid, name: shortName(u.p.firstName, u.p.lastName), avatar: u.p.avatar, ms: u.timeMs }
+  }
+  const correctCount = updated.filter((u) => !u.p.kicked && u.ev?.correct).length
 
   const ranked = rankPlayers(updated.filter((u) => !u.p.kicked).map((u) => u.p))
   const rankMap = new Map(ranked.map((p) => [p.uid, p.rank]))
@@ -197,16 +228,20 @@ export async function finishQuestion(game: Game, questions: Question[]) {
     distribution,
     answeredCount: answers.size,
     texts: texts.length ? texts : undefined,
+    fastest,
+    correctCount,
   }
 
   const batch = writeBatch(db)
   for (const u of updated) {
     if (u.p.kicked || !u.item) continue
-    const ev = (u as { ev?: { correct: boolean; points: number; scored: boolean } }).ev!
+    const ev = u.ev!
     batch.update(doc(db, 'games', game.id, 'players', u.p.uid), {
       score: u.p.score, correctCount: u.p.correctCount ?? 0, streak: u.p.streak ?? 0, bestStreak: u.p.bestStreak ?? 0,
       totalCorrectTimeMs: u.p.totalCorrectTimeMs ?? 0, history: u.p.history,
+      ...(u.p.powerups ? { powerups: u.p.powerups } : {}),
       lastResult: {
+        timeMs: u.timeMs ?? null, power: u.used ?? null, shielded: !!u.shielded,
         questionIndex: qi, correct: ev.correct, points: ev.points, streakBonus: u.bonus, rank: rankMap.get(u.p.uid) ?? 0,
         prevRank: prevRank.get(u.p.uid) ?? 0, answered: u.answered, poll: !ev.scored, streak: u.p.streak ?? 0, total: ranked.length,
       },
@@ -230,11 +265,78 @@ export function nextAfterReveal(game: Game): 'leaderboard' | 'question' | 'podiu
 
 export const toPhase = (gameId: string, phase: Game['phase']) => updateDoc(gref(gameId), { phase })
 
+// ============ Öz tempində rejimi ============
+
+/** Bütün sualların ictimai hissəsini yayımlayır; hər oyunçu öz sürəti ilə irəliləyir. */
+export async function startSelf(game: Game, questions: Question[]) {
+  const minutes = game.settings.selfMinutes || 15
+  await updateDoc(gref(game.id), {
+    phase: 'self', questionIndex: questions.length - 1, startedAt: Timestamp.fromMillis(serverNow()),
+    publicQuestions: JSON.parse(JSON.stringify(questions.map((q) => toPublic(q, game.settings)))),
+    selfEndsAt: Timestamp.fromMillis(serverNow() + minutes * 60_000),
+  })
+}
+
+export const startSelfQuestion = (gameId: string, uid: string, qi: number) =>
+  setDoc(doc(db, 'games', gameId, 'starts', `${uid}_${qi}`), { uid, q: qi, startedAt: serverTimestamp() })
+
+export const selfAnswersQuery = (gameId: string) => collection(db, 'games', gameId, 'answers')
+
+/** Öz tempində rejimində bir cavabı dərhal qiymətləndirir və oyunçuya fərdi nəticə yazır. */
+export async function scoreSelfAnswer(game: Game, questions: Question[], player: Player, answer: Answer) {
+  const qi = answer.questionIndex
+  const q = questions[qi]
+  if (!q || (player.history ?? []).some((h) => h.q === qi)) return null
+  const st = await getDoc(doc(db, 'games', game.id, 'starts', `${player.uid}_${qi}`))
+  const startedMs = (st.get('startedAt') as Timestamp | undefined)?.toMillis() ?? answer.answeredAt?.toMillis() ?? 0
+  const raw = answer.answeredAt ? answer.answeredAt.toMillis() - startedMs : null
+  const late = raw != null && raw > q.timeLimit * 1000 + GRACE_MS
+  const value = late || answer.value === null || answer.value === undefined ? null : answer.value
+  const timeMs = value === null ? null : Math.max(0, raw ?? 0)
+  const settings = game.settings
+  const ev0 = evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring)
+  const used: PowerType | null = settings.powerUps !== false && ev0.scored && player.power?.q === qi && player.power.type !== 'fifty' && (player.powerups?.[player.power.type] ?? 0) > 0 ? player.power.type : null
+  const ev = used === 'double' ? { ...ev0, points: ev0.points * 2 } : ev0
+  const shielded = used === 'shield' && !ev.correct && value !== null
+  const np: Player = { ...player }
+  if (used) np.powerups = { ...(player.powerups ?? { ...POWER_START }), [used]: Math.max(0, (player.powerups?.[used] ?? 0) - 1) }
+  let bonus = 0
+  if (ev.scored) {
+    if (ev.correct) {
+      np.streak = (player.streak ?? 0) + 1
+      np.bestStreak = Math.max(player.bestStreak ?? 0, np.streak)
+      np.correctCount = (player.correctCount ?? 0) + 1
+      np.totalCorrectTimeMs = (player.totalCorrectTimeMs ?? 0) + (timeMs ?? 0)
+      if (settings.streakBonus && basePoints(q.points) > 0) bonus = streakBonus(np.streak)
+    } else if (!shielded) np.streak = 0
+    np.score = (player.score ?? 0) + ev.points + bonus
+  }
+  const fifty = player.fiftyHide?.q === qi ? 'fifty' as const : null
+  np.history = [...(player.history ?? []), { q: qi, answer: value, correct: ev.correct, points: ev.points + bonus, timeMs, power: used ?? fifty }]
+  await updateDoc(doc(db, 'games', game.id, 'players', player.uid), {
+    score: np.score ?? 0, correctCount: np.correctCount ?? 0, streak: np.streak ?? 0, bestStreak: np.bestStreak ?? 0,
+    totalCorrectTimeMs: np.totalCorrectTimeMs ?? 0, history: np.history, ...(np.powerups ? { powerups: np.powerups } : {}),
+    lastResult: JSON.parse(JSON.stringify({
+      questionIndex: qi, correct: ev.correct, points: ev.points, streakBonus: bonus, rank: 0, prevRank: 0, answered: value !== null,
+      poll: !ev.scored, streak: np.streak ?? 0, total: 0, timeMs, power: used ?? fifty, shielded,
+      reveal: { correct: q.type === 'poll' ? [] : q.correct, accepted: q.accepted ?? null, sliderAnswer: q.slider?.answer ?? null, explanation: q.explanation ?? null },
+    })),
+  })
+  return np
+}
+
+/** Canlı reytinqi (top 10) yeniləyir. */
+export async function updateLeaderboard(gameId: string, players: Player[], prev: LeaderEntry[] = []) {
+  const ranked = rankPlayers(players.filter((p) => !p.kicked))
+  const prevRank = new Map(prev.map((e) => [e.uid, e.rank]))
+  await updateDoc(gref(gameId), { leaderboard: leaderboardOf(ranked, prevRank), playerCount: ranked.length })
+}
+
 /** Oyunu bitir: statistika + oyunçular üçün sual icmalı. */
 export async function finishGame(game: Game, questions: Question[]) {
   const players = (await fetchPlayers(game.id)).filter((p) => !p.kicked)
   const ranked = rankPlayers(players)
-  const asked = Math.max(0, Math.min(game.totalQuestions, game.questionIndex + (game.phase === 'question' || game.phase === 'countdown' ? 0 : 1)))
+  const asked = game.phase === 'self' || game.settings.mode === 'self' ? questions.length : Math.max(0, Math.min(game.totalQuestions, game.questionIndex + (game.phase === 'question' || game.phase === 'countdown' ? 0 : 1)))
   const scoredIdx = questions.slice(0, asked).map((q, i) => ({ q, i })).filter(({ q }) => SCORED_TYPES.has(q.type))
   const perQ = scoredIdx.map(({ q, i }) => {
     const answered = players.filter((p) => p.history?.some((h) => h.q === i))
@@ -256,14 +358,34 @@ export async function finishGame(game: Game, questions: Question[]) {
     sliderAnswer: q.slider?.answer ?? null, explanation: q.explanation ?? null, scored: SCORED_TYPES.has(q.type),
   }))
   const prevRank = new Map(ranked.map((p) => [p.uid, p.rank]))
+  const awards = computeAwards(players, scoredIdx.length)
   const batch = writeBatch(db)
   batch.update(gref(game.id), {
+    awards: JSON.parse(JSON.stringify(awards)),
     phase: 'finished', finishedAt: serverTimestamp(), stats: JSON.parse(JSON.stringify(stats)),
     leaderboard: leaderboardOf(ranked, prevRank, 200), review: JSON.parse(JSON.stringify(review)), scoredCount: scoredIdx.length,
-    currentQuestion: null, questionEndsAt: null,
+    currentQuestion: null, questionEndsAt: null, selfEndsAt: null,
   })
   batch.update(doc(db, 'pins', game.pin), { active: false })
   await batch.commit()
+}
+
+/** Oyun sonu mükafatları. */
+export function computeAwards(players: Player[], scoredCount: number): Award[] {
+  const out: Award[] = []
+  const nm = (p: Player) => shortName(p.firstName, p.lastName)
+  if (!players.length || !scoredCount) return out
+  const withTimes = players
+    .map((p) => { const ts = (p.history ?? []).filter((h) => h.correct && h.timeMs != null).map((h) => h.timeMs as number); return { p, avg: ts.length ? ts.reduce((a, b) => a + b, 0) / ts.length : Infinity, n: ts.length } })
+    .filter((x) => x.n >= Math.max(1, Math.ceil(scoredCount / 2)))
+    .sort((a, b) => a.avg - b.avg)
+  if (withTimes[0]) out.push({ key: 'fastest', uid: withTimes[0].p.uid, name: nm(withTimes[0].p), avatar: withTimes[0].p.avatar, value: `${(withTimes[0].avg / 1000).toFixed(1)} s` })
+  const streak = [...players].sort((a, b) => (b.bestStreak ?? 0) - (a.bestStreak ?? 0))[0]
+  if (streak && (streak.bestStreak ?? 0) >= 3) out.push({ key: 'streak', uid: streak.uid, name: nm(streak), avatar: streak.avatar, value: `${streak.bestStreak}` })
+  players.filter((p) => (p.correctCount ?? 0) >= scoredCount).slice(0, 5).forEach((p) => out.push({ key: 'perfect', uid: p.uid, name: nm(p), avatar: p.avatar, value: '100%' }))
+  const sharp = [...players].sort((a, b) => (b.correctCount ?? 0) - (a.correctCount ?? 0) || (a.totalCorrectTimeMs ?? 0) - (b.totalCorrectTimeMs ?? 0))[0]
+  if (sharp && !out.some((a) => a.key === 'perfect') && (sharp.correctCount ?? 0) > 0) out.push({ key: 'sharp', uid: sharp.uid, name: nm(sharp), avatar: sharp.avatar, value: `${Math.round(((sharp.correctCount ?? 0) / scoredCount) * 100)}%` })
+  return out
 }
 
 // ============ Oyunçu əməliyyatları ============
@@ -284,13 +406,17 @@ export async function joinGame(gameId: string, uid: string, firstName: string, l
   await setDoc(ref, {
     firstName, lastName, avatar, joinedAt: serverTimestamp(), lastSeen: serverTimestamp(), kicked: false,
     score: 0, correctCount: 0, streak: 0, bestStreak: 0, totalCorrectTimeMs: 0, lastResult: null, history: [],
+    powerups: { ...POWER_START }, power: null, fiftyHide: null,
   })
 }
 
-export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value']) =>
+export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value'] | null) =>
   setDoc(doc(db, 'games', gameId, 'answers', `${uid}_${questionIndex}`), { uid, questionIndex, value, answeredAt: serverTimestamp() })
 
 export const heartbeat = (gameId: string, uid: string) => updateDoc(doc(db, 'games', gameId, 'players', uid), { lastSeen: serverTimestamp() })
+
+export const activatePower = (gameId: string, uid: string, q: number, type: PowerType) =>
+  updateDoc(doc(db, 'games', gameId, 'players', uid), { power: { q, type } })
 
 export const sendReaction = (gameId: string, uid: string, emoji: string) =>
   setDoc(doc(collection(db, 'games', gameId, 'reactions')), { uid, emoji, createdAt: serverTimestamp() })

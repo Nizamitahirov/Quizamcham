@@ -13,3 +13,14 @@
 - Oyun bitəndə suallar + düzgün cavablar `games/{id}.review`-a yazılır ki, oyunçular “Cavablarıma bax” edə bilsin.
 - `self` (öz tempində) rejimi, power-ups və komanda rejimi hələ edilməyib (M6, istəyə bağlı).
 - Sessiya branch qaydasına görə iş `claude/quirky-galileo-mk297c` branch-ində aparılır; `main`-ə merge istifadəçinin təsdiqi ilə.
+- Firebase web config koda standart dəyər kimi yazıldı (ictimai məlumatdır, Rules qoruyur); env dəyişənləri varsa, onlar üstünlük alır. Səbəb: Vercel-də env olmadan da işləsin.
+- 50/50 güc artırıcısı: oyunçu `power` sahəsini yazır, host gizlədiləcək səhv variantları yalnız həmin oyunçunun sənədinə (`fiftyHide`) yazır — düzgün cavab heç vaxt ictimai sənədə düşmür.
+- Güc artırıcı inventarını yalnız host azaldır; oyunçu yalnız `power` seçimini dəyişə bilər (Rules ilə yoxlanılır). Hər oyunçuya oyunda hər birindən 1 ədəd.
+- Sual önizləməsi `countdown` fazasında `preview` sahəsi ilə göstərilir (min. 3 s); köhnə 3-2-1 geri sayımını əvəz edir.
+- “Haqqında” pəncərəsi girişdən çıxarıldı; DiceBear atributu Admin → Ayarlar səhifəsinin altında saxlanır (CC BY 4.0 tələbi).
+- Admin `/admin` artıq Paneldir, quizlər `/admin/quizzes`-dədir.
+- Öz tempində rejimi: `games/{id}/starts/{uid_q}` (yalnız bir dəfə yazılır) sualın başlama vaxtını server vaxtı ilə qeyd edir; host hər cavabı gəldikcə qiymətləndirir və fərdi nəticəni (düzgün cavab daxil) yalnız həmin oyunçunun sənədinə yazır.
+- Avtomatik rejim host klientində işləyir (host ekranı açıq olmalıdır); keçid ən son `next` funksiyası ilə ref vasitəsilə çağırılır.
+- Düz/səhv cavab səs parçaları Firebase Storage olmadan (Spark planı) Firestore-da `sounds/{correct|wrong}` sənədlərində mono 16 kHz WAV data-URL kimi saxlanılır (≤ 8 s ≈ 350 KB).
+- Müəllif hüquqlu mahnı parçaları platformaya daxil edilmir; admin istifadə hüququ olan faylı özü yükləyir.
+- Təlimçi profili `profiles/{uid}`-də saxlanılır (hamı oxuyur, yalnız sahibi admin yazır); oyun yaradılanda `games/{id}.host`-a kopyalanır.

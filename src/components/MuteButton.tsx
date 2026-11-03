@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { Volume2, VolumeX } from 'lucide-react'
 import { audio } from '../audio/AudioEngine'
 
 export function useMuted() {
@@ -8,13 +9,10 @@ export function useMuted() {
 export function MuteButton({ className = '' }: { className?: string }) {
   const muted = useMuted()
   return (
-    <button
-      type="button"
-      aria-label={muted ? 'Səsi aç' : 'Səsi bağla'}
-      onClick={() => { audio.unlock(); audio.toggleMute() }}
-      className={`flex h-12 w-12 items-center justify-center rounded-full bg-white/15 text-2xl ${className}`}
-    >
-      {muted ? '🔇' : '🔊'}
+    <button type="button" aria-label={muted ? 'Səsi aç' : 'Səsi bağla'} onClick={() => { audio.unlock(); audio.toggleMute() }}
+      className={`flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/8 text-white backdrop-blur transition hover:bg-white/15 ${className}`}
+      style={{ background: 'rgba(255,255,255,.08)' }}>
+      {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
     </button>
   )
 }
