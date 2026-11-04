@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.2 — 2026-11-04
+- **Loqo şrifti:** Petrov Sans-a bənzər pulsuz (OFL) **Figtree 800** — yumşaq keçidli həndəsi forma. Nöqtə yenə brend qradiyentindədir (qırmızı→narıncı). İkonlar, OG şəkli, sertifikat və paylaşım kartı yeniləndi.
+
 ## 0.5.1 — 2026-11-04
 - **Loqo şrifti:** "Jabr." loqosu artıq Lexend Giga 700 (sıx hərf aralığı) ilə, nöqtə kəhrəba (#FEA606) — verilən nümunəyə uyğun. Yalnız loqo bu şriftdədir, interfeys Montserrat-da qalır. İkonlar, OG şəkli, sertifikat və paylaşım kartı yeniləndi.
 

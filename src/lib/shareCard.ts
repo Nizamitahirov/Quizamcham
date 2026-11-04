@@ -11,7 +11,7 @@ const loadImg = (src: string) => new Promise<HTMLImageElement>((res, rej) => { c
 /** 1080×1350 nəticə kartı (Instagram/LinkedIn üçün). */
 export async function renderShareCard(d: CardData): Promise<Blob> {
   await document.fonts?.ready
-  await document.fonts?.load('700 72px "Lexend Giga"').catch(() => {})
+  await document.fonts?.load('800 72px Figtree').catch(() => {})
   const W = 1080, H = 1350
   const c = document.createElement('canvas')
   c.width = W; c.height = H
@@ -54,7 +54,7 @@ interface CertData { name: string; quiz: string; place: number; total: number; s
 /** A4 üfüqi (1754×1240) iştirak sertifikatı — PNG. */
 export async function renderCertificate(d: CertData, labels: { title: string; given: string; completed: string; place: string; score: string; trainer: string; date: string }): Promise<Blob> {
   await document.fonts?.ready
-  await document.fonts?.load('700 72px "Lexend Giga"').catch(() => {})
+  await document.fonts?.load('800 72px Figtree').catch(() => {})
   const W = 1754, H = 1240
   const c = document.createElement('canvas'); c.width = W; c.height = H
   const g = c.getContext('2d')!
@@ -88,23 +88,26 @@ export async function renderCertificate(d: CertData, labels: { title: string; gi
   return new Promise((res) => c.toBlob((b) => res(b!), 'image/png'))
 }
 
-/** "Jabr" loqosu (Lexend Giga 700, sıx hərf aralığı) + kəhrəba nöqtə — UI loqosu ilə eyni. y — əsas xətt. */
+/** "Jabr" loqosu (Figtree 800, sıx hərf aralığı) + brend qradiyentli nöqtə — UI loqosu ilə eyni. y — əsas xətt. */
 function drawWordmark(g: CanvasRenderingContext2D, x: number, y: number, px: number, color: string, align: 'left' | 'center') {
   g.save()
-  g.font = `700 ${px}px "Lexend Giga", Montserrat, sans-serif`
+  g.font = `800 ${px}px Figtree, Montserrat, sans-serif`
   g.textAlign = 'left'
   g.textBaseline = 'alphabetic'
-  const track = -0.2 * px
+  const track = -0.035 * px
   const chars = [...'Jabr']
   const widths = chars.map((c) => g.measureText(c).width)
   const w = widths.reduce((a, b) => a + b, 0) + track * (chars.length - 1)
-  const r = px * 0.13, gap = px * 0.12
+  const r = px * 0.13, gap = px * 0.07
   const total = w + gap + 2 * r
   let cx = align === 'center' ? x - total / 2 : x
   g.fillStyle = color
   chars.forEach((c, i) => { g.fillText(c, cx, y); cx += widths[i] + track })
-  g.fillStyle = '#FEA606'
-  g.beginPath(); g.arc(cx + gap + r, y - r, r, 0, Math.PI * 2); g.fill()
+  const dx = cx + gap + r, dy = y - r
+  const grad = g.createLinearGradient(dx - r, dy - r, dx + r, dy + r)
+  grad.addColorStop(0, '#E8202A'); grad.addColorStop(1, '#FF8A1A')
+  g.fillStyle = grad
+  g.beginPath(); g.arc(dx, dy, r, 0, Math.PI * 2); g.fill()
   g.restore()
 }
 
