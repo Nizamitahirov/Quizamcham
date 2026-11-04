@@ -17,6 +17,8 @@ import { useMuted } from '../../components/MuteButton'
 import { FloatingShapes } from '../../components/FloatingShapes'
 import { FloatingEmojis, useFlying } from '../../components/FloatingEmojis'
 import { QuestionIntro } from '../../components/QuestionIntro'
+import { useLeaveGuard, useWakeLock } from '../../lib/useWakeLock'
+import { useOnline } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
 import { Lock, Unlock, Maximize, Volume2, VolumeX, Pause, Play, SkipForward, Flag, ChevronRight, Users } from 'lucide-react'
@@ -56,6 +58,10 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   const guard = useRef<Set<string>>(new Set())
 
   useEffect(() => { void loadSecret(gameId).then(setQuestions) }, [gameId])
+  const running = !!game && game.phase !== 'finished' && game.phase !== 'lobby'
+  useWakeLock(!!game && game.phase !== 'finished')
+  useLeaveGuard(running)
+  const online = useOnline()
   useEffect(() => { void syncClock(`games/${gameId}/secret/clock`) }, [gameId])
 
   // Oyunçular (yalnız host bütün kolleksiyanı dinləyir)
@@ -64,12 +70,12 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   const active = useMemo(() => players.filter((p) => !p.kicked), [players])
 
   // Lobbi massivini denormalizə et (debounce)
-  const lobbySig = useMemo(() => active.map((p) => `${p.uid}:${p.firstName}:${p.lastName}:${p.avatar?.seed}:${p.avatar?.accessory ?? ''}`).sort().join('|'), [active])
-  const gameLobbySig = useMemo(() => (game?.lobby ?? []).map((p) => `${p.uid}:${p.firstName}:${p.lastName}:${p.avatar?.seed}:${p.avatar?.accessory ?? ''}`).sort().join('|'), [game?.lobby])
+  const lobbySig = useMemo(() => [...active].sort((a, b) => (a.joinedAt?.toMillis() ?? 0) - (b.joinedAt?.toMillis() ?? 0)).slice(-60).map((p) => `${p.uid}:${p.firstName}:${p.lastName}:${p.avatar?.seed}:${p.avatar?.accessory ?? ''}`).sort().join('|') + `#${active.length}`, [active])
+  const gameLobbySig = useMemo(() => (game?.lobby ?? []).map((p) => `${p.uid}:${p.firstName}:${p.lastName}:${p.avatar?.seed}:${p.avatar?.accessory ?? ''}`).sort().join('|') + `#${game?.playerCount ?? 0}`, [game?.lobby, game?.playerCount])
   const prevCount = useRef(0)
   useEffect(() => {
     if (!game || game.phase === 'finished' || lobbySig === gameLobbySig) return
-    const id = setTimeout(() => void updateLobby(gameId, players).catch(() => {}), 700)
+    const id = setTimeout(() => void updateLobby(gameId, players).catch(() => {}), 1200)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lobbySig, gameLobbySig])
@@ -308,6 +314,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
       {game.phase !== 'podium' && <FuturisticBg floor={game.phase === 'lobby' || game.phase === 'leaderboard'} intensity={isQ ? 0.5 : 1} />}
       {(game.phase === 'podium' || game.phase === 'leaderboard') && <FloatingShapes count={16} />}
       <FloatingEmojis items={flying.items} size={64} />
+      {!online && <div className="absolute inset-x-0 top-0 z-50 bg-red-600 py-2 text-center text-lg font-bold" role="alert">{t.host.offline}</div>}
       {!opened && game.phase !== 'finished' && (
         <button className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-night/90 text-white backdrop-blur" onClick={() => { audio.unlock(); setOpened(true) }}>
           <Logo size={72} />

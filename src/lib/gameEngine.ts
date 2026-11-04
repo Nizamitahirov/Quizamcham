@@ -79,7 +79,8 @@ export const updateLobby = (gameId: string, players: Player[]) => {
   const lobby: LobbyEntry[] = active
     .sort((a, b) => (a.joinedAt?.toMillis() ?? 0) - (b.joinedAt?.toMillis() ?? 0))
     .map((p) => ({ uid: p.uid, firstName: p.firstName, lastName: p.lastName, avatar: p.avatar }))
-  return updateDoc(gref(gameId), { lobby, playerCount: active.length })
+  // Sənəd ölçüsünü və hər oyunçunun oxuduğu həcmi məhdudlaşdırmaq üçün yalnız son 60 nəfər (say isə tam)
+  return updateDoc(gref(gameId), { lobby: lobby.slice(-60), playerCount: active.length })
 }
 
 export const setLocked = (gameId: string, locked: boolean) => updateDoc(gref(gameId), { locked })

@@ -5,7 +5,7 @@ import { Clock, Flame, Hourglass, Trophy } from 'lucide-react'
 import { ensureAnonymous } from '../../firebase/auth'
 import { useGame, usePlayer, useInterval } from '../../lib/hooks'
 import { heartbeat, sendReaction, submitAnswer } from '../../lib/gameEngine'
-import { syncClock } from '../../lib/timeSync'
+import { serverNow, syncClock } from '../../lib/timeSync'
 import { shortName } from '../../lib/nameFilter'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
@@ -25,6 +25,7 @@ import PlayerResults from './PlayerResults'
 import { CORRECT, WRONG, STICKERS_OK, STICKERS_BAD, pick, streakText } from '../../content/feedback'
 import { audio } from '../../audio/AudioEngine'
 import { useSession } from '../../store/gameStore'
+import { useWakeLock } from '../../lib/useWakeLock'
 import type { AnswerValue, Game, Player } from '../../types'
 import { SelfPlay } from './SelfPlay'
 import { PowerBar, POWERS } from './PowerBar'
@@ -67,6 +68,8 @@ export default function PlayerGame() {
   }, [phase, game?.questionIndex])
   useEffect(() => () => audio.stopMusic(), [])
   useEffect(() => { if (game?.phase === 'finished') setGame(null) }, [game?.phase, setGame])
+  useWakeLock(!!game && game.phase !== 'finished')
+  const stalled = useStall(game)
   // Admin yüklədiyi düz/səhv cavab səsləri
   useEffect(() => { void loadSounds().then((snd) => audio.loadClips(snd)) }, [])
 
@@ -86,6 +89,7 @@ export default function PlayerGame() {
       <FuturisticBg floor={game.phase === 'lobby'} intensity={game.phase === 'question' ? 0.5 : 0.9} />
       {tint && <div className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${tint} to-transparent`} />}
       <FloatingEmojis items={flying.items} />
+      {stalled && <div className="fixed inset-x-0 top-0 z-50 bg-amber-400 px-3 py-2 text-center text-sm font-bold text-black" role="alert">{t.game.hostStalled}</div>}
       <header className="relative z-20 flex items-center justify-between gap-2 px-3 pt-3">
         <div className="glass flex min-w-0 items-center gap-2 rounded-full py-1 pl-1 pr-3">
           <Avatar avatar={player.avatar} size={34} />
@@ -110,6 +114,22 @@ export default function PlayerGame() {
       </main>
     </div>
   )
+}
+
+/** Host irəliləmirsə (sualın vaxtı keçib, amma faza dəyişmir) xəbərdarlıq — əlavə Firestore xərci olmadan. */
+function useStall(game: Game | null) {
+  const [stalled, setStalled] = useState(false)
+  useEffect(() => {
+    if (!game) return
+    const check = () => {
+      const ends = game.phase === 'question' && game.pausedRemainingMs == null ? game.questionEndsAt?.toMillis() : null
+      setStalled(!!ends && serverNow() > ends + 10000)
+    }
+    check()
+    const id = setInterval(check, 2000)
+    return () => clearInterval(id)
+  }, [game])
+  return stalled
 }
 
 function Message({ emoji, text }: { emoji: string; text: string }) {
