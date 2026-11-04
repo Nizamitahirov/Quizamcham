@@ -7,7 +7,8 @@ import { SCORED_TYPES } from '../../lib/scoring'
 import { download } from '../../lib/csv'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft, Download, Star } from 'lucide-react'
+import { useFeedback } from '../../lib/feedback'
 import { Avatar } from '../../components/Avatar'
 import { TILE_COLORS } from '../../components/AnswerTile'
 import type { Game } from '../../types'
@@ -16,6 +17,7 @@ export default function GameReport() {
   const { gameId } = useParams()
   const [game, setGame] = useState<Game | null>(null)
   const [r, setR] = useState<GameReportData | null>(null)
+  const fb = useFeedback(gameId ?? '_')
   useEffect(() => {
     if (!gameId) return
     void getDoc(doc(db, 'games', gameId)).then((s) => setGame(s.exists() ? ({ ...(s.data() as Game), id: s.id }) : null))
@@ -63,6 +65,18 @@ export default function GameReport() {
             })}
           </tbody>
         </table>
+      </div>
+
+      <div className="card mb-8 p-5">
+        <h2 className="mb-3 flex items-center gap-2 text-lg font-bold"><Star className="h-5 w-5 text-amber-500" fill="currentColor" />{t.feedback2.title}</h2>
+        {fb.rows.length === 0 ? <p className="text-sm text-muted">{t.feedback2.none}</p> : (
+          <>
+            <p className="mb-3 text-3xl font-black">{fb.avg.toFixed(1)} <span className="text-base font-semibold text-muted">/ 5 · {t.feedback2.count(fb.rows.length)}</span></p>
+            <ul className="flex flex-col gap-2">
+              {fb.rows.filter((x) => x.comment).map((x) => <li key={x.uid} className="rounded-xl bg-surface p-3 text-sm"><b>{'★'.repeat(x.rating)}</b> {x.comment} <span className="text-muted">— {x.name}</span></li>)}
+            </ul>
+          </>
+        )}
       </div>
 
       <h2 className="mb-4 text-xl font-bold">{t.games.questionStats}</h2>

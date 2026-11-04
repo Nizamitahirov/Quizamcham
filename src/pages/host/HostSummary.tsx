@@ -1,17 +1,20 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Download, LayoutDashboard, RefreshCw, Target, TrendingDown, TrendingUp, Users } from 'lucide-react'
+import { Download, LayoutDashboard, RefreshCw, Star, Target, TrendingDown, TrendingUp, Users } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Leaderboard } from '../../components/Leaderboard'
 import { Avatar } from '../../components/Avatar'
 import { download } from '../../lib/csv'
 import { loadReport, reportCsv } from '../../lib/report'
+import { useFeedback } from '../../lib/feedback'
+import { TeamBoard } from '../../components/TeamBoard'
 import type { Game } from '../../types'
 
 export default function HostSummary({ game, onNewGame }: { game: Game; onNewGame: () => Promise<void> }) {
   const [busy, setBusy] = useState(false)
   const s = game.stats
+  const fb = useFeedback(game.id)
   const exportCsv = async () => {
     setBusy(true)
     try { download(`quizamcham-${game.pin}.csv`, reportCsv(await loadReport(game.id))) } finally { setBusy(false) }
@@ -28,8 +31,10 @@ export default function HostSummary({ game, onNewGame }: { game: Game; onNewGame
           <Stat icon={<Users />} label={t.host.participants} value={String(s?.players ?? game.playerCount)} />
           <Stat icon={<Target />} label={t.host.avgAccuracy} value={pct(s?.avgAccuracy ?? 0)} />
         </div>
+        {fb.rows.length > 0 && <Stat icon={<Star />} label={`${t.feedback2.avg} · ${t.feedback2.count(fb.rows.length)}`} value={`${fb.avg.toFixed(1)} / 5 ★`} />}
         {s?.hardest && <Stat icon={<TrendingDown />} label={`${t.host.hardest} · ${pct(s.hardest.accuracy)}`} value={`${s.hardest.index + 1}. ${s.hardest.text}`} small />}
         {s?.easiest && <Stat icon={<TrendingUp />} label={`${t.host.easiest} · ${pct(s.easiest.accuracy)}`} value={`${s.easiest.index + 1}. ${s.easiest.text}`} small />}
+        {(game.teamBoard?.length ?? 0) > 0 && <div className="glass p-5"><div className="label-dark">{t.teamsUi.board}</div><TeamBoard rows={game.teamBoard!} /></div>}
         {(game.awards ?? []).length > 0 && (
           <div className="glass p-5">
             <div className="label-dark">{t.host.awards}</div>

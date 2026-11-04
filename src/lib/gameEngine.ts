@@ -11,6 +11,7 @@ import { shuffle } from './shuffle'
 import { serverNow } from './timeSync'
 import { shortName } from './nameFilter'
 import { track } from '../firebase/extras'
+import { computeTeams } from './teams'
 
 export const MIN_READ_MS = 3000
 export const readMsFor = (settings: QuizSettings | undefined, q?: Question) => (q?.type === 'slide' ? 1500 : Math.max(MIN_READ_MS, (settings?.readTime ?? 4) * 1000))
@@ -80,7 +81,7 @@ export const updateLobby = (gameId: string, players: Player[]) => {
   const active = players.filter((p) => !p.kicked)
   const lobby: LobbyEntry[] = active
     .sort((a, b) => (a.joinedAt?.toMillis() ?? 0) - (b.joinedAt?.toMillis() ?? 0))
-    .map((p) => ({ uid: p.uid, firstName: p.firstName, lastName: p.lastName, avatar: p.avatar }))
+    .map((p) => ({ uid: p.uid, firstName: p.firstName, lastName: p.lastName, avatar: p.avatar, ...(p.team != null ? { team: p.team } : {}) }))
   // Sənəd ölçüsünü və hər oyunçunun oxuduğu həcmi məhdudlaşdırmaq üçün yalnız son 60 nəfər (say isə tam)
   return updateDoc(gref(gameId), { lobby: lobby.slice(-60), playerCount: active.length })
 }
@@ -251,6 +252,7 @@ export async function finishQuestion(game: Game, questions: Question[]) {
     })
   }
   batch.update(gref(game.id), {
+    ...(settings.teams ? { teamBoard: computeTeams(updated.map((u) => u.p), settings.teams) } : {}),
     phase: 'reveal', reveal: JSON.parse(JSON.stringify(reveal)), leaderboard: leaderboardOf(ranked, prevRank),
     answeredCount: answers.size, playerCount: ranked.length, questionEndsAt: null, pausedRemainingMs: null,
   })
@@ -343,10 +345,10 @@ export async function scoreSelfAnswer(game: Game, questions: Question[], player:
 }
 
 /** Canlı reytinqi (top 10) yeniləyir. */
-export async function updateLeaderboard(gameId: string, players: Player[], prev: LeaderEntry[] = []) {
+export async function updateLeaderboard(gameId: string, players: Player[], prev: LeaderEntry[] = [], teams = 0) {
   const ranked = rankPlayers(players.filter((p) => !p.kicked))
   const prevRank = new Map(prev.map((e) => [e.uid, e.rank]))
-  await updateDoc(gref(gameId), { leaderboard: leaderboardOf(ranked, prevRank), playerCount: ranked.length })
+  await updateDoc(gref(gameId), { leaderboard: leaderboardOf(ranked, prevRank), playerCount: ranked.length, ...(teams ? { teamBoard: computeTeams(players, teams) } : {}) })
 }
 
 /** Oyunu bitir: statistika + oyunçular üçün sual icmalı. */
@@ -378,6 +380,7 @@ export async function finishGame(game: Game, questions: Question[]) {
   const awards = computeAwards(players, scoredIdx.length)
   const batch = writeBatch(db)
   batch.update(gref(game.id), {
+    ...(game.settings.teams ? { teamBoard: computeTeams(players, game.settings.teams) } : {}),
     awards: JSON.parse(JSON.stringify(awards)),
     phase: 'finished', finishedAt: serverTimestamp(), stats: JSON.parse(JSON.stringify(stats)),
     leaderboard: leaderboardOf(ranked, prevRank, 200), review: JSON.parse(JSON.stringify(review)), scoredCount: scoredIdx.length,
@@ -414,7 +417,7 @@ export async function lookupPin(pin: string): Promise<string | null> {
   return s.get('gameId') as string
 }
 
-export async function joinGame(gameId: string, uid: string, firstName: string, lastName: string, avatar: AvatarData) {
+export async function joinGame(gameId: string, uid: string, firstName: string, lastName: string, avatar: AvatarData, team?: number) {
   const ref = doc(db, 'games', gameId, 'players', uid)
   const existing = await getDoc(ref).catch(() => null)
   if (existing?.exists()) {
@@ -425,6 +428,7 @@ export async function joinGame(gameId: string, uid: string, firstName: string, l
     firstName, lastName, avatar, joinedAt: serverTimestamp(), lastSeen: serverTimestamp(), kicked: false,
     score: 0, correctCount: 0, streak: 0, bestStreak: 0, totalCorrectTimeMs: 0, lastResult: null, history: [],
     powerups: { ...POWER_START }, power: null, fiftyHide: null,
+    ...(team != null ? { team } : {}),
   })
   void track('player_joined')
 }

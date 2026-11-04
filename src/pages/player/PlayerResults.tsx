@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, ChevronDown, Crown, Download, Share2, X } from 'lucide-react'
+import { Award, Check, ChevronDown, Crown, Download, Share2, X } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Avatar } from '../../components/Avatar'
 import { AnimatedNumber } from '../../components/AnimatedNumber'
 import { burst, celebrate } from '../../components/Confetti'
 import { shortName } from '../../lib/nameFilter'
-import { renderShareCard } from '../../lib/shareCard'
+import { renderCertificate, renderShareCard } from '../../lib/shareCard'
+import { FeedbackForm } from '../../components/FeedbackForm'
+import { TeamBoard } from '../../components/TeamBoard'
 import { download } from '../../lib/csv'
 import type { AnswerValue, Game, Player, ReviewItem } from '../../types'
 
@@ -51,6 +53,17 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
     } catch { /* ləğv edildi */ } finally { setBusy(false) }
   }
 
+  const cert = async () => {
+    setBusy(true)
+    try {
+      const blob = await renderCertificate(
+        { name: `${player.firstName} ${player.lastName}`, quiz: game.title, place: rank, total, score: player.score, trainer: game.host?.name, date: new Date() },
+        { title: t.cert.title, given: t.cert.given, completed: t.cert.completed, place: t.cert.place(rank, total), score: t.cert.score(player.score.toLocaleString('az-AZ')), trainer: t.cert.trainer, date: t.cert.date },
+      )
+      download(`sertifikat-${player.firstName}-${player.lastName}.png`, blob)
+    } catch { /* noop */ } finally { setBusy(false) }
+  }
+
   const stats = [
     { label: t.results.correctCount, value: `${player.correctCount}/${scored}` },
     { label: t.results.accuracy, value: `${accuracy}%` },
@@ -86,6 +99,7 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
         )}
       </motion.div>
 
+      {(game.teamBoard?.length ?? 0) > 0 && <div className="glass p-4"><p className="label-dark">{t.teamsUi.board}</p><TeamBoard rows={game.teamBoard!} highlight={player.team} /></div>}
       {(game.awards ?? []).length > 0 && (
         <div className="glass p-4">
           <p className="label-dark">{t.awards.title}</p>
@@ -97,6 +111,9 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
         </div>
       )}
 
+      {game.settings.feedback !== false && <FeedbackForm gameId={game.id} uid={player.uid} name={shortName(player.firstName, player.lastName)} />}
+
+      <button className="btn btn-ghost w-full" disabled={busy} onClick={() => void cert()}><Award />{t.cert.button}</button>
       <div className="grid grid-cols-2 gap-3">
         <button className="btn btn-ghost" onClick={() => setOpen((o) => !o)}><ChevronDown className={open ? 'rotate-180' : ''} />{open ? t.results.hideReview : t.results.review}</button>
         <button className="btn btn-primary" onClick={() => void card()} disabled={busy}>{typeof navigator.share === 'function' ? <Share2 /> : <Download />}{t.results.share}</button>

@@ -1,4 +1,4 @@
-import { Eye, Flame, Footprints, Gamepad2, LogIn, Music, Presentation, Repeat, ShieldCheck, Shuffle, Sparkles, Timer, Users, Volume2, Zap } from 'lucide-react'
+import { MessageCircleQuestion, Star, Eye, Flame, Footprints, Gamepad2, LogIn, Music, Presentation, Repeat, ShieldCheck, Shuffle, Sparkles, Timer, Users, Volume2, Zap } from 'lucide-react'
 import { t } from '../i18n/az'
 import { AUTO_DELAYS, READ_TIMES, SELF_MINUTES, TIME_OPTIONS } from '../lib/defaults'
 import { Field, OptionCards, Section, Segmented, SwitchRow, type OptionDef } from './kit'
@@ -38,6 +38,8 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
           <SwitchRow icon={Shuffle} checked={s.shuffleQuestions} onChange={(v) => onChange({ shuffleQuestions: v })} label={S.shuffleQuestions} />
           <SwitchRow icon={Shuffle} checked={s.shuffleOptions} onChange={(v) => onChange({ shuffleOptions: v })} label={S.shuffleOptions} />
           <SwitchRow icon={Eye} checked={s.showCorrect} onChange={(v) => onChange({ showCorrect: v })} label={S.showCorrect} />
+          <SwitchRow icon={MessageCircleQuestion} checked={s.qa !== false} onChange={(v) => onChange({ qa: v })} label={S.qa} />
+          <SwitchRow icon={Star} checked={s.feedback !== false} onChange={(v) => onChange({ feedback: v })} label={S.feedbackOn} />
         </div>
       </Section>
 
@@ -59,6 +61,9 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
             <SwitchRow icon={LogIn} checked={s.lateJoin} onChange={(v) => onChange({ lateJoin: v })} label={S.lateJoin} />
             <SwitchRow icon={ShieldCheck} checked={s.nameFilter} onChange={(v) => onChange({ nameFilter: v })} label={S.nameFilter} />
           </div>
+          <Field label={S.teams} className="py-3">
+            <Segmented value={s.teams ?? 0} options={[{ value: 0, label: S.teamsOff }, ...([2, 3, 4] as const).map((n) => ({ value: n, label: S.teamsN(n) }))]} onChange={(v) => onChange({ teams: v as QuizSettings['teams'] })} />
+          </Field>
           <Field label={S.maxPlayers} className="py-3">
             <div className="flex items-center gap-3">
               <input type="range" min={10} max={200} step={10} value={s.maxPlayers} className="flex-1 accent-[#E8202A]" onChange={(e) => onChange({ maxPlayers: Number(e.target.value) })} />

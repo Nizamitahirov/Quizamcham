@@ -44,7 +44,7 @@ export function useSelfEngine({ game, questions, active, gameId, guard, once }: 
           const g = gameRef.current
           if (g) await scoreSelfAnswer(g, questions, { ...(ps.data() as Player), uid: a.uid }, a)
           if (lbTimer.current) clearTimeout(lbTimer.current)
-          lbTimer.current = window.setTimeout(() => { void fetchPlayers(gameId).then((pl) => updateLeaderboard(gameId, pl, gameRef.current?.leaderboard ?? [])) }, 1500)
+          lbTimer.current = window.setTimeout(() => { void fetchPlayers(gameId).then((pl) => updateLeaderboard(gameId, pl, gameRef.current?.leaderboard ?? [], gameRef.current?.settings.teams ?? 0)) }, 1500)
         }).catch((e) => { console.error(e); guard.current.delete(key) })
         chains.current.set(a.uid, job)
       })

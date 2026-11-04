@@ -29,6 +29,8 @@ import { useWakeLock } from '../../lib/useWakeLock'
 import type { AnswerValue, Game, Player } from '../../types'
 import { SelfPlay } from './SelfPlay'
 import { PowerBar, POWERS } from './PowerBar'
+import { PlayerQA } from '../../components/QA'
+import { TeamBoard, TeamChip } from '../../components/TeamBoard'
 import { loadSounds } from '../../firebase/db'
 
 export default function PlayerGame() {
@@ -96,6 +98,7 @@ export default function PlayerGame() {
           <span className="truncate text-sm font-bold">{shortName(player.firstName, player.lastName)}</span>
         </div>
         <div className="flex items-center gap-2">
+          {player.team != null && <TeamChip team={player.team} className="hidden min-[400px]:inline-flex" />}
           {game.phase !== 'lobby' && (
             <span className="glass flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black tabular-nums">
               {rank > 0 && <span className="flex items-center gap-1 text-orange-300"><Trophy className="h-4 w-4" />{rank}</span>}
@@ -105,7 +108,8 @@ export default function PlayerGame() {
           <MuteButton />
         </div>
       </header>
-      <main className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col p-4">
+      {game.settings.qa !== false && !['question', 'countdown', 'self'].includes(game.phase) && <PlayerQA gameId={game.id} uid={uid} name={shortName(player.firstName, player.lastName)} />}
+      <main className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col p-4 pb-20">
         <AnimatePresence mode="wait">
           <motion.div key={game.phase + game.questionIndex} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
             <PhaseView game={game} player={player} uid={uid} onReact={react} />
@@ -171,6 +175,7 @@ function LobbyView({ game, player, onReact }: { game: Game; player: Player; onRe
       <div>
         <p className="text-2xl font-black">{player.firstName} {player.lastName}</p>
         <p className="mt-1 text-sm text-white/60">{t.lobby.waiting}</p>
+        {player.team != null && <div className="mt-3 flex items-center justify-center gap-2 text-sm font-bold"><span className="text-white/60">{t.teamsUi.yourTeam}:</span><TeamChip team={player.team} /></div>}
       </div>
       {game.host?.name && (
         <div className="glass flex w-full items-center gap-3 p-3 text-left">
@@ -361,6 +366,9 @@ function LeaderboardView({ game, player }: { game: Game; player: Player }) {
   const inTop = game.leaderboard.slice(0, 5).some((e) => e.uid === player.uid)
   return (
     <div className="flex flex-1 flex-col gap-4">
+      {(game.teamBoard?.length ?? 0) > 0 && (
+        <div><p className="label-dark">{t.teamsUi.board}</p><TeamBoard rows={game.teamBoard!} highlight={player.team} /></div>
+      )}
       <h2 className="flex items-center justify-center gap-2 text-3xl font-black"><Trophy className="h-7 w-7 text-orange-400" />{t.game.leaderboard}</h2>
       <Leaderboard entries={game.leaderboard} highlight={player.uid} max={5} />
       {!inTop && r && r.rank > 0 && (

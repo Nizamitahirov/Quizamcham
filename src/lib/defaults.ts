@@ -18,6 +18,9 @@ export const DEFAULT_SETTINGS: QuizSettings = {
   nameFilter: true,
   maxPlayers: 100,
   powerUps: true,
+  qa: true,
+  feedback: true,
+  teams: 0,
   readTime: 4,
 }
 

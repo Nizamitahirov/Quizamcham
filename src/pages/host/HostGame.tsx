@@ -29,6 +29,8 @@ import { HostLeaderboard, HostPodium } from './HostPodium'
 import HostSummary from './HostSummary'
 import { HostSelf } from './HostSelf'
 import { useSelfEngine } from './useSelfEngine'
+import { HostQA, useQA } from '../../components/QA'
+import { MessageCircleQuestion } from 'lucide-react'
 import type { Game, Player, Question } from '../../types'
 
 export default function HostGame() {
@@ -63,6 +65,9 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   useWakeLock(!!game && game.phase !== 'finished')
   useLeaveGuard(running)
   const online = useOnline()
+  const [qaOpen, setQaOpen] = useState(false)
+  const qaItems = useQA(gameId, game?.settings.qa !== false)
+  const qaOpenCount = qaItems.filter((q) => !q.answered && !q.hidden).length
   useEffect(() => { void syncClock(`games/${gameId}/secret/clock`) }, [gameId])
 
   // Oyunçular (yalnız host bütün kolleksiyanı dinləyir)
@@ -298,6 +303,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
           <span className="font-display rounded-xl border border-white/15 bg-white/[.06] px-4 py-1.5 text-xl font-black tracking-widest">PIN {game.pin}</span>
         </span>
       </header>
+      {qaOpen && <HostQA gameId={gameId} onClose={() => setQaOpen(false)} />}
       <main className="relative z-10 flex min-h-0 flex-1 flex-col">
         <AnimatePresence mode="wait">
           <motion.div key={game.phase + game.questionIndex} className="flex min-h-0 flex-1 flex-col" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
@@ -325,6 +331,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
           )}
           <button className="btn btn-ghost btn-icon" aria-label="musiqi" onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? <VolumeX /> : <Volume2 />}</button>
           <button className="btn btn-ghost btn-icon" aria-label="tam ekran" onClick={toggleFs}><Maximize /></button>
+          {game.settings.qa !== false && <button className="btn btn-ghost" onClick={() => setQaOpen((o) => !o)}><MessageCircleQuestion />{t.qa.hostTitle(qaOpenCount)}</button>}
           {game.phase !== 'lobby' && <button className="btn btn-ghost" onClick={endGame}><Flag />{t.host.endGame}</button>}
           <span className="ml-auto hidden text-xs text-white/40 xl:inline">{t.host.shortcuts}</span>
           {autoLeft != null && <span className="chip chip-dark text-sm">{t.host.autoNext(autoLeft)}</span>}

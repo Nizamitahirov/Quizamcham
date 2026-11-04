@@ -43,6 +43,9 @@ export interface QuizSettings {
   nameFilter: boolean
   maxPlayers: number
   powerUps: boolean
+  qa: boolean
+  feedback: boolean
+  teams: 0 | 2 | 3 | 4
   readTime: number // sualı cavablardan əvvəl göstərmə (s)
 }
 
@@ -81,7 +84,7 @@ export interface PublicQuestion {
   body?: string
 }
 
-export interface LobbyEntry { uid: string; firstName: string; lastName: string; avatar: AvatarData }
+export interface LobbyEntry { uid: string; firstName: string; lastName: string; avatar: AvatarData; team?: number }
 export interface LeaderEntry { uid: string; name: string; avatar: AvatarData; score: number; rank: number; delta: number }
 
 export interface Reveal {
@@ -127,9 +130,12 @@ export interface Game {
   preview?: Preview | null
   awards?: Award[]
   publicQuestions?: PublicQuestion[]
+  teamBoard?: TeamEntry[]
   selfEndsAt?: Timestamp | null
   host?: HostProfile | null
 }
+
+export interface TeamEntry { team: number; score: number; members: number; total: number }
 
 export interface HostProfile { name: string; title?: string; org?: string; avatar?: AvatarData | null; photoUrl?: string }
 export interface TrainerProfile extends HostProfile { bio?: string; email?: string; defaults?: Partial<QuizSettings> }

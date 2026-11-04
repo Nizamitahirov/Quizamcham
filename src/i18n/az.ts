@@ -323,6 +323,9 @@ export const az = {
     nameFilter: 'Ad filtri',
     maxPlayers: 'Maks. oyunçu',
     powerUps: 'Güc artırıcılar (50/50, 2x, qalxan)',
+    qa: 'Canlı sual-cavab (Q&A)',
+    feedbackOn: 'Sonda rəy sorğusu',
+    teams: 'Komanda rejimi', teamsOff: 'Fərdi', teamsN: (n: number) => `${n} komanda`,
     readTime: 'Sualı əvvəlcə göstər',
     readNone: 'Minimum (3 s)',
     on: 'Açıq', off: 'Bağlı',
@@ -360,6 +363,21 @@ export const az = {
     exists: 'Bu e-poçtla hesab artıq var', remove: 'Hüququ ləğv et', removeConfirm: (e: string) => `${e} üçün admin hüququ ləğv edilsin?`,
     ownerOnly: 'Komandanı yalnız platforma sahibi idarə edə bilər.',
     roleHint: 'Təlimçi öz quizlərini yaradır və oyun keçirir; sahib hamısını idarə edir.',
+  },
+  teamsUi: { yourTeam: 'Komandanız', board: 'Komanda reytinqi', winner: (n: string) => `Qalib komanda: ${n}` },
+  feedback2: {
+    title: 'Təlimi qiymətləndirin', comment: 'Fikriniz (istəyə bağlı)', send: 'Göndər', thanks: 'Təşəkkürlər! Rəyiniz qeydə alındı 🙏',
+    avg: 'Orta qiymət', count: (n: number) => `${n} rəy`, none: 'Hələ rəy yoxdur',
+  },
+  cert: {
+    button: 'Sertifikat', title: 'İŞTİRAK SERTİFİKATI', given: 'Bu sertifikat təsdiq edir ki,',
+    completed: 'aşağıdakı interaktiv təlim quizində uğurla iştirak etmişdir:', place: (p: number, n: number) => `${p}-ci yer · ${n} iştirakçı`,
+    score: (s: string) => `${s} xal`, trainer: 'Təlimçi', date: 'Tarix',
+  },
+  qa: {
+    button: 'Sual ver', title: 'Sual-cavab', placeholder: 'Təlimçiyə sualınızı yazın…', send: 'Göndər', sent: 'Sualınız göndərildi ✓',
+    empty: 'Hələ sual yoxdur — ilk sualı siz verin!', votes: (n: number) => `${n}`, answered: 'Cavablandı', hide: 'Gizlət', markAnswered: 'Cavablandı',
+    hostTitle: (n: number) => `Q&A (${n})`, disabled: 'Q&A bağlıdır',
   },
   privacy: {
     title: 'Məxfilik bildirişi',
