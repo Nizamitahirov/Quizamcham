@@ -77,6 +77,8 @@ export const en: Dict = {
     deleteFailed: 'Not deleted: you don’t have permission for this action.',
     noAccess: 'You don’t have access to this game’s report (only the trainer who ran it and the owner).',
     ownerOnlyPage: 'These settings affect the whole platform — only the platform owner can change them.',
+    maintained: (n: number) => `${n} stale game(s) / expired assignment(s) were closed automatically ✓`,
+    expired: 'The deadline has passed — grading the assignment automatically…',
     editorTabs: { questions: 'Questions', settings: 'Settings' },
     loginSubtitle: 'Enter your details to access the admin panel', brandTitle: 'Turn trainings into live races',
     brandPoints: ['Real-time synced quizzes', 'AI-assisted question writing', 'Detailed reports and CSV'], showPw: 'Show password', dashboard: 'Dashboard',
@@ -214,5 +216,7 @@ export const en: Dict = {
     wrongPhrases: ['So close! 💪', 'The next one is yours! 🚀', 'Don’t give up! 😎', 'No worries, keep going! 🌱', 'Smash the next one! 💥'],
     streakText: (n: number) => `${n} in a row! ${'🔥'.repeat(Math.min(n, 5))}`,
   },
+  a11y: { soundOn: 'Unmute', soundOff: 'Mute', music: 'Music', fullscreen: 'Fullscreen' },
+  csvHead: { rank: 'Rank', first: 'First name', last: 'Last name', team: 'Team', score: 'Score', correct: 'Correct', acc: 'Accuracy %', avg: 'Avg. time (s)', streak: 'Longest streak', q: (i: number) => `Q${i}`, pts: (i: number) => `Q${i} pts` },
   feedback: { aria: (ok: boolean, p: number) => (ok ? `Correct, +${p} points` : 'Wrong') },
 }

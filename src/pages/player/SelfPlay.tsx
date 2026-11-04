@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, Check, Clock, Flame, Hourglass, PartyPopper, X } from 'lucide-react'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { audio } from '../../audio/AudioEngine'
 import { startSelfQuestion, submitAnswer } from '../../lib/gameEngine'
 import { serverNow } from '../../lib/timeSync'
@@ -52,7 +52,7 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
         <h2 className="text-3xl font-black">{left <= 0 && idx < total ? t.game.timeUp : t.game.selfDone}</h2>
         <p className="text-white/60">{t.game.selfDoneSub}</p>
         <div className="glass flex items-center gap-6 px-6 py-4">
-          <div><div className="label-dark">{t.results.totalScore}</div><div className="font-display text-3xl font-black">{player.score.toLocaleString('az-AZ')}</div></div>
+          <div><div className="label-dark">{t.results.totalScore}</div><div className="font-display text-3xl font-black">{player.score.toLocaleString(LOCALE)}</div></div>
           <div><div className="label-dark">{t.results.correctCount}</div><div className="font-display text-3xl font-black">{player.correctCount}/{total}</div></div>
         </div>
       </div>

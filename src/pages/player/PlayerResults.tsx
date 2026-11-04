@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Award, Check, ChevronDown, Crown, Download, Share2, X } from 'lucide-react'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { Avatar } from '../../components/Avatar'
 import { AnimatedNumber } from '../../components/AnimatedNumber'
 import { burst, celebrate } from '../../components/Confetti'
@@ -62,7 +62,7 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
     try {
       const blob = await renderCertificate(
         { name: `${player.firstName} ${player.lastName}`, quiz: game.title, place: rank, total, score: player.score, trainer: game.host?.name, date: new Date() },
-        { title: t.cert.title, given: t.cert.given, completed: t.cert.completed, place: t.cert.place(rank, total), score: t.cert.score(player.score.toLocaleString('az-AZ')), trainer: t.cert.trainer, date: t.cert.date },
+        { title: t.cert.title, given: t.cert.given, completed: t.cert.completed, place: t.cert.place(rank, total), score: t.cert.score(player.score.toLocaleString(LOCALE)), trainer: t.cert.trainer, date: t.cert.date },
       )
       download(`sertifikat-${player.firstName}-${player.lastName}.png`, blob)
     } catch { /* noop */ } finally { setBusy(false) }

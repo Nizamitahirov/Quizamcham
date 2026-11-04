@@ -142,7 +142,7 @@ export default function Join() {
             {params.get('none') && <p className="rounded-xl bg-amber-400/15 px-3 py-2 text-sm font-semibold text-amber-200" role="status">{t.join.noActive}</p>}
             <label className="label-dark mb-0" htmlFor="pin">{t.join.pin}</label>
             <input
-              id="pin" className="input-dark font-display h-20 text-center text-5xl font-black tracking-[.35em]" inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
+              id="pin" className="input-dark font-display h-20 px-2 pl-[calc(.5rem+.22em)] text-center text-4xl font-black tracking-[.22em] sm:text-5xl" inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
               maxLength={6} placeholder="••••••" value={pin} autoFocus
               onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
             />

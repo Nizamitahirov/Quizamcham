@@ -1,5 +1,5 @@
 import { avatarUri } from '../components/Avatar'
-import { t } from '../i18n/az'
+import { LOCALE, t } from '../i18n/az'
 import type { AvatarData } from '../types'
 
 interface CardData { name: string; title: string; place: number; total: number; score: number; accuracy: number; streak: number; avatar: AvatarData; awards: string[] }
@@ -30,7 +30,7 @@ export async function renderShareCard(d: CardData): Promise<Blob> {
   g.font = '900 170px Montserrat'; g.fillStyle = grad; g.fillText(`#${d.place}`, W / 2, 820)
   g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '600 34px Montserrat'; g.fillText(t.extra.cardAmong(d.total), W / 2, 925)
   // statistikalar
-  const stats = [[d.score.toLocaleString('az-AZ'), t.extra.cardPoints], [`${d.accuracy}%`, t.extra.cardAccuracy], [`🔥 ${d.streak}`, t.extra.cardStreak]]
+  const stats = [[d.score.toLocaleString(LOCALE), t.extra.cardPoints], [`${d.accuracy}%`, t.extra.cardAccuracy], [`🔥 ${d.streak}`, t.extra.cardStreak]]
   stats.forEach(([v, l], i) => {
     const x = 120 + i * 290
     g.fillStyle = 'rgba(255,255,255,.07)'; roundRect(g, x, 990, 260, 150, 28); g.fill()
@@ -77,7 +77,7 @@ export async function renderCertificate(d: CertData, labels: { title: string; gi
   g.textAlign = 'left'; g.fillStyle = '#0F1129'; g.font = '700 30px Montserrat'
   g.fillText(d.trainer || '—', 220, 1040); g.fillStyle = '#C9CCDA'; g.fillRect(220, 1065, 420, 3); g.fillStyle = '#6B6F8A'; g.font = '600 24px Montserrat'; g.fillText(labels.trainer, 220, 1100)
   g.textAlign = 'right'; g.fillStyle = '#0F1129'; g.font = '700 30px Montserrat'
-  g.fillText(d.date.toLocaleDateString('az-AZ', { day: 'numeric', month: 'long', year: 'numeric' }), W - 220, 1040)
+  g.fillText(d.date.toLocaleDateString(LOCALE, { day: 'numeric', month: 'long', year: 'numeric' }), W - 220, 1040)
   g.fillStyle = '#C9CCDA'; g.fillRect(W - 640, 1065, 420, 3); g.fillStyle = '#6B6F8A'; g.font = '600 24px Montserrat'; g.fillText(labels.date, W - 220, 1100)
   return new Promise((res) => c.toBlob((b) => res(b!), 'image/png'))
 }

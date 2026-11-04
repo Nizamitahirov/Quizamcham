@@ -5,7 +5,7 @@ import { db } from '../../firebase/config'
 import { loadReport, reportCsv, answerText, type GameReportData } from '../../lib/report'
 import { SCORED_TYPES } from '../../lib/scoring'
 import { download } from '../../lib/csv'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { ArrowLeft, Download, Star } from 'lucide-react'
 import { useFeedback } from '../../lib/feedback'
@@ -35,7 +35,7 @@ export default function GameReport() {
         <Link to="/admin/games" className="btn btn-ghost-dark btn-icon"><ArrowLeft /></Link>
         <div className="mr-auto">
           <h1 className="text-2xl font-bold sm:text-3xl">{t.games.report}</h1>
-          <p className="text-sm text-muted">{game.title} · PIN {game.pin} · {game.createdAt?.toDate().toLocaleString('az-AZ')}</p>
+          <p className="text-sm text-muted">{game.title} · PIN {game.pin} · {game.createdAt?.toDate().toLocaleString(LOCALE)}</p>
         </div>
         <button className="btn btn-primary" onClick={() => download(`quizamcham-${game.pin}.csv`, reportCsv(r))}><Download />{t.host.exportCsv}</button>
       </div>

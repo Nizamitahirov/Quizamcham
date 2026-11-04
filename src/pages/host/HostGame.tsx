@@ -6,7 +6,7 @@ import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, assignTeams, createGame, grantFifty, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  answersQuery, assignTeams, createGame, grantFifty, setQuestionEnd, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -155,7 +155,13 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
   useEffect(() => {
     if (!game || !questions || game.phase !== 'question' || game.currentQuestion?.type === 'slide') return
     const check = () => {
-      if (game.pausedRemainingMs != null || !game.questionEndsAt) return
+      if (game.pausedRemainingMs != null) return
+      if (!game.questionEndsAt) {
+        // Təmir: bitmə vaxtı yazılmayıbsa (şəbəkə kəsintisi), 3 s sonra yenidən yaz — yoxsa oyunçular cavab verə bilməz
+        const started = game.questionStartedAt?.toMillis()
+        if (started && serverNow() - started > 3000) void once(`end-${game.questionIndex}-${Math.floor(serverNow() / 5000)}`, () => setQuestionEnd(gameId, game.currentQuestion?.timeLimit ?? 30))
+        return
+      }
       const left = game.questionEndsAt.toMillis() - serverNow()
       const allIn = activeCount > 0 && answered.size >= activeCount
       if (left <= -GRACE_MS || (allIn && left > 0)) void once(`f-${game.questionIndex}`, () => finishQuestion(game, questions))
@@ -164,7 +170,7 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
     check()
     const id = setInterval(check, 250)
     return () => clearInterval(id)
-  }, [game, questions, answered, activeCount, once])
+  }, [game, questions, answered, activeCount, once, gameId])
 
   // Komandaları host bölüşdürür (yeni qoşulanlar)
   const teamSig = useMemo(() => active.map((p) => `${p.uid}:${p.team ?? '-'}`).join('|'), [active])
@@ -340,8 +346,8 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
               <button className="btn btn-ghost" onClick={skip} disabled={busy}><SkipForward />{t.host.skip}</button>
             </>
           )}
-          <button className="btn btn-ghost btn-icon" aria-label="musiqi" onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? <VolumeX /> : <Volume2 />}</button>
-          <button className="btn btn-ghost btn-icon" aria-label="tam ekran" onClick={toggleFs}><Maximize /></button>
+          <button className="btn btn-ghost btn-icon" aria-label={t.a11y.music} onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? <VolumeX /> : <Volume2 />}</button>
+          <button className="btn btn-ghost btn-icon" aria-label={t.a11y.fullscreen} onClick={toggleFs}><Maximize /></button>
           {game.settings.qa !== false && <button className="btn btn-ghost" onClick={() => setQaOpen((o) => !o)}><MessageCircleQuestion />{t.qa.hostTitle(qaOpenCount)}</button>}
           {game.phase !== 'lobby' && <button className="btn btn-ghost" onClick={endGame}><Flag />{t.host.endGame}</button>}
           <span className="ml-auto hidden text-xs text-white/40 xl:inline">{t.host.shortcuts}</span>

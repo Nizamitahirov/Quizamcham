@@ -33,3 +33,10 @@
 - `adventurer` avatar üslubu (~400 KB) yeni seçimdən çıxarılıb, əvəzinə `big-smile`; köhnə oyunlar üçün tənbəl yüklənir.
 - İngilis dili: `t` modul yüklənəndə seçilir, dil dəyişəndə səhifə yenilənir (sadəlik; bütün komponentlər `t`-ni birbaşa istifadə edir).
 - e2e testləri real layihəyə yazır; buna görə tam oyun testi yalnız sirr kimi verilən test hesabı ilə işləyir.
+- (audit) Oyun sənədinin `get`-i aktiv oyunda hər kəsə açıqdır (qoşulma üçün), bitmiş oyunda yalnız iştirakçıya; `list` yalnız adminə. PIN üçün də `get` açıq, `list` bağlıdır.
+- (audit) Düzgün cavablı icmal `games/{id}/results/review`-dadır; köhnə oyunlarda `game.review` geriyə uyğunluq üçün oxunur.
+- (audit) Q&A sənəd id-si `uid_<10 s pəncərə>` — Rules tezlik limiti; reaksiya kimi.
+- (audit) Komanda bölgüsünü yalnız host yazır (`assignTeams`), çünki klientlərin hər biri köhnə lobbi siyahısından hesablayanda eyni anda qoşulanlar eyni komandaya düşürdü.
+- (audit) Server olmadığı üçün tapşırıqların son tarixdə bağlanması və köhnə oyunların yekunlaşması təlimçi paneli açılanda (sessiyada 1 dəfə) brauzerdə işləyir; yalnız təlimçinin öz oyunlarına toxunur.
+- (audit) Oyunçu "watchdog"-u: canlı dinləyici donanda (test mühitində və zəif mobil şəbəkədə müşahidə olundu) `disableNetwork/enableNetwork` ilə bağlantı yenidən qurulur, 10 s-də ən çox 1 dəfə.
+- (audit) Oyunçu cavab plitələri `questionEndsAt` cihaza çatmamış aktivdir; server hələ qəbul etmirsə yazı 6 dəfəyə qədər təkrar edilir. `permission-denied` yalnız əvvəlki cəhd şəbəkə xətası ilə bitibsə "artıq göndərilib" sayılır.

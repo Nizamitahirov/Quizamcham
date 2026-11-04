@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing'
-import { doc, getDoc, serverTimestamp, setDoc, Timestamp, updateDoc, deleteDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc, deleteDoc } from 'firebase/firestore'
 
 let env: RulesTestEnvironment
 const OWNER = 'owner1', TRAINER = 'trainer1', TRAINER2 = 'trainer2', P1 = 'player1', P2 = 'player2'
@@ -25,8 +25,12 @@ async function seed(gameExtra: Record<string, unknown> = {}) {
     await setDoc(doc(db, 'quizzes', 'q1', 'questions', 'a'), { text: 'S', correct: ['a'] })
     await setDoc(doc(db, 'games', 'g1'), {
       hostUid: TRAINER, pin: '123456', phase: 'lobby', locked: false, questionIndex: -1, totalQuestions: 3,
-      settings: { lateJoin: true }, questionEndsAt: null, ...gameExtra,
+      settings: { lateJoin: true, maxPlayers: 100, nameFilter: true }, playerCount: 1, questionEndsAt: null, ...gameExtra,
     })
+    await setDoc(doc(db, 'pins', '123456'), { gameId: 'g1', active: true })
+    await setDoc(doc(db, 'profiles', OWNER), { name: 'O', email: 'o@x.az' })
+    await setDoc(doc(db, 'settings', 'app'), { bannedWords: ['pisad'] })
+    await setDoc(doc(db, 'games', 'g1', 'results', 'review'), { items: [{ correct: ['a'] }] })
     await setDoc(doc(db, 'games', 'g1', 'secret', 'key'), { questions: [{ correct: ['a'] }] })
     await setDoc(doc(db, 'games', 'g1', 'players', P2), player())
   })
@@ -139,14 +143,68 @@ describe('reaksiya və rəy', () => {
     await assertSucceeds(f(5))
   })
   it('Q&A: yalnız öz səsini əlavə etmək olur', async () => {
-    await assertSucceeds(setDoc(doc(as(P2), 'games', 'g1', 'qa', 'x1'), { uid: P2, name: 'A', text: 'Sualım var', createdAt: serverTimestamp(), votes: [], answered: false, hidden: false }))
-    await assertSucceeds(updateDoc(doc(as(P1), 'games', 'g1', 'qa', 'x1'), { votes: [P1] }))
-    await assertFails(updateDoc(doc(as(P1), 'games', 'g1', 'qa', 'x1'), { votes: [P1, 'fake1', 'fake2'] }))
-    await assertFails(updateDoc(doc(as(P1), 'games', 'g1', 'qa', 'x1'), { answered: true }))
+    const id = `${P2}_${Math.floor(Date.now() / 10000)}`
+    await assertSucceeds(setDoc(doc(as(P2), 'games', 'g1', 'qa', id), { uid: P2, name: 'A', text: 'Sualım var', createdAt: serverTimestamp(), votes: [], answered: false, hidden: false }))
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'games', 'g1', 'players', P1), player()) })
+    await assertSucceeds(updateDoc(doc(as(P1), 'games', 'g1', 'qa', id), { votes: [P1] }))
+    await assertFails(updateDoc(doc(as(P1), 'games', 'g1', 'qa', id), { votes: [P1, 'fake1', 'fake2'] }))
+    await assertFails(updateDoc(doc(as(P1), 'games', 'g1', 'qa', id), { answered: true }))
   })
   it('xəta jurnalı: yazmaq olur, oyunçu oxuya bilmir', async () => {
     await assertSucceeds(setDoc(doc(as(P2), 'errors', 'e1'), { message: 'x', at: serverTimestamp() }))
     await assertFails(getDoc(doc(as(P2), 'errors', 'e1')))
     await assertFails(deleteDoc(doc(as(P2), 'errors', 'e1')))
+  })
+})
+
+describe('məxfilik (audit düzəlişləri)', () => {
+  const qa = (uid: string, id: string) => setDoc(doc(as(uid), 'games', 'g1', 'qa', id), { uid, name: 'A', text: 'Sual mətni', createdAt: serverTimestamp(), votes: [], answered: false, hidden: false })
+  it('anonim istifadəçi oyunları və PIN-ləri siyahılaya bilmir, konkret PIN-i oxuya bilir', async () => {
+    await assertFails(getDocs(collection(as(P1), 'games')))
+    await assertFails(getDocs(collection(as(P1), 'pins')))
+    await assertSucceeds(getDoc(doc(as(P1), 'pins', '123456')))
+    await assertSucceeds(getDocs(collection(as(TRAINER), 'games')))
+  })
+  it('aktiv oyunu hər kəs, bitmiş oyunu yalnız iştirakçı oxuyur', async () => {
+    await assertSucceeds(getDoc(doc(as(P1), 'games', 'g1')))
+    await env.clearFirestore(); await seed({ phase: 'finished' })
+    await assertFails(getDoc(doc(as(P1), 'games', 'g1')))
+    await assertSucceeds(getDoc(doc(as(P2), 'games', 'g1')))
+  })
+  it('sual icmalı (düzgün cavablar) yalnız iştirakçı və host üçün', async () => {
+    await assertFails(getDoc(doc(as(P1), 'games', 'g1', 'results', 'review')))
+    await assertSucceeds(getDoc(doc(as(P2), 'games', 'g1', 'results', 'review')))
+    await assertSucceeds(getDoc(doc(as(TRAINER), 'games', 'g1', 'results', 'review')))
+  })
+  it('profillər (e-poçt) yalnız adminlərə', async () => {
+    await assertFails(getDoc(doc(as(P1), 'profiles', OWNER)))
+    await assertSucceeds(getDoc(doc(as(TRAINER), 'profiles', OWNER)))
+  })
+  it('qlobal ayarları və səsləri yalnız sahib dəyişir; təlimçi öz daimi QR-ını', async () => {
+    await assertFails(setDoc(doc(as(TRAINER), 'settings', 'app'), { bannedWords: [] }))
+    await assertFails(setDoc(doc(as(TRAINER), 'sounds', 'meta'), { enabled: false }))
+    await assertSucceeds(setDoc(doc(as(OWNER), 'settings', 'app'), { bannedWords: [] }))
+    await assertSucceeds(setDoc(doc(as(TRAINER), 'settings', `play_${TRAINER}`), { activeGameId: 'g1' }))
+    await assertFails(setDoc(doc(as(TRAINER), 'settings', `play_${OWNER}`), { activeGameId: 'g1' }))
+  })
+  it('Q&A: iştirakçı olmayan yaza bilmir; 10 s-də bir sual', async () => {
+    const b = Math.floor(Date.now() / 10000)
+    await assertFails(qa(P1, `${P1}_${b}`))
+    await assertFails(qa(P2, 'istənilən-id'))
+    await assertSucceeds(qa(P2, `${P2}_${b}`))
+    await assertFails(qa(P2, `${P2}_${b}`))
+    await assertFails(getDocs(collection(as(P1), 'games', 'g1', 'qa')))
+  })
+  it('reaksiya: iştirakçı olmayan göndərə bilmir', async () => {
+    await assertFails(setDoc(doc(as(P1), 'games', 'g1', 'reactions', `${P1}_${Math.floor(Date.now() / 2000)}`), { uid: P1, emoji: '🔥', createdAt: serverTimestamp() }))
+  })
+  it('maks. oyunçu dolubsa qoşulmaq olmur', async () => {
+    await env.clearFirestore(); await seed({ playerCount: 100 })
+    await assertFails(setDoc(doc(as(P1), 'games', 'g1', 'players', P1), player()))
+  })
+  it('qadağan ad qəbul olunmur (filtr açıqdırsa)', async () => {
+    await assertFails(setDoc(doc(as(P1), 'games', 'g1', 'players', P1), player({ firstName: 'Pisad' })))
+    await env.clearFirestore(); await seed({ settings: { lateJoin: true, maxPlayers: 100, nameFilter: false } })
+    await assertSucceeds(setDoc(doc(as(P1), 'games', 'g1', 'players', P1), player({ firstName: 'Pisad' })))
   })
 })

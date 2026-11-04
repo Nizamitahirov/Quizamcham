@@ -14,7 +14,7 @@ import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
 import { ListChecks } from 'lucide-react'
 import { Lock, FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
 import { TILE_COLORS, Shape } from '../../components/AnswerTile'
 import { QuestionInput } from '../player/QuestionInputs'
@@ -167,7 +167,7 @@ export default function QuizEditor() {
 
   const current = questions.find((q) => q.id === sel) ?? null
   const status = state === 'saving' ? t.editor.saving : state === 'error' ? t.editor.saveError : state === 'dirty' ? t.editor.unsaved
-    : savedAt ? t.editor.saved(savedAt.toLocaleTimeString('az-AZ', { hour: '2-digit', minute: '2-digit' })) : ''
+    : savedAt ? t.editor.saved(savedAt.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })) : ''
 
   return (
     <div className="mx-auto max-w-[1600px] p-3 sm:p-6">

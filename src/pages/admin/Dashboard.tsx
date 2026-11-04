@@ -4,13 +4,14 @@ import { motion } from 'framer-motion'
 import type { Timestamp } from 'firebase/firestore'
 import { ArrowRight, Bot, Gamepad2, ListChecks, Plus, QrCode, Target, Users, Sparkles } from 'lucide-react'
 import { createQuiz, listGames, listQuizzes, parseQuizJson } from '../../firebase/db'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { QRDownload } from '../../components/QRBlock'
 import { AiImport } from '../../components/AiImport'
 import { TemplateGallery } from '../../components/ImportModals'
 import type { AdminState } from '../../firebase/auth'
 import { visibleGames } from '../../lib/access'
+import { runMaintenance } from '../../lib/maintenance'
 import type { GameStats, Phase } from '../../types'
 
 type G = { id: string; hostUid?: string; title?: string; pin?: string; playerCount?: number; phase?: Phase; createdAt?: Timestamp; stats?: GameStats | null }
@@ -22,11 +23,20 @@ export default function Dashboard() {
   const [quizCount, setQuizCount] = useState<number | null>(null)
   const [games, setGames] = useState<G[] | null>(null)
   const [ai, setAi] = useState(false)
+  const [maint, setMaint] = useState('')
   const [tpl, setTpl] = useState(false)
   useEffect(() => {
     void listQuizzes().then((q) => setQuizCount(q.length)).catch(() => setQuizCount(0))
-    void listGames(200).then((g) => setGames(visibleGames(admin, g as G[]))).catch(() => setGames([]))
-  }, [admin])
+    const load = () => void listGames(200).then((g) => setGames(visibleGames(admin, g as G[]))).catch(() => setGames([]))
+    load()
+    // baxım: sessiyada bir dəfə
+    try {
+      if (user && !sessionStorage.getItem('qz.maint')) {
+        sessionStorage.setItem('qz.maint', '1')
+        void runMaintenance(user.uid).then((n) => { if (n) { setMaint(t.admin.maintained(n)); load() } })
+      }
+    } catch { /* noop */ }
+  }, [admin, user])
   const kpi = useMemo(() => {
     const gs = games ?? []
     const players = gs.reduce((s, g) => s + (g.playerCount ?? 0), 0)
@@ -61,6 +71,7 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
+      {maint && <p className="mb-4 rounded-xl bg-green-50 px-4 py-2 text-sm font-semibold text-green-800" role="status">{maint}</p>}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((c, i) => (
           <motion.div key={c.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }} className="card p-5">
@@ -85,7 +96,7 @@ export default function Dashboard() {
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: 'var(--grad)' }}><Gamepad2 className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{g.title}</span>
-                      <span className="text-xs text-muted">{g.createdAt?.toDate().toLocaleString('az-AZ', { dateStyle: 'medium', timeStyle: 'short' })} · PIN {g.pin}</span>
+                      <span className="text-xs text-muted">{g.createdAt?.toDate().toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })} · PIN {g.pin}</span>
                     </span>
                     <span className="flex items-center gap-1 text-sm font-semibold text-muted"><Users className="h-4 w-4" />{g.playerCount ?? 0}</span>
                     {g.phase !== 'finished' ? <span className="chip bg-green-100 text-green-700">{t.admin.live}</span> : g.stats && <span className="chip bg-surface text-[#4A4E69]">{Math.round((g.stats.avgAccuracy ?? 0) * 100)}%</span>}

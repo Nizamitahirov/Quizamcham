@@ -123,10 +123,26 @@ export async function toQuestion(gameId: string, q: Question, settings: QuizSett
     phase: 'question', currentQuestion: JSON.parse(JSON.stringify(toPublic(q, settings))), preview: null, questionStartedAt: serverTimestamp(), questionEndsAt: null, pausedRemainingMs: null,
   })
   if (q.type === 'slide') return
-  const snap = await getDocFromServer(gref(gameId))
-  const started = snap.get('questionStartedAt') as Timestamp | null
-  const startMs = started ? started.toMillis() : serverNow()
-  await updateDoc(gref(gameId), { questionEndsAt: Timestamp.fromMillis(startMs + q.timeLimit * 1000) })
+  await setQuestionEnd(gameId, q.timeLimit)
+}
+
+/**
+ * Bitmə vaxtını server başlanğıc vaxtından hesablayıb yazır (3 cəhd).
+ * Bu yazı alınmasa, cavab plitələri aktivləşməz — host ekranı bunu ayrıca təmir edir (repairQuestionEnd).
+ */
+export async function setQuestionEnd(gameId: string, timeLimitSec: number) {
+  let lastErr: unknown
+  for (let i = 0; i < 3; i++) {
+    try {
+      const snap = await getDocFromServer(gref(gameId))
+      if (snap.get('phase') !== 'question' || snap.get('questionEndsAt') || snap.get('pausedRemainingMs') != null) return
+      const started = snap.get('questionStartedAt') as Timestamp | null
+      const startMs = started ? started.toMillis() : serverNow()
+      await updateDoc(gref(gameId), { questionEndsAt: Timestamp.fromMillis(startMs + timeLimitSec * 1000) })
+      return
+    } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 400 * (i + 1))) }
+  }
+  throw lastErr
 }
 
 export async function pauseQuestion(game: Game) {

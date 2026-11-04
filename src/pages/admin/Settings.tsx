@@ -4,7 +4,7 @@ import { cleanupGames, clearErrors, exportAll, listErrors, oldGames } from '../.
 import { download } from '../../lib/csv'
 import { loadAppSettings, saveAppSettings } from '../../firebase/db'
 import { TIME_OPTIONS } from '../../lib/defaults'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
 import { Field, Section, Segmented } from '../../components/kit'
 import type { AppSettings } from '../../types'
@@ -91,7 +91,7 @@ function ErrorLog() {
           {rows.map((r) => (
             <li key={r.id} className="rounded-xl bg-surface p-3 text-xs">
               <div className="font-bold text-red-700">{r.message}</div>
-              <div className="mt-1 text-muted">{r.at?.toDate().toLocaleString('az-AZ')} · {r.url} · {r.context}</div>
+              <div className="mt-1 text-muted">{r.at?.toDate().toLocaleString(LOCALE)} · {r.url} · {r.context}</div>
             </li>
           ))}
         </ul>

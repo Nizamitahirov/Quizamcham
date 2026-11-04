@@ -198,6 +198,8 @@ export const az = {
     deleteFailed: 'Silinmədi: bu əməliyyat üçün icazəniz yoxdur.',
     noAccess: 'Bu oyunun hesabatına baxmaq üçün icazəniz yoxdur (yalnız oyunu keçirən təlimçi və sahib).',
     ownerOnlyPage: 'Bu ayarlar bütün platformaya təsir edir — yalnız platforma sahibi dəyişə bilər.',
+    maintained: (n: number) => `${n} köhnə oyun / bitmiş tapşırıq avtomatik yekunlaşdırıldı ✓`,
+    expired: 'Son tarix keçib — tapşırıq avtomatik qiymətləndirilir…',
     editorTabs: { questions: 'Suallar', settings: 'Ayarlar' },
     loginSubtitle: 'Admin panelinə daxil olmaq üçün məlumatlarınızı yazın',
     brandTitle: 'Təlimləri canlı yarışa çevirin',
@@ -457,6 +459,8 @@ export const az = {
     wrongPhrases: ['Az qaldı! 💪', 'Növbəti səninkidir! 🚀', 'Təslim olmaq yox! 😎', 'Heç nə, davam! 🌱', 'Növbəti sualda partla! 💥'],
     streakText: (n: number) => `${n} ardıcıl! ${'🔥'.repeat(Math.min(n, 5))}`,
   },
+  a11y: { soundOn: 'Səsi aç', soundOff: 'Səsi bağla', music: 'Musiqi', fullscreen: 'Tam ekran' },
+  csvHead: { rank: 'Yer', first: 'Ad', last: 'Soyad', team: 'Komanda', score: 'Xal', correct: 'Düzgün', acc: 'Dəqiqlik %', avg: 'Orta vaxt (s)', streak: 'Ən uzun seriya', q: (i: number) => `S${i}`, pts: (i: number) => `S${i} xal` },
   feedback: { aria: (ok: boolean, p: number) => (ok ? `Düzdür, +${p} xal` : 'Səhvdir') },
 }
 
@@ -475,4 +479,6 @@ export function setLang(l: Lang) {
   location.reload()
 }
 export const t: Dict = currentLang() === 'en' ? en : az
+/** Tarix və rəqəm formatı üçün (müqayisə/normallaşdırma üçün DEYİL). */
+export const LOCALE = currentLang() === 'en' ? 'en-GB' : 'az-AZ'
 if (typeof document !== 'undefined') document.documentElement.lang = currentLang()

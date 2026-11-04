@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle2, Clock, Footprints } from 'lucide-react'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { Avatar } from '../../components/Avatar'
 import { shortName } from '../../lib/nameFilter'
 import { rankPlayers } from '../../lib/scoring'
@@ -45,7 +45,7 @@ export function HostSelf({ game, players }: { game: Game; players: Player[] }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
                     <span className="truncate text-xl font-bold">{shortName(p.firstName, p.lastName)}</span>
-                    <span className="flex items-center gap-2 text-lg font-black tabular-nums">{n >= game.totalQuestions && <CheckCircle2 className="h-5 w-5 text-green-400" />}{n}/{game.totalQuestions} · {p.score.toLocaleString('az-AZ')}</span>
+                    <span className="flex items-center gap-2 text-lg font-black tabular-nums">{n >= game.totalQuestions && <CheckCircle2 className="h-5 w-5 text-green-400" />}{n}/{game.totalQuestions} · {p.score.toLocaleString(LOCALE)}</span>
                   </div>
                   <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/10"><motion.div className="h-full rounded-full" style={{ background: 'var(--grad)' }} animate={{ width: `${pct}%` }} /></div>
                 </div>

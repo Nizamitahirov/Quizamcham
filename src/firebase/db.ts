@@ -178,16 +178,39 @@ export const saveAppSettings = (s: AppSettings) => setDoc(doc(db, 'settings', 'a
 
 // ---------------- Səslər (düz / səhv cavab) ----------------
 
+/**
+ * Səs parçaları böyükdür (~350 KB): yalnız kiçik "meta" sənədi hər dəfə oxunur,
+ * parça versiyası dəyişməyibsə brauzer keşindən (localStorage) götürülür.
+ */
 export async function loadSounds(): Promise<SoundSettings> {
   try {
-    const [m, c, w] = await Promise.all(['meta', 'correct', 'wrong'].map((k) => getDoc(doc(db, 'sounds', k))))
-    return { enabled: m.exists() ? m.get('enabled') !== false : true, correct: c.exists() ? (c.data() as SoundClip) : null, wrong: w.exists() ? (w.data() as SoundClip) : null }
+    const m = await getDoc(doc(db, 'sounds', 'meta'))
+    const enabled = m.exists() ? m.get('enabled') !== false : true
+    const out: SoundSettings = { enabled, correct: null, wrong: null }
+    for (const k of ['correct', 'wrong'] as const) {
+      const v = m.get(`${k}V`) as number | undefined
+      const cacheKey = `qz.snd.${k}`
+      if (v === 0) continue // silinib
+      try {
+        const c = JSON.parse(localStorage.getItem(cacheKey) ?? 'null') as { v: number; clip: SoundClip } | null
+        if (v && c?.v === v) { out[k] = c.clip; continue }
+      } catch { /* keş yoxdur */ }
+      const d = await getDoc(doc(db, 'sounds', k))
+      if (!d.exists()) continue
+      out[k] = d.data() as SoundClip
+      if (v) try { localStorage.setItem(cacheKey, JSON.stringify({ v, clip: out[k] })) } catch { /* yer yoxdur */ }
+    }
+    return out
   } catch {
     return { enabled: false }
   }
 }
-export const saveSoundClip = (kind: 'correct' | 'wrong', clip: SoundClip | null) => (clip ? setDoc(doc(db, 'sounds', kind), clip) : deleteDoc(doc(db, 'sounds', kind)))
-export const setSoundsEnabled = (enabled: boolean) => setDoc(doc(db, 'sounds', 'meta'), { enabled })
+export async function saveSoundClip(kind: 'correct' | 'wrong', clip: SoundClip | null) {
+  if (clip) await setDoc(doc(db, 'sounds', kind), clip)
+  else await deleteDoc(doc(db, 'sounds', kind))
+  await setDoc(doc(db, 'sounds', 'meta'), { [`${kind}V`]: clip ? Date.now() : 0 }, { merge: true })
+}
+export const setSoundsEnabled = (enabled: boolean) => setDoc(doc(db, 'sounds', 'meta'), { enabled }, { merge: true })
 
 // ---------------- Təlimçi profili ----------------
 
