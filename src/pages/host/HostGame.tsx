@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { collection, doc, getDoc, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore'
+import { collection, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore'
 import { AnimatePresence, motion } from 'framer-motion'
 import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, createGame, grantFifty, readMsFor, startSelf, deliverFirstSelfQ, selfAnswersQuery, scoreSelfAnswer, updateLeaderboard, fetchPlayers, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  answersQuery, createGame, grantFifty, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -28,7 +28,8 @@ import { HostQuestion, HostReveal } from './HostQuestion'
 import { HostLeaderboard, HostPodium } from './HostPodium'
 import HostSummary from './HostSummary'
 import { HostSelf } from './HostSelf'
-import type { Answer, Game, Player, Question } from '../../types'
+import { useSelfEngine } from './useSelfEngine'
+import type { Game, Player, Question } from '../../types'
 
 export default function HostGame() {
   const { gameId } = useParams()
@@ -160,58 +161,8 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
     return () => clearInterval(id)
   }, [game, questions, answered, activeCount, once])
 
-  // ---- Öz tempində: cavabları gəldikcə qiymətləndir ----
-  const gameRef = useRef(game)
-  useEffect(() => { gameRef.current = game }, [game])
-  const chains = useRef(new Map<string, Promise<unknown>>())
-  const lbTimer = useRef<number | null>(null)
-  const isSelf = game?.phase === 'self'
-  useEffect(() => {
-    if (!isSelf || !questions) return
-    return onSnapshot(selfAnswersQuery(gameId), (snap) => {
-      snap.docChanges().forEach((c) => {
-        if (c.type !== 'added') return
-        const a = c.doc.data() as Answer
-        if (!a.answeredAt) return
-        const key = `sa-${c.doc.id}`
-        if (guard.current.has(key)) return
-        guard.current.add(key)
-        const prev = chains.current.get(a.uid) ?? Promise.resolve()
-        const job = prev.then(async () => {
-          const ps = await getDoc(doc(db, 'games', gameId, 'players', a.uid))
-          if (!ps.exists()) return
-          const g = gameRef.current
-          if (g) await scoreSelfAnswer(g, questions, { ...(ps.data() as Player), uid: a.uid }, a)
-          if (lbTimer.current) clearTimeout(lbTimer.current)
-          lbTimer.current = window.setTimeout(() => { void fetchPlayers(gameId).then((pl) => updateLeaderboard(gameId, pl, gameRef.current?.leaderboard ?? [])) }, 1500)
-        }).catch((e) => { console.error(e); guard.current.delete(key) })
-        chains.current.set(a.uid, job)
-      })
-    })
-  }, [isSelf, questions, gameId])
-  // Öz tempində: gec qoşulanlara ilk sualı ver
-  useEffect(() => {
-    if (!game || !questions || game.phase !== 'self') return
-    active.forEach((p) => {
-      if (p.selfQ || (p.history?.length ?? 0) > 0) return
-      const key = `sq0-${p.uid}`
-      if (guard.current.has(key)) return
-      guard.current.add(key)
-      void deliverFirstSelfQ(gameId, p.uid, questions, game.settings).catch(() => guard.current.delete(key))
-    })
-  }, [game, questions, active, gameId])
-
-  // Öz tempində: vaxt bitdikdə və ya hamı bitirəndə avtomatik yekunlaşdır
-  useEffect(() => {
-    if (!game || !questions || game.phase !== 'self') return
-    const check = () => {
-      const ends = game.selfEndsAt?.toMillis() ?? Infinity
-      const allDone = active.length > 0 && active.every((p) => (p.history?.length ?? 0) >= game.totalQuestions)
-      if (serverNow() > ends + 6000 || allDone) void once('fin', () => finishGame(game, questions))
-    }
-    const id = setInterval(check, 1000)
-    return () => clearInterval(id)
-  }, [game, questions, active, once])
+  // ---- Öz tempində rejimi (ayrıca hook) ----
+  const gameRef = useSelfEngine({ game, questions, active, gameId, guard, once })
 
   // ---- İdarə ----
   const next = useCallback(() => {
