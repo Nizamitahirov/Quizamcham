@@ -2,9 +2,10 @@ import { motion } from 'framer-motion'
 import { Dices } from 'lucide-react'
 import { t } from '../i18n/az'
 import type { AvatarData } from '../types'
-import { ACCESSORIES, Avatar, type AvatarStyle } from './Avatar'
+import { ACCESSORIES, AVATAR_STYLES, Avatar, preloadAvatarStyles } from './Avatar'
+import { useEffect } from 'react'
 
-const STYLES: AvatarStyle[] = ['fun-emoji', 'adventurer', 'bottts']
+const STYLES = [...AVATAR_STYLES]
 const SEEDS = ['Aysel', 'Murad', 'Leyla', 'Tural', 'Nigar', 'Elvin', 'Günay', 'Rauf']
 export const PRESETS: AvatarData[] = STYLES.flatMap((style) => SEEDS.map((seed) => ({ style, seed })))
 
@@ -14,6 +15,8 @@ export function randomAvatar(): AvatarData {
 }
 
 export function AvatarPicker({ value, onChange }: { value: AvatarData; onChange: (a: AvatarData) => void }) {
+  useEffect(() => { void preloadAvatarStyles() }, [])
+  useEffect(() => { void preloadAvatarStyles() }, [])
   const isSel = (a: AvatarData) => a.style === value.style && a.seed === value.seed
   return (
     <div className="flex flex-col gap-4">

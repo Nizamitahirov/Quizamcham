@@ -210,7 +210,7 @@ export const az = {
     aiCopy: 'Prompt-u kopyala', aiCopied: 'Kopyalandı ✓',
     aiPaste: 'JSON-u bura yapışdırın', aiImport: 'İdxal et',
     pasteJson: 'JSON yapışdır',
-    credits: 'Avatarlar: DiceBear — Fun Emoji (Davis Uche, CC BY 4.0), Adventurer (Lisa Wischofsky, CC BY 4.0), Bottts (Pablo Stanley).',
+    credits: 'Avatarlar: DiceBear — Fun Emoji (Davis Uche, CC BY 4.0), Big Smile / “Custom Avatar” (Ashley Seo, CC BY 4.0), Bottts (Pablo Stanley, şəxsi və kommersiya istifadəsi üçün pulsuz), Adventurer (Lisa Wischofsky, CC BY 4.0, köhnə oyunlar).',
     login: 'Təlimçi girişi',
     email: 'E-poçt',
     password: 'Şifrə',

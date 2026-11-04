@@ -22,7 +22,7 @@ export async function renderShareCard(d: CardData): Promise<Blob> {
   g.textAlign = 'left'; g.font = '900 46px Montserrat'; g.fillText('Quiz', 190, 124)
   const qw = g.measureText('Quiz').width; g.fillStyle = grad; g.fillText('amcham', 190 + qw, 124)
   // avatar
-  const img = await loadImg(avatarUri(d.avatar.style, d.avatar.seed))
+  const img = await loadImg(await avatarUri(d.avatar.style, d.avatar.seed))
   g.save(); g.beginPath(); g.arc(W / 2, 420, 170, 0, Math.PI * 2); g.fillStyle = grad; g.fill(); g.beginPath(); g.arc(W / 2, 420, 156, 0, Math.PI * 2); g.clip(); g.drawImage(img, W / 2 - 156, 264, 312, 312); g.restore()
   if (d.avatar.accessory) { g.font = '110px serif'; g.textAlign = 'center'; g.fillText(d.avatar.accessory, W / 2 + 140, 290) }
   g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = '800 58px Montserrat'; g.fillText(d.name, W / 2, 660)
