@@ -6,6 +6,7 @@ import { adminLogin, useAdmin } from '../../firebase/auth'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { Logo } from '../../components/Brand'
+import { LangSwitch } from '../../components/LangSwitch'
 import { FuturisticBg } from '../../components/FuturisticBg'
 
 const ICONS = [Radio, Bot, BarChart3]
@@ -51,7 +52,7 @@ export default function Login() {
       </div>
       <div className="flex items-center justify-center px-4 py-10">
         <motion.form initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="w-full max-w-sm">
-          <div className="mb-8 flex justify-center lg:hidden"><Logo size={40} dark={false} /></div>
+          <div className="mb-8 flex items-center justify-between"><span className="lg:hidden"><Logo size={36} dark={false} /></span><LangSwitch dark={false} className="ml-auto" /></div>
           <h2 className="text-2xl font-bold tracking-tight">{t.admin.login}</h2>
           <p className="mt-1 text-sm text-muted">{t.admin.loginSubtitle}</p>
           <div className="mt-6 space-y-4">

@@ -1,11 +1,8 @@
 import type { Player, TeamEntry } from '../types'
+import { t } from '../i18n/az'
 
-export const TEAMS = [
-  { name: 'Qırmızılar', color: '#E11D2A', emoji: '🔴' },
-  { name: 'Mavilər', color: '#2563EB', emoji: '🔵' },
-  { name: 'Yaşıllar', color: '#059669', emoji: '🟢' },
-  { name: 'Sarılar', color: '#D97706', emoji: '🟡' },
-]
+const COLORS = [{ color: '#E11D2A', emoji: '🔴' }, { color: '#2563EB', emoji: '🔵' }, { color: '#059669', emoji: '🟢' }, { color: '#D97706', emoji: '🟡' }]
+export const TEAMS = COLORS.map((c, i) => ({ ...c, name: t.extra.teamNames[i] }))
 
 /** Komanda xalı = üzvlərin orta xalı (spec 8.3). */
 export function computeTeams(players: Player[], n: number): TeamEntry[] {

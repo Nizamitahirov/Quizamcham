@@ -1,4 +1,5 @@
 import { avatarUri } from '../components/Avatar'
+import { t } from '../i18n/az'
 import type { AvatarData } from '../types'
 
 interface CardData { name: string; title: string; place: number; total: number; score: number; accuracy: number; streak: number; avatar: AvatarData; awards: string[] }
@@ -27,9 +28,9 @@ export async function renderShareCard(d: CardData): Promise<Blob> {
   if (d.avatar.accessory) { g.font = '110px serif'; g.textAlign = 'center'; g.fillText(d.avatar.accessory, W / 2 + 140, 290) }
   g.textAlign = 'center'; g.fillStyle = '#fff'; g.font = '800 58px Montserrat'; g.fillText(d.name, W / 2, 660)
   g.font = '900 170px Montserrat'; g.fillStyle = grad; g.fillText(`#${d.place}`, W / 2, 820)
-  g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '600 34px Montserrat'; g.fillText(`${d.total} iştirakçı arasında`, W / 2, 925)
+  g.fillStyle = 'rgba(255,255,255,.6)'; g.font = '600 34px Montserrat'; g.fillText(t.extra.cardAmong(d.total), W / 2, 925)
   // statistikalar
-  const stats = [[d.score.toLocaleString('az-AZ'), 'xal'], [`${d.accuracy}%`, 'dəqiqlik'], [`🔥 ${d.streak}`, 'seriya']]
+  const stats = [[d.score.toLocaleString('az-AZ'), t.extra.cardPoints], [`${d.accuracy}%`, t.extra.cardAccuracy], [`🔥 ${d.streak}`, t.extra.cardStreak]]
   stats.forEach(([v, l], i) => {
     const x = 120 + i * 290
     g.fillStyle = 'rgba(255,255,255,.07)'; roundRect(g, x, 990, 260, 150, 28); g.fill()

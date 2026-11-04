@@ -14,6 +14,7 @@ import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
+import { LangSwitch } from '../../components/LangSwitch'
 import { AvatarPicker, randomAvatar } from '../../components/AvatarPicker'
 import { useSession } from '../../store/gameStore'
 import { audio } from '../../audio/AudioEngine'
@@ -114,6 +115,7 @@ export default function Join() {
       <FuturisticBg floor={false} intensity={0.8} />
       <header className="relative z-10 mx-auto flex w-full max-w-md items-center justify-between px-4 pt-5">
         <Link to="/" aria-label={t.app.home}><Logo size={34} /></Link>
+        <LangSwitch />
       </header>
       <main className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pb-8 pt-6">
         <ol className="flex items-center gap-2" aria-label="progress">

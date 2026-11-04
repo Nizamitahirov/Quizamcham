@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { ArrowRight, Radio, Shield, Trophy, Zap, QrCode } from 'lucide-react'
 import { t } from '../i18n/az'
 import { Logo } from '../components/Brand'
+import { LangSwitch } from '../components/LangSwitch'
 import { FuturisticBg } from '../components/FuturisticBg'
 import { TILE_HEX, Shape } from '../components/AnswerTile'
 
@@ -22,7 +23,7 @@ export default function Home() {
       <FuturisticBg />
       <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <Logo size={38} />
-        <Link to="/admin" className="btn btn-ghost btn-sm">{t.home.organizer}<ArrowRight /></Link>
+        <div className="flex items-center gap-2"><LangSwitch /><Link to="/admin" className="btn btn-ghost btn-sm hidden sm:inline-flex">{t.home.organizer}<ArrowRight /></Link></div>
       </header>
 
       <main className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 pb-10 sm:px-6 lg:grid-cols-[1.1fr_.9fr]">
@@ -64,7 +65,7 @@ export default function Home() {
             </div>
             <button className="btn btn-primary btn-lg mt-6 w-full" disabled={pin.length !== 6}><Zap className="fill-current" />{t.home.go}</button>
             <p className="mt-5 flex items-center justify-center gap-2 text-sm text-white/50"><QrCode className="h-4 w-4" />{t.home.scan}</p>
-            <p className="mt-3 text-center text-xs text-white/35"><Link to="/privacy" className="underline">{t.privacy.title}</Link></p>
+            <p className="mt-3 flex justify-center gap-3 text-center text-xs text-white/35"><Link to="/privacy" className="underline">{t.privacy.title}</Link><Link to="/admin" className="underline sm:hidden">{t.home.organizer}</Link></p>
           </form>
         </motion.section>
       </main>

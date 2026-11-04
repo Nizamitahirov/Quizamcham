@@ -301,21 +301,7 @@ export const az = {
       host: { title: 'Təlimçi idarə edir', desc: 'Hər suala keçidi siz edirsiniz — müzakirə və izah üçün ideal.' },
       auto: { title: 'Avtomatik', desc: 'Nəticə və reytinq ekranları təyin olunan vaxtdan sonra özü keçir.' },
       self: { title: 'Öz tempində', desc: 'Hər iştirakçı sualları öz sürəti ilə cavablayır, ümumi vaxt limiti ilə.' },
-      templates: {
-    button: 'Şablonlar', title: 'Şablondan başla', sub: 'Hazır quizdən başlayın və öz ehtiyacınıza uyğunlaşdırın', use: 'İstifadə et',
-    blank: 'Boş quiz', blankDesc: 'Sıfırdan öz suallarınızı yazın', questions: (n: number) => `${n} sual`,
-  },
-  csv: {
-    button: 'Excel / CSV', title: 'Excel və ya CSV-dən idxal',
-    desc: 'Excel-də cədvəli seçib kopyalayın və aşağıya yapışdırın (və ya CSV faylı seçin). Birinci sətir başlıqdır.',
-    template: 'Nümunə şablonu yüklə', file: 'CSV faylı seç', paste: 'Cədvəli bura yapışdırın', title2: 'Quiz adı',
-    parsed: (n: number, e: number) => `${n} sual tapıldı${e ? `, ${e} sətirdə xəta` : ''}`, import: 'Quiz yarat', errorRow: (r: number, m: string) => `Sətir ${r}: ${m}`,
-    columns: 'Sütunlar: tip · sual · vaxt · xal · A · B · C · D · E · F · düzgün · izah',
-  },
-  image: { upload: 'Şəkil yüklə', remove: 'Şəkli sil', tooBig: 'Şəkil çox böyükdür', processing: 'Sıxılır…' },
-  copyQ: { button: 'Başqa quizə köçür', title: 'Sualı köçür', pick: 'Hədəf quizi seçin', done: (t: string) => `“${t}” quizinə köçürüldü ✓`, none: 'Başqa quiz yoxdur' },
-  tags: { label: 'Etiketlər', placeholder: 'məs. AI, HR, test (vergüllə)', all: 'Hamısı' },
-  assign: { title: 'Tapşırıq (link)', desc: 'Host lazım deyil: linki paylaşın, iştirakçılar son tarixə qədər istədikləri vaxt cavablayır.' },
+      assign: { title: 'Tapşırıq (link)', desc: 'Host lazım deyil: linki paylaşın, iştirakçılar son tarixə qədər istədikləri vaxt cavablayır.' },
     },
     assignDays: 'Son tarix (tapşırıq)', days: (n: number) => `${n} gün`,
     autoDelay: 'Ekran müddəti (avtomatik)', selfMinutes: 'Ümumi vaxt (öz tempində)', minutes: (n: number) => `${n} dəq`,
@@ -379,6 +365,14 @@ export const az = {
     exists: 'Bu e-poçtla hesab artıq var', remove: 'Hüququ ləğv et', removeConfirm: (e: string) => `${e} üçün admin hüququ ləğv edilsin?`,
     ownerOnly: 'Komandanı yalnız platforma sahibi idarə edə bilər.',
     roleHint: 'Təlimçi öz quizlərini yaradır və oyun keçirir; sahib hamısını idarə edir.',
+  },
+  analytics: {
+    title: 'Analitika', sub: 'Bütün bitmiş oyunlar üzrə ümumi göstəricilər',
+    games: 'Oyun', players: 'İştirakçı (cəmi)', accuracy: 'Orta dəqiqlik', avgPlayers: 'Oyun başına iştirakçı',
+    weekly: 'Həftəlik iştirakçılar', weeklySub: 'Son 12 həftə · hər sütun bir həftədir',
+    byQuiz: 'Quizlər üzrə', quiz: 'Quiz', runs: 'Oyun', people: 'İştirakçı', acc: 'Dəqiqlik',
+    top: 'Ən fəal iştirakçılar', topSub: 'Adı ilə bir neçə oyunda iştirak edənlər', name: 'Ad', played: 'Oyun', points: 'Cəmi xal', best: 'Ən yaxşı yer',
+    hardest: 'Ən çətin suallar', hardestSub: 'Hər oyunun ən aşağı dəqiqlikli sualı', empty: 'Hələ bitmiş oyun yoxdur', weekOf: (d: string) => `${d} həftəsi`,
   },
   templates: {
     button: 'Şablonlar', title: 'Şablondan başla', sub: 'Hazır quizdən başlayın və öz ehtiyacınıza uyğunlaşdırın', use: 'İstifadə et',
@@ -448,8 +442,29 @@ export const az = {
     mostWrong: 'Ən çox seçilən səhv',
     delete: 'Oyunu sil',
   },
+  extra: {
+    teamNames: ['Qırmızılar', 'Mavilər', 'Yaşıllar', 'Sarılar'],
+    cardAmong: (n: number) => `${n} iştirakçı arasında`, cardPoints: 'xal', cardAccuracy: 'dəqiqlik', cardStreak: 'seriya',
+    correctPhrases: ['Əla! 🎉', 'Bomba! 💥', 'Sən alovlanırsan! 🔥', 'Dahi! 🧠', 'Super sürət! ⚡', 'Möhtəşəm! 🚀', 'Tam hədəf! 🎯'],
+    wrongPhrases: ['Az qaldı! 💪', 'Növbəti səninkidir! 🚀', 'Təslim olmaq yox! 😎', 'Heç nə, davam! 🌱', 'Növbəti sualda partla! 💥'],
+    streakText: (n: number) => `${n} ardıcıl! ${'🔥'.repeat(Math.min(n, 5))}`,
+  },
   feedback: { aria: (ok: boolean, p: number) => (ok ? `Düzdür, +${p} xal` : 'Səhvdir') },
 }
 
-export const t = az
 export type Dict = typeof az
+
+// ---- Dil seçimi (az / en). Seçim localStorage-da saxlanılır; dəyişəndə səhifə yenilənir. ----
+import { en } from './en'
+export type Lang = 'az' | 'en'
+export const LANG_KEY = 'qz.lang'
+export function currentLang(): Lang {
+  try { const v = localStorage.getItem(LANG_KEY); if (v === 'en' || v === 'az') return v } catch { /* noop */ }
+  return 'az'
+}
+export function setLang(l: Lang) {
+  try { localStorage.setItem(LANG_KEY, l) } catch { /* noop */ }
+  location.reload()
+}
+export const t: Dict = currentLang() === 'en' ? en : az
+if (typeof document !== 'undefined') document.documentElement.lang = currentLang()

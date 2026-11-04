@@ -24,3 +24,12 @@
 - Düz/səhv cavab səs parçaları Firebase Storage olmadan (Spark planı) Firestore-da `sounds/{correct|wrong}` sənədlərində mono 16 kHz WAV data-URL kimi saxlanılır (≤ 8 s ≈ 350 KB).
 - Müəllif hüquqlu mahnı parçaları platformaya daxil edilmir; admin istifadə hüququ olan faylı özü yükləyir.
 - Təlimçi profili `profiles/{uid}`-də saxlanılır (hamı oxuyur, yalnız sahibi admin yazır); oyun yaradılanda `games/{id}.host`-a kopyalanır.
+- Host "heartbeat"-i ayrıca yazılmır (N oyunçu × hər 10 s oxuma kvotası olardı); oyunçu sualın vaxtı keçdikdən 10 s sonra faza dəyişməyibsə xəbərdarlıq görür.
+- Lobbi massivi son 60 nəfərlə məhdudlaşdırılır, `playerCount` tam saydır; debounce 1,2 s.
+- Rollar `admins/{uid}.role`-dadır (`owner` | `trainer`). Yeni təlimçi hesabı müvəqqəti ikinci Firebase tətbiqi ilə yaradılır ki, sahibin sessiyası dəyişməsin.
+- Reaksiya sənədinin id-si `uid_<2 saniyəlik pəncərə>`-dir; Rules həm cari, həm əvvəlki pəncərəni qəbul edir (saat fərqinə dözümlülük).
+- Tapşırıq rejimində suallar ictimai sənəddədir (rəqabət yoxdur, güc artırıcılar söndürülür); qiymətləndirmə təlimçinin brauzerində "Qiymətləndir və yekunlaşdır" ilə aparılır.
+- Şəkillər Storage olmadan WebP data-URL kimi (≤ ~280 KB) sual sənədində saxlanılır.
+- `adventurer` avatar üslubu (~400 KB) yeni seçimdən çıxarılıb, əvəzinə `big-smile`; köhnə oyunlar üçün tənbəl yüklənir.
+- İngilis dili: `t` modul yüklənəndə seçilir, dil dəyişəndə səhifə yenilənir (sadəlik; bütün komponentlər `t`-ni birbaşa istifadə edir).
+- e2e testləri real layihəyə yazır; buna görə tam oyun testi yalnız sirr kimi verilən test hesabı ilə işləyir.
