@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.1 — 2026-11-04
+- **Loqo şrifti:** "Jabr." loqosu artıq Lexend Giga 700 (sıx hərf aralığı) ilə, nöqtə kəhrəba (#FEA606) — verilən nümunəyə uyğun. Yalnız loqo bu şriftdədir, interfeys Montserrat-da qalır. İkonlar, OG şəkli, sertifikat və paylaşım kartı yeniləndi.
+
 ## 0.5.0 — 2026-11-04
 - **Ad dəyişdi: Jabr.** Yeni loqo — "Jabr" sözü + brend qradiyentli nöqtə; yığcam "J." nişanı (favicon, tətbiq ikonları, maskable), yeni Open Graph şəkli; sertifikat və paylaşım kartında yeni loqo.
 - **Yer nişanları:** 1-ci (qızıl), 2-ci (gümüş), 3-cü (bürünc) yer üçün rozet + medal + dəfnə + lent dizaynlı nişan — sertifikatda (imzaların arasında), paylaşım kartında və nəticə ekranında.
