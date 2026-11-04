@@ -7,7 +7,7 @@ import { useGame, usePlayer, useInterval } from '../../lib/hooks'
 import { heartbeat, sendReaction, submitAnswer } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
 import { shortName } from '../../lib/nameFilter'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Avatar } from '../../components/Avatar'
@@ -26,6 +26,7 @@ import { CORRECT, WRONG, STICKERS_OK, STICKERS_BAD, pick, streakText } from '../
 import { audio } from '../../audio/AudioEngine'
 import { useSession } from '../../store/gameStore'
 import { useWakeLock } from '../../lib/useWakeLock'
+import { useWatchdog } from '../../lib/useWatchdog'
 import type { AnswerValue, Game, Player } from '../../types'
 import { SelfPlay } from './SelfPlay'
 import { PowerBar, POWERS } from './PowerBar'
@@ -71,6 +72,7 @@ export default function PlayerGame() {
   useEffect(() => () => audio.stopMusic(), [])
   useEffect(() => { if (game?.phase === 'finished') setGame(null) }, [game?.phase, setGame])
   useWakeLock(!!game && game.phase !== 'finished')
+  useWatchdog(game, player, uid)
   const stalled = useStall(game)
   // Admin yüklədiyi düz/səhv cavab səsləri
   useEffect(() => { void loadSounds().then((snd) => audio.loadClips(snd)) }, [])
@@ -102,13 +104,13 @@ export default function PlayerGame() {
           {game.phase !== 'lobby' && (
             <span className="glass flex items-center gap-2 rounded-full px-3 py-2 text-sm font-black tabular-nums">
               {rank > 0 && <span className="flex items-center gap-1 text-orange-300"><Trophy className="h-4 w-4" />{rank}</span>}
-              {player.score.toLocaleString('az-AZ')}
+              {player.score.toLocaleString(LOCALE)}
             </span>
           )}
           <MuteButton />
         </div>
       </header>
-      {game.settings.qa !== false && !['question', 'countdown', 'self'].includes(game.phase) && <PlayerQA gameId={game.id} uid={uid} name={shortName(player.firstName, player.lastName)} />}
+      {game.settings.qa !== false && game.settings.mode !== 'assign' && !['question', 'countdown', 'self', 'finished'].includes(game.phase) && <PlayerQA gameId={game.id} uid={uid} name={shortName(player.firstName, player.lastName)} />}
       <main className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col p-4 pb-20">
         <AnimatePresence mode="wait">
           <motion.div key={game.phase + game.questionIndex} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
@@ -238,24 +240,36 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
   }
   const paused = game.pausedRemainingMs != null
   const timeUp = !paused && game.questionEndsAt != null && remaining <= 0
-  const notReady = !game.questionEndsAt && !paused
   const hide = player.fiftyHide?.q === game.questionIndex ? player.fiftyHide.ids : []
 
+  /**
+   * Cavab göndərmə. Plitələr bitmə vaxtı bu cihaza çatmamış da aktivdir (zəif internetdə vaxt itməsin);
+   * server hələ qəbul etmirsə (bitmə vaxtı yazılmayıb), qısa fasilələrlə yenidən cəhd edilir.
+   */
   async function submit(v: AnswerValue) {
     if (sentRef.current) return
     sentRef.current = true
     audio.click()
     setState('sending')
-    try {
-      await submitAnswer(game.id, uid, game.questionIndex, v)
-      try { sessionStorage.setItem(key, '1') } catch { /* noop */ }
-      setState('sent')
-    } catch (e) {
-      const code = (e as { code?: string }).code
-      if (code === 'permission-denied' && remaining > 0) { setState('sent'); return }
-      setState(remaining <= 0 ? 'late' : 'error')
-      sentRef.current = false
+    const markSent = () => { try { sessionStorage.setItem(key, '1') } catch { /* noop */ } setState('sent') }
+    let maybeSaved = false // əvvəlki cəhd şəbəkə xətası ilə bitibsə, cavab serverə çatmış ola bilər
+    for (let attempt = 0; attempt < 6; attempt++) {
+      try {
+        await submitAnswer(game.id, uid, game.questionIndex, v)
+        return markSent()
+      } catch (e) {
+        const code = (e as { code?: string }).code
+        if (code === 'permission-denied' && maybeSaved) return markSent() // sənəd artıq var → əvvəlki cəhd keçib
+        if (code === 'unavailable' || code === 'deadline-exceeded') maybeSaved = true
+        else if (code !== 'permission-denied') break
+        // Artıq cavab verilib (səhifə yeniləndi)? — öz cavabı oxuna bilməz, amma sessiyada qeyd varsa qəbul olunub
+        try { if (sessionStorage.getItem(key)) return markSent() } catch { /* noop */ }
+        if (remaining <= 0) { setState('late'); sentRef.current = false; return }
+        await new Promise((r) => setTimeout(r, 500 + attempt * 400))
+      }
     }
+    setState(remaining <= 0 ? 'late' : 'error')
+    sentRef.current = false
   }
 
   const done = state === 'sent' || state === 'sending'
@@ -271,7 +285,7 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
       <h2 className="font-display text-center text-[22px] font-black leading-snug">{q.text}</h2>
       {q.imageUrl && <img src={q.imageUrl} alt="" className="mx-auto max-h-40 rounded-2xl object-contain" />}
       {paused && <p className="text-center text-xl font-bold">{t.game.paused}</p>}
-      {!done && !timeUp && <PowerBar game={game} player={player} disabled={paused || notReady} />}
+      {!done && !timeUp && <PowerBar game={game} player={player} disabled={paused} />}
       <div className="mt-auto" aria-live="polite">
         {done ? (
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="glass flex flex-col items-center gap-3 px-4 py-10 text-center">
@@ -285,7 +299,7 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
         ) : (
           <>
             {state === 'error' && <p className="mb-2 text-center font-bold text-red-300" role="alert">{t.game.answerFailed}</p>}
-            <QuestionInput q={q} uid={uid} disabled={paused || notReady} onSubmit={submit} hide={hide} />
+            <QuestionInput q={q} uid={uid} disabled={paused} onSubmit={submit} hide={hide} />
           </>
         )}
       </div>
@@ -379,7 +393,7 @@ function LeaderboardView({ game, player }: { game: Game; player: Player }) {
             <Avatar avatar={player.avatar} size={36} />
             <span className="flex-1 font-bold">{t.game.you}</span>
             <Delta d={r.prevRank ? r.prevRank - r.rank : 0} />
-            <span className="font-display font-black">{player.score.toLocaleString('az-AZ')}</span>
+            <span className="font-display font-black">{player.score.toLocaleString(LOCALE)}</span>
           </div>
         </>
       )}

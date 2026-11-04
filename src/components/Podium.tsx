@@ -1,3 +1,4 @@
+import { LOCALE } from '../i18n/az'
 import { motion } from 'framer-motion'
 import { Crown } from 'lucide-react'
 import type { LeaderEntry } from '../types'
@@ -19,7 +20,7 @@ export function Podium({ entries, big = true }: { entries: LeaderEntry[]; big?: 
               {idx === 0 && <Crown className="wobble mb-1 h-14 w-14 text-yellow-300 drop-shadow-[0_0_20px_rgba(253,224,71,.8)]" fill="currentColor" />}
               <div className="rounded-full p-1.5" style={{ background: GRADS[idx] }}><Avatar avatar={e.avatar} size={big ? 120 : 72} /></div>
               <span className="font-display mt-3 max-w-60 truncate text-center text-2xl font-black">{e.name}</span>
-              <span className="mt-1 rounded-full bg-black/25 px-4 py-1 text-xl font-bold tabular-nums">{e.score.toLocaleString('az-AZ')}</span>
+              <span className="mt-1 rounded-full bg-black/25 px-4 py-1 text-xl font-bold tabular-nums">{e.score.toLocaleString(LOCALE)}</span>
             </motion.div>
             <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} style={{ originY: 1, background: GRADS[idx] }} transition={{ delay: 0.2 + (2 - idx) * 0.3, duration: 0.6 }}
               className={`relative flex w-full ${HEIGHTS[idx]} items-start justify-center overflow-hidden rounded-t-3xl pt-4 shadow-2xl`}>

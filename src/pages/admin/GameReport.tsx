@@ -5,7 +5,7 @@ import { db } from '../../firebase/config'
 import { loadReport, reportCsv, answerText, type GameReportData } from '../../lib/report'
 import { SCORED_TYPES } from '../../lib/scoring'
 import { download } from '../../lib/csv'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { ArrowLeft, Download, Star } from 'lucide-react'
 import { useFeedback } from '../../lib/feedback'
@@ -18,13 +18,15 @@ export default function GameReport() {
   const { gameId } = useParams()
   const [game, setGame] = useState<Game | null>(null)
   const [r, setR] = useState<GameReportData | null>(null)
+  const [denied, setDenied] = useState(false)
   const fb = useFeedback(gameId ?? '_')
   const [tick, setTick] = useState(0)
   useEffect(() => {
     if (!gameId) return
     void getDoc(doc(db, 'games', gameId)).then((s) => setGame(s.exists() ? ({ ...(s.data() as Game), id: s.id }) : null))
-    void loadReport(gameId).then(setR)
+    void loadReport(gameId).then(setR).catch(() => setDenied(true))
   }, [gameId, tick])
+  if (denied) return <div className="mx-auto max-w-3xl p-8"><p className="card p-6 text-sm font-semibold text-amber-800">{t.admin.noAccess}</p></div>
   if (!r || !game) return <div className="p-10"><Spinner /></div>
   const pct = (x: number) => `${Math.round(x * 100)}%`
   return (
@@ -33,7 +35,7 @@ export default function GameReport() {
         <Link to="/admin/games" className="btn btn-ghost-dark btn-icon"><ArrowLeft /></Link>
         <div className="mr-auto">
           <h1 className="text-2xl font-bold sm:text-3xl">{t.games.report}</h1>
-          <p className="text-sm text-muted">{game.title} · PIN {game.pin} · {game.createdAt?.toDate().toLocaleString('az-AZ')}</p>
+          <p className="text-sm text-muted">{game.title} · PIN {game.pin} · {game.createdAt?.toDate().toLocaleString(LOCALE)}</p>
         </div>
         <button className="btn btn-primary" onClick={() => download(`quizamcham-${game.pin}.csv`, reportCsv(r))}><Download />{t.host.exportCsv}</button>
       </div>

@@ -3,7 +3,7 @@ import { collection, getCountFromServer } from 'firebase/firestore'
 import { CalendarClock, ClipboardCheck, Copy, Link2, Users } from 'lucide-react'
 import { db } from '../../firebase/config'
 import { gradeAssignment, loadSecret } from '../../lib/gameEngine'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { QRDownload } from '../../components/QRBlock'
 import { Section } from '../../components/kit'
 import type { Game } from '../../types'
@@ -19,14 +19,17 @@ export function AssignmentPanel({ game, onGraded }: { game: Game; onGraded: () =
     void Promise.all([getCountFromServer(collection(db, 'games', game.id, 'players')), getCountFromServer(collection(db, 'games', game.id, 'answers'))])
       .then(([p, a]) => setCounts({ p: p.data().count, a: a.data().count })).catch(() => {})
   }, [game.id])
-  const grade = async () => {
-    if (!confirm(A.gradeConfirm)) return
-    setProgress(A.grading(0, counts?.p ?? 0))
+  const grade = async (auto = false) => {
+    if (!auto && !confirm(A.gradeConfirm)) return
+    setProgress(auto ? t.admin.expired : A.grading(0, counts?.p ?? 0))
     try {
       await gradeAssignment(game, await loadSecret(game.id), (d, n) => setProgress(A.grading(d, n)))
       onGraded()
     } catch { setProgress(t.app.error) }
   }
+  // Son tarix keçibsə — açılan kimi avtomatik qiymətləndir
+  const expired = (game.selfEndsAt?.toMillis() ?? Infinity) < Date.now()
+  useEffect(() => { if (expired) void grade(true) }, [])  // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <Section icon={ClipboardCheck} title={`${A.title} · ${A.running}`} sub={game.title} className="mb-6">
       <div className="grid gap-5 md:grid-cols-[1fr_auto]">
@@ -37,12 +40,12 @@ export function AssignmentPanel({ game, onGraded }: { game: Game; onGraded: () =
               <button className="btn btn-secondary" onClick={() => { void navigator.clipboard.writeText(url); setCopied(true) }}><Copy />{copied ? A.copied : A.copy}</button></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl bg-surface p-3"><div className="label flex items-center gap-1"><CalendarClock className="h-3.5 w-3.5" />{A.deadline}</div><div className="text-sm font-bold">{game.selfEndsAt?.toDate().toLocaleString('az-AZ', { dateStyle: 'medium', timeStyle: 'short' })}</div></div>
+            <div className="rounded-xl bg-surface p-3"><div className="label flex items-center gap-1"><CalendarClock className="h-3.5 w-3.5" />{A.deadline}</div><div className="text-sm font-bold">{game.selfEndsAt?.toDate().toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })}</div></div>
             <div className="rounded-xl bg-surface p-3"><div className="label flex items-center gap-1"><Users className="h-3.5 w-3.5" />{A.participants}</div><div className="text-2xl font-black">{counts?.p ?? '–'}</div></div>
             <div className="rounded-xl bg-surface p-3"><div className="label">{A.answers}</div><div className="text-2xl font-black">{counts?.a ?? '–'}</div></div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <button className="btn btn-primary" disabled={!!progress} onClick={() => void grade()}><ClipboardCheck />{A.grade}</button>
+            <button className="btn btn-primary" disabled={!!progress} onClick={() => void grade(false)}><ClipboardCheck />{A.grade}</button>
             <QRDownload url={url} filename={`tapsiriq-${game.pin}.png`} label={t.admin.downloadQr} className="btn btn-secondary" />
             {progress && <span className="text-sm font-semibold text-muted">{progress}</span>}
           </div>

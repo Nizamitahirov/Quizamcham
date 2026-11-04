@@ -2,18 +2,22 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Timestamp } from 'firebase/firestore'
 import { BarChart3, Brain, Gamepad2, Target, Trophy, Users } from 'lucide-react'
 import { listGames } from '../../firebase/db'
-import { t } from '../../i18n/az'
+import { useOutletContext } from 'react-router-dom'
+import { visibleGames } from '../../lib/access'
+import type { AdminState } from '../../firebase/auth'
+import { LOCALE, t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
 import { Section } from '../../components/kit'
 import type { GameStats, LeaderEntry } from '../../types'
 
-type G = { id: string; title?: string; quizId?: string; phase?: string; playerCount?: number; createdAt?: Timestamp; stats?: GameStats | null; leaderboard?: LeaderEntry[] }
+type G = { id: string; hostUid?: string; title?: string; quizId?: string; phase?: string; playerCount?: number; createdAt?: Timestamp; stats?: GameStats | null; leaderboard?: LeaderEntry[] }
 const A = t.analytics
 const WEEK = 7 * 86_400_000
 
 export default function Analytics() {
+  const admin = useOutletContext<AdminState>()
   const [games, setGames] = useState<G[] | null>(null)
-  useEffect(() => { void listGames(500).then((g) => setGames((g as G[]).filter((x) => x.phase === 'finished'))).catch(() => setGames([])) }, [])
+  useEffect(() => { void listGames(500).then((g) => setGames(visibleGames(admin, g as G[]).filter((x) => x.phase === 'finished'))).catch(() => setGames([])) }, [admin])
 
   const data = useMemo(() => {
     const gs = games ?? []
@@ -37,7 +41,8 @@ export default function Analytics() {
     })
     const people = new Map<string, { key: string; name: string; played: number; points: number; best: number }>()
     gs.forEach((g) => (g.leaderboard ?? []).forEach((e) => {
-      const k = e.name.toLocaleLowerCase('az-AZ')
+      // eyni adlı fərqli insanları birləşdirməmək üçün ad + avatar
+      const k = `${e.name.toLocaleLowerCase('az-AZ')}|${e.avatar?.style}:${e.avatar?.seed}`
       const r = people.get(k) ?? { key: k, name: e.name, played: 0, points: 0, best: Infinity }
       r.played++; r.points += e.score; r.best = Math.min(r.best, e.rank)
       people.set(k, r)
@@ -88,7 +93,7 @@ export default function Analytics() {
                 <table className="w-full text-left text-sm">
                   <thead className="text-[11px] uppercase tracking-wider text-muted"><tr><th className="pb-2">{A.name}</th><th className="pb-2 text-right">{A.played}</th><th className="pb-2 text-right">{A.points}</th><th className="pb-2 text-right">{A.best}</th></tr></thead>
                   <tbody>{data.top.map((p) => (
-                    <tr key={p.key} className="border-t border-line"><td className="py-2 font-semibold">{p.name}</td><td className="py-2 text-right tabular-nums">{p.played}</td><td className="py-2 text-right tabular-nums">{p.points.toLocaleString('az-AZ')}</td><td className="py-2 text-right tabular-nums">#{p.best}</td></tr>
+                    <tr key={p.key} className="border-t border-line"><td className="py-2 font-semibold">{p.name}</td><td className="py-2 text-right tabular-nums">{p.played}</td><td className="py-2 text-right tabular-nums">{p.points.toLocaleString(LOCALE)}</td><td className="py-2 text-right tabular-nums">#{p.best}</td></tr>
                   ))}</tbody>
                 </table>
               )}
@@ -115,7 +120,7 @@ function WeeklyColumns({ weeks }: { weeks: { start: Date; value: number; games: 
   const [hover, setHover] = useState<number | null>(null)
   const max = Math.max(1, ...weeks.map((w) => w.value))
   const ticks = [0, Math.ceil(max / 2), max]
-  const fmt = (d: Date) => d.toLocaleDateString('az-AZ', { day: 'numeric', month: 'short' })
+  const fmt = (d: Date) => d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' })
   return (
     <div>
       <div className="relative flex h-56 gap-[2px] pl-8">

@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense, type ReactNode } from 'react'
 import App from './App'
+import { OwnerOnly } from './components/OwnerOnly'
 import { Spinner, RouteError } from './components/ui'
 
 const Home = lazy(() => import('./pages/Home'))
@@ -46,9 +47,9 @@ export const router = createBrowserRouter([
           { path: 'quiz/:quizId', element: S(<QuizEditor />), errorElement: <RouteError /> },
           { path: 'games', element: S(<Games />), errorElement: <RouteError /> },
           { path: 'games/:gameId', element: S(<GameReport />), errorElement: <RouteError /> },
-          { path: 'settings', element: S(<Settings />), errorElement: <RouteError /> },
+          { path: 'settings', element: S(<OwnerOnly><Settings /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'profile', element: S(<Profile />), errorElement: <RouteError /> },
-          { path: 'sounds', element: S(<Sounds />), errorElement: <RouteError /> },
+          { path: 'sounds', element: S(<OwnerOnly><Sounds /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'team', element: S(<Team />), errorElement: <RouteError /> },
           { path: 'analytics', element: S(<Analytics />), errorElement: <RouteError /> },
         ],

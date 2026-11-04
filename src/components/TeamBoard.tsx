@@ -1,3 +1,4 @@
+import { LOCALE } from '../i18n/az'
 import { motion } from 'framer-motion'
 import { Users } from 'lucide-react'
 import { TEAMS } from '../lib/teams'
@@ -25,7 +26,7 @@ export function TeamBoard({ rows, big, highlight }: { rows: TeamEntry[]; big?: b
               <span className="font-display w-8 font-black">{i + 1}</span>
               <span>{tm.emoji} {tm.name}</span>
               <span className={`flex items-center gap-1 text-white/60 ${big ? 'text-xl' : 'text-xs'}`}><Users className={big ? 'h-5 w-5' : 'h-3.5 w-3.5'} />{r.members}</span>
-              <span className="font-display ml-auto font-black tabular-nums">{r.score.toLocaleString('az-AZ')}</span>
+              <span className="font-display ml-auto font-black tabular-nums">{r.score.toLocaleString(LOCALE)}</span>
             </div>
           </motion.div>
         )

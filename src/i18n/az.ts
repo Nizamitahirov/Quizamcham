@@ -41,6 +41,7 @@ export const az = {
     joining: 'Qoşulur…',
     rejoin: 'Oyuna qayıt',
     kicked: 'Host tərəfindən oyundan çıxarıldınız',
+    noActive: 'Hazırda aktiv oyun yoxdur. Təlimçidən PIN kodu alın.',
     step1: 'PIN', step2: 'Profil', step3: 'Lobbi',
     hello: 'Salam! 👋',
   },
@@ -112,6 +113,7 @@ export const az = {
     rank: 'Yer',
     getReadyQ: 'Diqqət! Sual gəlir',
     hostStalled: 'Host bağlantısı gözlənilir… Oyun davam edəcək.',
+    hostStalledSelf: 'Host ekranı cavab vermir. Cavabınız yadda saxlanılıb — host qayıdan kimi nəticə görünəcək.',
     next: 'Növbəti sual',
     selfDone: 'Bütün sualları cavabladınız! 🎉',
     selfDoneSub: 'Digərləri bitirənə qədər gözləyin — nəticələr tezliklə',
@@ -191,6 +193,13 @@ export const az = {
     autoNext: (s: number) => `Avtomatik keçid: ${s} s`,
   },
   admin: {
+    readOnly: 'Bu quiz başqa təlimçiyə məxsusdur — yalnız baxış. Dəyişmək üçün öz surətinizi yaradın.',
+    makeCopy: 'Surət yarat', view: 'Bax', locked: 'Yalnız baxış',
+    deleteFailed: 'Silinmədi: bu əməliyyat üçün icazəniz yoxdur.',
+    noAccess: 'Bu oyunun hesabatına baxmaq üçün icazəniz yoxdur (yalnız oyunu keçirən təlimçi və sahib).',
+    ownerOnlyPage: 'Bu ayarlar bütün platformaya təsir edir — yalnız platforma sahibi dəyişə bilər.',
+    maintained: (n: number) => `${n} köhnə oyun / bitmiş tapşırıq avtomatik yekunlaşdırıldı ✓`,
+    expired: 'Son tarix keçib — tapşırıq avtomatik qiymətləndirilir…',
     editorTabs: { questions: 'Suallar', settings: 'Ayarlar' },
     loginSubtitle: 'Admin panelinə daxil olmaq üçün məlumatlarınızı yazın',
     brandTitle: 'Təlimləri canlı yarışa çevirin',
@@ -408,6 +417,7 @@ export const az = {
   qa: {
     button: 'Sual ver', title: 'Sual-cavab', placeholder: 'Təlimçiyə sualınızı yazın…', send: 'Göndər', sent: 'Sualınız göndərildi ✓',
     empty: 'Hələ sual yoxdur — ilk sualı siz verin!', votes: (n: number) => `${n}`, answered: 'Cavablandı', hide: 'Gizlət', markAnswered: 'Cavablandı',
+    tooFast: 'Bir az gözləyin — 10 saniyədə bir sual göndərmək olar',
     hostTitle: (n: number) => `Q&A (${n})`, disabled: 'Q&A bağlıdır',
   },
   privacy: {
@@ -449,6 +459,8 @@ export const az = {
     wrongPhrases: ['Az qaldı! 💪', 'Növbəti səninkidir! 🚀', 'Təslim olmaq yox! 😎', 'Heç nə, davam! 🌱', 'Növbəti sualda partla! 💥'],
     streakText: (n: number) => `${n} ardıcıl! ${'🔥'.repeat(Math.min(n, 5))}`,
   },
+  a11y: { soundOn: 'Səsi aç', soundOff: 'Səsi bağla', music: 'Musiqi', fullscreen: 'Tam ekran' },
+  csvHead: { rank: 'Yer', first: 'Ad', last: 'Soyad', team: 'Komanda', score: 'Xal', correct: 'Düzgün', acc: 'Dəqiqlik %', avg: 'Orta vaxt (s)', streak: 'Ən uzun seriya', q: (i: number) => `S${i}`, pts: (i: number) => `S${i} xal` },
   feedback: { aria: (ok: boolean, p: number) => (ok ? `Düzdür, +${p} xal` : 'Səhvdir') },
 }
 
@@ -467,4 +479,6 @@ export function setLang(l: Lang) {
   location.reload()
 }
 export const t: Dict = currentLang() === 'en' ? en : az
+/** Tarix və rəqəm formatı üçün (müqayisə/normallaşdırma üçün DEYİL). */
+export const LOCALE = currentLang() === 'en' ? 'en-GB' : 'az-AZ'
 if (typeof document !== 'undefined') document.documentElement.lang = currentLang()

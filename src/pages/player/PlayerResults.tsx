@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Award, Check, ChevronDown, Crown, Download, Share2, X } from 'lucide-react'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import { Avatar } from '../../components/Avatar'
 import { AnimatedNumber } from '../../components/AnimatedNumber'
 import { burst, celebrate } from '../../components/Confetti'
 import { shortName } from '../../lib/nameFilter'
 import { renderCertificate, renderShareCard } from '../../lib/shareCard'
 import { FeedbackForm } from '../../components/FeedbackForm'
+import { useDocSnap } from '../../lib/hooks'
 import { TeamBoard } from '../../components/TeamBoard'
 import { download } from '../../lib/csv'
 import type { AnswerValue, Game, Player, ReviewItem } from '../../types'
@@ -25,6 +26,9 @@ function correctText(item: ReviewItem): string {
 
 export default function PlayerResults({ game, player }: { game: Game; player: Player }) {
   const [open, setOpen] = useState(false)
+  // İcmal ayrıca sənəddədir (köhnə oyunlarda game.review)
+  const { data: reviewDoc } = useDocSnap<ReviewItem[]>(open ? `games/${game.id}/results/review` : null, (_id, d) => (d.items as ReviewItem[]) ?? [])
+  const review = reviewDoc ?? game.review
   const [busy, setBusy] = useState(false)
   const entry = game.leaderboard.find((e) => e.uid === player.uid)
   const rank = entry?.rank ?? player.lastResult?.rank ?? 0
@@ -58,7 +62,7 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
     try {
       const blob = await renderCertificate(
         { name: `${player.firstName} ${player.lastName}`, quiz: game.title, place: rank, total, score: player.score, trainer: game.host?.name, date: new Date() },
-        { title: t.cert.title, given: t.cert.given, completed: t.cert.completed, place: t.cert.place(rank, total), score: t.cert.score(player.score.toLocaleString('az-AZ')), trainer: t.cert.trainer, date: t.cert.date },
+        { title: t.cert.title, given: t.cert.given, completed: t.cert.completed, place: t.cert.place(rank, total), score: t.cert.score(player.score.toLocaleString(LOCALE)), trainer: t.cert.trainer, date: t.cert.date },
       )
       download(`sertifikat-${player.firstName}-${player.lastName}.png`, blob)
     } catch { /* noop */ } finally { setBusy(false) }
@@ -118,9 +122,9 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
         <button className="btn btn-ghost" onClick={() => setOpen((o) => !o)}><ChevronDown className={open ? 'rotate-180' : ''} />{open ? t.results.hideReview : t.results.review}</button>
         <button className="btn btn-primary" onClick={() => void card()} disabled={busy}>{typeof navigator.share === 'function' ? <Share2 /> : <Download />}{t.results.share}</button>
       </div>
-      {open && game.review && (
+      {open && review && (
         <ol className="flex flex-col gap-3">
-          {game.review.map((item, i) => {
+          {review.map((item, i) => {
             const h = player.history.find((x) => x.q === i)
             return (
               <li key={i} className="glass p-4">

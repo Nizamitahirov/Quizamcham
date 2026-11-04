@@ -1,3 +1,4 @@
+import { t } from '../i18n/az'
 import { fetchPlayers, loadSecret } from './gameEngine'
 import { rankPlayers, SCORED_TYPES } from './scoring'
 import { toCsv } from './csv'
@@ -41,13 +42,15 @@ export async function loadReport(gameId: string): Promise<GameReportData> {
 }
 
 export function reportCsv(r: GameReportData): string {
-  const head = ['Yer', 'Ad', 'Soyad', 'Xal', 'Düzgün', 'Dəqiqlik %', 'Orta vaxt (s)', 'Ən uzun seriya']
-  r.qstats.forEach((s) => head.push(`S${s.index + 1}: ${s.q.text}`, `S${s.index + 1} xal`))
+  const H = t.csvHead
+  const withTeams = r.players.some((p) => p.team != null)
+  const head = [H.rank, H.first, H.last, ...(withTeams ? [H.team] : []), H.score, H.correct, H.acc, H.avg, H.streak]
+  r.qstats.forEach((s) => head.push(`${H.q(s.index + 1)}: ${s.q.text}`, H.pts(s.index + 1)))
   const rows: (string | number)[][] = [head]
   for (const p of r.players) {
     const times = (p.history ?? []).filter((h) => h.answer != null && h.timeMs != null).map((h) => h.timeMs as number)
     const row: (string | number)[] = [
-      p.rank, p.firstName, p.lastName, p.score, p.correctCount ?? 0,
+      p.rank, p.firstName, p.lastName, ...(withTeams ? [p.team != null ? t.extra.teamNames[p.team] ?? '' : ''] : []), p.score, p.correctCount ?? 0,
       r.scoredCount ? Math.round(((p.correctCount ?? 0) / r.scoredCount) * 100) : 0,
       times.length ? (times.reduce((a, b) => a + b, 0) / times.length / 1000).toFixed(1) : '',
       p.bestStreak ?? 0,

@@ -27,7 +27,7 @@ export const en: Dict = {
     notFound: 'No game found with this PIN', started: 'The game has already started', locked: 'The lobby is locked', finished: 'This game has ended', full: 'The game is full',
     profileTitle: 'Introduce yourself', firstName: 'First name', lastName: 'Last name', nameHint: '2–20 characters', badName: 'Please choose another name',
     chooseAvatar: 'Choose an avatar', random: 'Random', accessory: 'Sticker', noAccessory: 'None', go: 'Join', joining: 'Joining…', rejoin: 'Back to the game',
-    kicked: 'You were removed from the game by the host', step1: 'PIN', step2: 'Profile', step3: 'Lobby', hello: 'Hi there! 👋',
+    kicked: 'You were removed from the game by the host', noActive: 'There is no active game right now. Ask the trainer for the PIN.', step1: 'PIN', step2: 'Profile', step3: 'Lobby', hello: 'Hi there! 👋',
   },
   power: {
     title: 'Power-ups', fifty: '50/50', fiftyDesc: 'Hides two wrong answers', double: '2x', doubleDesc: 'Double points on this question',
@@ -49,7 +49,7 @@ export const en: Dict = {
     leaderboard: 'Leaderboard', you: 'You', points: 'pts', slideNext: 'The trainer will move to the next slide', answerFailed: 'Your answer was not accepted',
     waitingResult: 'Calculating results…', lateJoin: 'You’ll join from the next question', sliderValue: 'Your choice', yourAnswer: 'Your answer', noAnswer: 'No answer',
     gameOver: 'Game over!', fastest: (n: string, s: string) => `⚡ Fastest: ${n} · ${s}`, youFastest: '⚡ You were the fastest!', answerTime: (s: string) => `Answer time: ${s}`,
-    rank: 'Rank', getReadyQ: 'Heads up! Question incoming', hostStalled: 'Waiting for the host… The game will continue.', next: 'Next question',
+    rank: 'Rank', getReadyQ: 'Heads up! Question incoming', hostStalled: 'Waiting for the host… The game will continue.', hostStalledSelf: 'The host screen is not responding. Your answer is saved — the result will appear as soon as the host is back.', next: 'Next question',
     selfDone: 'You’ve answered every question! 🎉', selfDoneSub: 'Wait for the others to finish — results soon', totalLeft: 'Time left',
     correctOf: (a: number, b: number) => `${a} / ${b} correct`, hostEnded: 'The game has ended',
   },
@@ -72,6 +72,13 @@ export const en: Dict = {
     progress: 'Progress', autoNext: (s: number) => `Auto-advance: ${s} s`,
   },
   admin: {
+    readOnly: 'This quiz belongs to another trainer — view only. Create your own copy to edit it.',
+    makeCopy: 'Make a copy', view: 'View', locked: 'View only',
+    deleteFailed: 'Not deleted: you don’t have permission for this action.',
+    noAccess: 'You don’t have access to this game’s report (only the trainer who ran it and the owner).',
+    ownerOnlyPage: 'These settings affect the whole platform — only the platform owner can change them.',
+    maintained: (n: number) => `${n} stale game(s) / expired assignment(s) were closed automatically ✓`,
+    expired: 'The deadline has passed — grading the assignment automatically…',
     editorTabs: { questions: 'Questions', settings: 'Settings' },
     loginSubtitle: 'Enter your details to access the admin panel', brandTitle: 'Turn trainings into live races',
     brandPoints: ['Real-time synced quizzes', 'AI-assisted question writing', 'Detailed reports and CSV'], showPw: 'Show password', dashboard: 'Dashboard',
@@ -178,6 +185,7 @@ export const en: Dict = {
   qa: {
     button: 'Ask', title: 'Q&A', placeholder: 'Write your question for the trainer…', send: 'Send', sent: 'Your question was sent ✓',
     empty: 'No questions yet — be the first to ask!', votes: (n: number) => `${n}`, answered: 'Answered', hide: 'Hide', markAnswered: 'Answered',
+    tooFast: 'Please wait — one question every 10 seconds',
     hostTitle: (n: number) => `Q&A (${n})`, disabled: 'Q&A is off',
   },
   privacy: {
@@ -208,5 +216,7 @@ export const en: Dict = {
     wrongPhrases: ['So close! 💪', 'The next one is yours! 🚀', 'Don’t give up! 😎', 'No worries, keep going! 🌱', 'Smash the next one! 💥'],
     streakText: (n: number) => `${n} in a row! ${'🔥'.repeat(Math.min(n, 5))}`,
   },
+  a11y: { soundOn: 'Unmute', soundOff: 'Mute', music: 'Music', fullscreen: 'Fullscreen' },
+  csvHead: { rank: 'Rank', first: 'First name', last: 'Last name', team: 'Team', score: 'Score', correct: 'Correct', acc: 'Accuracy %', avg: 'Avg. time (s)', streak: 'Longest streak', q: (i: number) => `Q${i}`, pts: (i: number) => `Q${i} pts` },
   feedback: { aria: (ok: boolean, p: number) => (ok ? `Correct, +${p} points` : 'Wrong') },
 }

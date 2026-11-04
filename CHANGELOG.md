@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 — 2026-11-04 (audit düzəlişləri)
+**Məxfilik:** oyunları və PIN-ləri yalnız adminlər siyahılaya bilir; bitmiş oyun yalnız iştirakçılarına açıqdır; düzgün cavablı icmal ayrıca qorunan sənəddədir (`games/{id}/results/review`); Q&A və reaksiyalar yalnız iştirakçılara, Q&A 10 saniyədə 1 sual; təlimçi profilləri yalnız adminlərə; qlobal ayarlar və səslər yalnız sahibə; maks. oyunçu və qadağan adlar Rules-da da yoxlanır.
+**Məntiq:** iştirakçı bitmiş oyuna QR/PIN ilə qayıdanda öz nəticəsini görür (tapşırıq daxil); hər təlimçinin şəxsi daimi QR-ı (`/play?t=…`), tapşırıq QR-ı dəyişmir, bitmiş oyun QR-dan çıxır; komandaları host bölüşdürür (eyni anda qoşulma balansı pozmur); öz tempində rejimdə host gecikməsi xəbərdarlığı; xal hesablaması təkrarlananda ikiqat yazılmır; təlimçi rolu: başqasının quizi “yalnız baxış” + surət yarat, silmə xətaları göstərilir, yalnız öz oyunları/analitikası, Ayarlar və Səslər yalnız sahibə, başqasının host ekranı bağlıdır.
+**Etibarlılıq:** sualın bitmə vaxtı yazısı 3 dəfə təkrar edilir və host tərəfindən təmir olunur; oyunçu plitələri bitmə vaxtı cihaza çatmamış da aktivdir, cavab yazısı avtomatik təkrar edilir; oyunçu ekranında “watchdog” — canlı bağlantı donanda Firestore şəbəkəsi yenidən qurulur.
+**Kiçik:** son tarixi keçmiş tapşırıqlar və 12 saatdan köhnə yarımçıq oyunlar avtomatik yekunlaşır; tarix/rəqəm formatı dilə uyğun; CSV başlıqları tərcümə olunub və komanda sütunu əlavə edilib; ingiliscə AI prompt; analitikada eyni adlı fərqli insanlar ayrılır; PIN sahəsi dar ekranda kəsilmir; cavab səsləri versiya ilə keşlənir.
+**Testlər:** Firestore qayda testləri 24 → 33.
+
 ## 0.4.0 — 2026-11-04
 **Etibarlılıq:** Wake Lock (host və oyunçu), host gecikməsi xəbərdarlığı, tab bağlama qoruması, oflayn banneri, lobbi massivinin limiti, 40 botla yük testi skripti (400 cavab, 0 rədd, p95 252 ms).
 **Təhlükəsizlik:** sahib/təlimçi rolları və Komanda səhifəsi; quiz və oyun sahibliyi; cavab ölçüsü, reaksiya tezliyi, adı yalnız lobbidə dəyişmək qaydaları; öz tempində rejimdə suallar hər oyunçuya ayrıca göndərilir; istəyə bağlı App Check; məxfilik bildirişi; köhnə oyunların silinməsi, JSON ehtiyat nüsxə; Firestore xəta jurnalı.

@@ -58,7 +58,7 @@ export default function Home() {
               <span className="label-dark mb-0">{t.home.pinLabel}</span>
               <span className="flex gap-1.5">{[0, 1, 2, 3].map((i) => <span key={i} className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: TILE_HEX[i] }}><Shape i={i} size={12} /></span>)}</span>
             </div>
-            <input aria-label={t.home.pinLabel} className="input-dark font-display h-20 text-center text-5xl font-black tracking-[.35em]" inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
+            <input aria-label={t.home.pinLabel} className="input-dark font-display h-20 px-2 pl-[calc(.5rem+.22em)] text-center text-4xl font-black tracking-[.22em] sm:text-5xl" inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"
               maxLength={6} placeholder="••••••" value={pin} autoFocus onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))} />
             <div className="mt-3 flex justify-center gap-2" aria-hidden>
               {Array.from({ length: 6 }, (_, i) => <span key={i} className="h-1.5 w-8 rounded-full transition" style={{ background: i < pin.length ? 'var(--grad)' : 'rgba(255,255,255,.12)' }} />)}

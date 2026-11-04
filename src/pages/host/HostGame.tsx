@@ -6,7 +6,7 @@ import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, createGame, grantFifty, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  answersQuery, assignTeams, createGame, grantFifty, setQuestionEnd, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -45,10 +45,10 @@ export default function HostGame() {
       </div>
     )
   }
-  return <HostConsole gameId={gameId!} uid={admin.user!.uid} />
+  return <HostConsole gameId={gameId!} uid={admin.user!.uid} isOwner={admin.role === 'owner'} />
 }
 
-function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
+function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; isOwner: boolean }) {
   const nav = useNavigate()
   const { data: game, loading, missing } = useGame(gameId)
   const [questions, setQuestions] = useState<Question[] | null>(null)
@@ -60,7 +60,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   const flying = useFlying()
   const guard = useRef<Set<string>>(new Set())
 
-  useEffect(() => { void loadSecret(gameId).then(setQuestions) }, [gameId])
+  useEffect(() => { void loadSecret(gameId).then(setQuestions).catch(() => setQuestions([])) }, [gameId])
   const running = !!game && game.phase !== 'finished' && game.phase !== 'lobby'
   useWakeLock(!!game && game.phase !== 'finished')
   useLeaveGuard(running)
@@ -155,7 +155,13 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   useEffect(() => {
     if (!game || !questions || game.phase !== 'question' || game.currentQuestion?.type === 'slide') return
     const check = () => {
-      if (game.pausedRemainingMs != null || !game.questionEndsAt) return
+      if (game.pausedRemainingMs != null) return
+      if (!game.questionEndsAt) {
+        // Təmir: bitmə vaxtı yazılmayıbsa (şəbəkə kəsintisi), 3 s sonra yenidən yaz — yoxsa oyunçular cavab verə bilməz
+        const started = game.questionStartedAt?.toMillis()
+        if (started && serverNow() - started > 3000) void once(`end-${game.questionIndex}-${Math.floor(serverNow() / 5000)}`, () => setQuestionEnd(gameId, game.currentQuestion?.timeLimit ?? 30))
+        return
+      }
       const left = game.questionEndsAt.toMillis() - serverNow()
       const allIn = activeCount > 0 && answered.size >= activeCount
       if (left <= -GRACE_MS || (allIn && left > 0)) void once(`f-${game.questionIndex}`, () => finishQuestion(game, questions))
@@ -164,7 +170,17 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
     check()
     const id = setInterval(check, 250)
     return () => clearInterval(id)
-  }, [game, questions, answered, activeCount, once])
+  }, [game, questions, answered, activeCount, once, gameId])
+
+  // Komandaları host bölüşdürür (yeni qoşulanlar)
+  const teamSig = useMemo(() => active.map((p) => `${p.uid}:${p.team ?? '-'}`).join('|'), [active])
+  useEffect(() => {
+    const n = game?.settings.teams ?? 0
+    if (!game || !n || game.phase === 'finished' || !active.some((p) => p.team == null || p.team >= n)) return
+    const id = setTimeout(() => void assignTeams(gameId, active, n).catch(() => {}), 400)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamSig, game?.settings.teams, game?.phase])
 
   // ---- Öz tempində rejimi (ayrıca hook) ----
   const gameRef = useSelfEngine({ game, questions, active, gameId, guard, once })
@@ -269,6 +285,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
 
   if (loading || !questions) return <div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>
   if (missing || !game) return <div className="flex min-h-dvh items-center justify-center bg-night text-2xl">{t.app.notFound}</div>
+  if (game.hostUid !== uid && !isOwner) return <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-night p-6 text-center text-xl">{t.admin.noAccess}<Link className="btn btn-primary" to="/admin">{t.host.backToAdmin}</Link></div>
 
   const nextLabel = game.phase === 'lobby' ? t.host.start
     : game.phase === 'reveal' ? ({ leaderboard: t.host.showLeaderboard, podium: t.host.showPodium, question: t.host.next })[nextAfterReveal(game)]
@@ -329,8 +346,8 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
               <button className="btn btn-ghost" onClick={skip} disabled={busy}><SkipForward />{t.host.skip}</button>
             </>
           )}
-          <button className="btn btn-ghost btn-icon" aria-label="musiqi" onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? <VolumeX /> : <Volume2 />}</button>
-          <button className="btn btn-ghost btn-icon" aria-label="tam ekran" onClick={toggleFs}><Maximize /></button>
+          <button className="btn btn-ghost btn-icon" aria-label={t.a11y.music} onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? <VolumeX /> : <Volume2 />}</button>
+          <button className="btn btn-ghost btn-icon" aria-label={t.a11y.fullscreen} onClick={toggleFs}><Maximize /></button>
           {game.settings.qa !== false && <button className="btn btn-ghost" onClick={() => setQaOpen((o) => !o)}><MessageCircleQuestion />{t.qa.hostTitle(qaOpenCount)}</button>}
           {game.phase !== 'lobby' && <button className="btn btn-ghost" onClick={endGame}><Flag />{t.host.endGame}</button>}
           <span className="ml-auto hidden text-xs text-white/40 xl:inline">{t.host.shortcuts}</span>

@@ -10,6 +10,13 @@ service cloud.firestore {
     function game(gameId) { return get(/databases/$(db)/documents/games/$(gameId)).data; }
     function isGameHost(gameId) { return isAdmin() && (game(gameId).hostUid == request.auth.uid || isOwner()); }
     function nameOk(v) { return v is string && v.size() >= 2 && v.size() <= 20; }
+    function isPlayer(gameId) { return signedIn() && exists(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid)); }
+    // Qadağan sözlər (settings/app.bannedWords) — dəqiq uyğunluq; klient daha geniş (hissəvi) yoxlayır
+    function bannedList() {
+      return exists(/databases/$(db)/documents/settings/app)
+        ? get(/databases/$(db)/documents/settings/app).data.get('bannedWords', []) : [];
+    }
+    function nameAllowed(v) { return !(v.lower() in bannedList()); }
     function answerValueOk(v) {
       return v == null || v is number || (v is string && v.size() <= 200) || (v is list && v.size() <= 10);
     }
@@ -38,22 +45,27 @@ service cloud.firestore {
     }
 
     match /pins/{pin} {
-      allow read: if signedIn();
+      allow get: if signedIn();          // konkret PIN yoxlanır, siyahılamaq olmur
+      allow list: if isAdmin();
       allow write: if isAdmin();
     }
 
-    match /settings/{doc} {          // settings/current → { activeGameId }, settings/app → ümumi ayarlar
-      allow read: if signedIn();
-      allow write: if isAdmin();
+    // settings/app → ümumi ayarlar (yalnız sahib), settings/current → daimi QR (istənilən təlimçi),
+    // settings/play_{uid} → həmin təlimçinin şəxsi daimi QR-ı
+    match /settings/{doc} {
+      allow get: if signedIn();
+      allow list: if isAdmin();
+      allow write: if isOwner() || (isAdmin() && (doc == 'current' || doc == 'play_' + request.auth.uid));
     }
 
-    match /sounds/{doc} {            // düz/səhv cavab səs parçaları
-      allow read: if signedIn();
-      allow write: if isAdmin();
+    match /sounds/{doc} {            // düz/səhv cavab səs parçaları (yalnız sahib dəyişir)
+      allow get: if signedIn();
+      allow list: if isAdmin();
+      allow write: if isOwner();
     }
 
-    match /profiles/{uid} {          // təlimçi profili
-      allow read: if signedIn();
+    match /profiles/{uid} {          // təlimçi profili (e-poçt daxil) — yalnız adminlər oxuyur
+      allow read: if isAdmin();
       allow write: if isAdmin() && request.auth.uid == uid;
     }
 
@@ -68,7 +80,10 @@ service cloud.firestore {
 
     // ---------- Oyunlar ----------
     match /games/{gameId} {
-      allow read: if signedIn();
+      // Siyahını yalnız adminlər görür. Konkret oyun: aktivdirsə hər kəs (qoşulmaq üçün),
+      // bitibsə yalnız onun iştirakçıları — adlar və nəticələr kənar şəxslərə açılmır.
+      allow list: if isAdmin();
+      allow get: if isAdmin() || isPlayer(gameId) || (signedIn() && resource.data.phase != 'finished');
       allow create: if isAdmin() && request.resource.data.hostUid == request.auth.uid;
       allow update, delete: if isAdmin() && (resource.data.hostUid == request.auth.uid || isOwner());
 
@@ -82,6 +97,8 @@ service cloud.firestore {
           && (game(gameId).phase == 'lobby' || game(gameId).settings.lateJoin == true)
           && nameOk(request.resource.data.firstName)
           && nameOk(request.resource.data.lastName)
+          && (game(gameId).settings.get('nameFilter', true) == false || (nameAllowed(request.resource.data.firstName) && nameAllowed(request.resource.data.lastName)))
+          && game(gameId).get('playerCount', 0) < game(gameId).settings.get('maxPlayers', 200)
           && request.resource.data.avatar is map
           && request.resource.data.keys().hasOnly(['firstName','lastName','avatar','joinedAt','lastSeen','kicked','score','correctCount','streak','bestStreak','totalCorrectTimeMs','lastResult','history','powerups','power','fiftyHide','team'])
           && request.resource.data.score == 0
@@ -148,13 +165,17 @@ service cloud.firestore {
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.emoji is string && request.resource.data.emoji.size() <= 8
           && request.resource.data.createdAt == request.time
+          && isPlayer(gameId)
           && (rid == request.auth.uid + '_' + string(bucket()) || rid == request.auth.uid + '_' + string(bucket() - 1));
       }
 
       // Canlı sual-cavab (Q&A)
+      // Q&A: yalnız iştirakçılar; sənəd id-si = uid_<10 saniyəlik pəncərə> → 10 saniyədə ən çox 1 sual
       match /qa/{qid} {
-        allow read: if signedIn();
-        allow create: if signedIn()
+        function qaBucket() { return int(request.time.toMillis() / 10000); }
+        allow read: if isGameHost(gameId) || isPlayer(gameId);
+        allow create: if isPlayer(gameId)
+          && (qid == request.auth.uid + '_' + string(qaBucket()) || qid == request.auth.uid + '_' + string(qaBucket() - 1))
           && request.resource.data.keys().hasOnly(['uid','name','text','createdAt','votes','answered','hidden'])
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.text is string && request.resource.data.text.size() >= 3 && request.resource.data.text.size() <= 200
@@ -164,10 +185,16 @@ service cloud.firestore {
           && request.resource.data.answered == false && request.resource.data.hidden == false
           && game(gameId).phase != 'finished';
         // oyunçu yalnız öz səsini əlavə edə/silə bilər
-        allow update: if isGameHost(gameId) || (signedIn()
+        allow update: if isGameHost(gameId) || (isPlayer(gameId)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes'])
           && request.resource.data.votes.toSet().difference(resource.data.votes.toSet()).union(resource.data.votes.toSet().difference(request.resource.data.votes.toSet())) == [request.auth.uid].toSet());
         allow delete: if isGameHost(gameId);
+      }
+
+      // Oyun sonu sual icmalı (düzgün cavablarla) — yalnız iştirakçılar və host
+      match /results/{doc} {
+        allow read: if isGameHost(gameId) || isPlayer(gameId);
+        allow write: if isGameHost(gameId);
       }
 
       // Təlim sonu rəy sorğusu

@@ -4,7 +4,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities'
 import { AnswerTile, TILE_COLORS, Shape } from '../../components/AnswerTile'
 import { seededShuffle } from '../../lib/shuffle'
-import { t } from '../../i18n/az'
+import { LOCALE, t } from '../../i18n/az'
 import type { AnswerValue, Option, PublicQuestion } from '../../types'
 
 interface Props { q: PublicQuestion; uid: string; disabled: boolean; onSubmit: (v: AnswerValue) => void; hide?: string[] }
@@ -65,7 +65,7 @@ export function SliderInput({ q, disabled, onSubmit }: Props) {
   const [v, setV] = useState(Math.round((s.min + s.max) / 2 / s.step) * s.step)
   return (
     <div className="glass flex flex-col gap-5 p-6">
-      <div className="text-center"><span className="label-dark">{t.game.sliderValue}</span><div className="font-display text-grad text-7xl font-black">{v.toLocaleString('az-AZ')}</div></div>
+      <div className="text-center"><span className="label-dark">{t.game.sliderValue}</span><div className="font-display text-grad text-7xl font-black">{v.toLocaleString(LOCALE)}</div></div>
       <input type="range" min={s.min} max={s.max} step={s.step} value={v} disabled={disabled} onChange={(e) => setV(Number(e.target.value))} className="h-10 w-full accent-[#FF5A1F]" aria-label={t.game.sliderValue} />
       <div className="flex justify-between text-sm font-bold text-white/50"><span>{s.min}</span><span>{s.max}</span></div>
       <button type="button" className="btn btn-primary btn-lg" disabled={disabled} onClick={() => onSubmit(v)}>{t.game.submit}</button>
