@@ -3,7 +3,7 @@ import type { Dict } from './az'
 const ord = (n: number) => { const s = ['th', 'st', 'nd', 'rd'], v = n % 100; return `${n}${s[(v - 20) % 10] || s[v] || s[0]}` }
 
 export const en: Dict = {
-  app: { name: 'Quizamcham', tagline: 'Live interactive quiz', loading: 'Loading…', back: 'Back', cancel: 'Cancel', confirm: 'Confirm', close: 'Close', save: 'Save', delete: 'Delete', yes: 'Yes', no: 'No', error: 'Something went wrong. Please try again.', notConfigured: 'Firebase configuration not found (.env.local).', about: 'About', offline: 'Reconnecting…', soon: 'Coming soon', notFound: 'Page not found', home: 'Home' },
+  app: { name: 'Jabr', tagline: 'Live interactive quiz', loading: 'Loading…', back: 'Back', cancel: 'Cancel', confirm: 'Confirm', close: 'Close', save: 'Save', delete: 'Delete', yes: 'Yes', no: 'No', error: 'Something went wrong. Please try again.', notConfigured: 'Firebase configuration not found (.env.local).', about: 'About', offline: 'Reconnecting…', soon: 'Coming soon', notFound: 'Page not found', home: 'Home' },
   home: {
     join: 'Join a game', admin: 'Trainer login', subtitle: 'Enter the PIN or scan the QR code',
     badge: 'Live · Real-time · Mobile',
@@ -18,7 +18,7 @@ export const en: Dict = {
   },
   about: {
     title: 'About',
-    text: 'Quizamcham — a live quiz platform for AmCham Azerbaijan’s “NextGen HR Leaders” program.',
+    text: 'Jabr — a live quiz platform for AmCham Azerbaijan’s “NextGen HR Leaders” program.',
     avatars: 'Avatars are generated with DiceBear (dicebear.com):',
     music: 'Music and sound effects are generated in the browser.',
   },
@@ -56,7 +56,7 @@ export const en: Dict = {
   results: {
     title: 'Your result', place: (r: number) => `${ord(r)} place`, totalScore: 'Total score', correctCount: 'Correct answers', accuracy: 'Accuracy',
     bestStreak: 'Longest streak', avgTime: 'Avg. answer time', seconds: (s: number) => `${s.toFixed(1)} s`, review: 'Review my answers', hideReview: 'Hide',
-    share: 'Share', shareText: (name: string, place: number, score: number) => `${name} finished ${ord(place)} on Quizamcham with ${score} points! 🎉`,
+    share: 'Share', shareText: (name: string, place: number, score: number) => `${name} finished ${ord(place)} on Jabr with ${score} points! 🎉`,
     copied: 'Copied ✓', champion: 'Champion! 👑', podium: 'You made the podium! 🏆', thanks: 'Thanks for taking part! 🙌',
   },
   host: {
@@ -147,6 +147,7 @@ export const en: Dict = {
     photoUrl: 'Photo URL (optional)', avatar: 'Avatar', email: 'Email', saved: 'Profile saved ✓', defaults: 'Default settings for new quizzes',
     defaultsSub: 'Every new quiz starts with these settings', security: 'Security', newPw: 'New password', currentPw: 'Current password', changePw: 'Change password',
     pwChanged: 'Password changed ✓', pwShort: 'The password must be at least 8 characters', pwWrong: 'The current password is wrong', trainer: 'Trainer',
+    previewHint: 'How participants see you',
   },
   team: {
     title: 'Team', sub: 'Trainers with access to the platform', owner: 'Owner', trainer: 'Trainer', you: 'you', add: 'Add trainer', email: 'Email', name: 'Name', role: 'Role',
@@ -181,6 +182,7 @@ export const en: Dict = {
   cert: {
     button: 'Certificate', title: 'CERTIFICATE OF PARTICIPATION', given: 'This certifies that', completed: 'successfully took part in the interactive training quiz:',
     place: (p: number, n: number) => `${ord(p)} place · ${n} participants`, score: (s: string) => `${s} points`, trainer: 'Trainer', date: 'Date',
+    badgeLabel: 'PLACE', badgeAria: (p: number) => `${ord(p)} place badge`,
   },
   qa: {
     button: 'Ask', title: 'Q&A', placeholder: 'Write your question for the trainer…', send: 'Send', sent: 'Your question was sent ✓',
@@ -191,7 +193,7 @@ export const en: Dict = {
   privacy: {
     title: 'Privacy notice', short: 'By joining, you agree that your name and answers are used for this training session.', more: 'Details',
     body: [
-      'Quizamcham is used to run live quizzes during trainings. When you join, only the first and last name you enter, your chosen avatar and your quiz answers are stored.',
+      'Jabr is used to run live quizzes during trainings. When you join, only the first and last name you enter, your chosen avatar and your quiz answers are stored.',
       'We do not ask for your email, phone number or other personal data. You are signed in with an anonymous account (Firebase Authentication).',
       'Data is stored on Google Firebase servers (Europe region, eur3) and used only by the trainer to calculate results and prepare the training report.',
       'Results (name, score, rank) are shown to other participants on screen during the game.',

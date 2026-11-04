@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { fmtDayMonth } from '../../lib/format'
 import type { Timestamp } from 'firebase/firestore'
 import { BarChart3, Brain, Gamepad2, Target, Trophy, Users } from 'lucide-react'
 import { listGames } from '../../firebase/db'
@@ -120,7 +121,7 @@ function WeeklyColumns({ weeks }: { weeks: { start: Date; value: number; games: 
   const [hover, setHover] = useState<number | null>(null)
   const max = Math.max(1, ...weeks.map((w) => w.value))
   const ticks = [0, Math.ceil(max / 2), max]
-  const fmt = (d: Date) => d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' })
+  const fmt = (d: Date) => fmtDayMonth(d)
   return (
     <div>
       <div className="relative flex h-56 gap-[2px] pl-8">

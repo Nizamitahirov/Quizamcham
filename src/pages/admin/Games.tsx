@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
+import { fmtDateTime } from '../../lib/format'
 import { useOutletContext } from 'react-router-dom'
 import { visibleGames } from '../../lib/access'
 import type { AdminState } from '../../firebase/auth'
 import { Link } from 'react-router-dom'
 import type { Timestamp } from 'firebase/firestore'
 import { deleteGame, listGames } from '../../firebase/db'
-import { LOCALE, t } from '../../i18n/az'
+import { t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
 import { BarChart3, MonitorPlay, Trash2 } from 'lucide-react'
 import type { Phase } from '../../types'
@@ -31,7 +32,7 @@ export default function Games() {
             <tbody>
               {rows.map((g) => (
                 <tr key={g.id} className="border-t border-line text-sm hover:bg-surface/60">
-                  <td className="p-3 text-sm">{g.createdAt?.toDate().toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                  <td className="p-3 text-sm">{g.createdAt ? fmtDateTime(g.createdAt.toDate()) : ''}</td>
                   <td className="p-3 font-bold">{g.title}</td>
                   <td className="p-3 font-mono">{g.pin}</td>
                   <td className="p-3">{g.playerCount ?? 0}</td>

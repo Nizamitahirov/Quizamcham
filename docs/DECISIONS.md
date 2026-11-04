@@ -40,3 +40,6 @@
 - (audit) Server olmadığı üçün tapşırıqların son tarixdə bağlanması və köhnə oyunların yekunlaşması təlimçi paneli açılanda (sessiyada 1 dəfə) brauzerdə işləyir; yalnız təlimçinin öz oyunlarına toxunur.
 - (audit) Oyunçu "watchdog"-u: canlı dinləyici donanda (test mühitində və zəif mobil şəbəkədə müşahidə olundu) `disableNetwork/enableNetwork` ilə bağlantı yenidən qurulur, 10 s-də ən çox 1 dəfə.
 - (audit) Oyunçu cavab plitələri `questionEndsAt` cihaza çatmamış aktivdir; server hələ qəbul etmirsə yazı 6 dəfəyə qədər təkrar edilir. `permission-denied` yalnız əvvəlki cəhd şəbəkə xətası ilə bitibsə "artıq göndərilib" sayılır.
+- Ad: **Jabr** (əvvəl Quizamcham). Loqo — Montserrat 900 "Jabr" + brend qradiyentli dairəvi nöqtə; ikonlar üçün tünd kvadratda "J" + nöqtə. Daxili identifikatorlar (localStorage `qz.*`, Firebase layihəsi `birsual`, repo adı) dəyişmədi.
+- Yer nişanı tək SVG mənbəyindən (`lib/badge.ts`) yaradılır; canvas-da SVG şəkli veb-şrifti görmədiyi üçün rəqəm və "YER" Montserrat ilə canvas-da ayrıca yazılır.
+- Tarix formatı üçün `lib/format.ts`: brauzerlərin az-AZ lokalında ay adları olmadığından azərbaycan ay adları əl ilə verilir.

@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { fmtDateTime } from '../../lib/format'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, Lock, Bot, Copy, FileJson, FileSpreadsheet, LayoutTemplate, Pencil, Play, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
 import { createQuiz, deleteQuiz, duplicateQuiz, listQuizzes, loadQuiz, parseQuizJson } from '../../firebase/db'
 import { launchQuiz } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
-import { LOCALE, t } from '../../i18n/az'
+import { t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
 import { AiImport } from '../../components/AiImport'
 import { CsvImport, TemplateGallery } from '../../components/ImportModals'
@@ -56,7 +57,7 @@ export default function QuizList() {
       setBusyId(null)
     }
   }
-  const fmt = (x: Quiz) => x.updatedAt?.toDate().toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' }) ?? ''
+  const fmt = (x: Quiz) => (x.updatedAt ? fmtDateTime(x.updatedAt.toDate()) : '')
 
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">

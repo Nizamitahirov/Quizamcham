@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 — 2026-11-04
+- **Ad dəyişdi: Jabr.** Yeni loqo — "Jabr" sözü + brend qradiyentli nöqtə; yığcam "J." nişanı (favicon, tətbiq ikonları, maskable), yeni Open Graph şəkli; sertifikat və paylaşım kartında yeni loqo.
+- **Yer nişanları:** 1-ci (qızıl), 2-ci (gümüş), 3-cü (bürünc) yer üçün rozet + medal + dəfnə + lent dizaynlı nişan — sertifikatda (imzaların arasında), paylaşım kartında və nəticə ekranında.
+- **Təlimçi profili düzülüşü:** önizləmə kartı sağ sütunla bərabər hündürlükdə; standart ayarlar tam enli bölmələrə keçdi (xal/vaxt 2 sütunlu şəbəkə, 9 açar 3×3, iştirakçı ayarları yan-yana) — boş sahələr qalmır. Eyni forma quiz redaktorunda da istifadə olunur.
+- **Musiqi seçicisi:** 14 mövzu genişdə 7×2, telefonda 2×7 — boş xana yoxdur.
+- **Tarix formatı:** az-AZ lokalında ay adları olmadığı üçün ("2026 M11 4") öz formatlayıcı — "4 noyabr 2026".
+
 ## 0.4.1 — 2026-11-04 (audit düzəlişləri)
 **Məxfilik:** oyunları və PIN-ləri yalnız adminlər siyahılaya bilir; bitmiş oyun yalnız iştirakçılarına açıqdır; düzgün cavablı icmal ayrıca qorunan sənəddədir (`games/{id}/results/review`); Q&A və reaksiyalar yalnız iştirakçılara, Q&A 10 saniyədə 1 sual; təlimçi profilləri yalnız adminlərə; qlobal ayarlar və səslər yalnız sahibə; maks. oyunçu və qadağan adlar Rules-da da yoxlanır.
 **Məntiq:** iştirakçı bitmiş oyuna QR/PIN ilə qayıdanda öz nəticəsini görür (tapşırıq daxil); hər təlimçinin şəxsi daimi QR-ı (`/play?t=…`), tapşırıq QR-ı dəyişmir, bitmiş oyun QR-dan çıxır; komandaları host bölüşdürür (eyni anda qoşulma balansı pozmur); öz tempində rejimdə host gecikməsi xəbərdarlığı; xal hesablaması təkrarlananda ikiqat yazılmır; təlimçi rolu: başqasının quizi “yalnız baxış” + surət yarat, silmə xətaları göstərilir, yalnız öz oyunları/analitikası, Ayarlar və Səslər yalnız sahibə, başqasının host ekranı bağlıdır.

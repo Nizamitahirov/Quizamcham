@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
+import { fmtDateTime } from '../../lib/format'
 import { Bug, Database, Download, Save, ShieldCheck, SlidersHorizontal, Trash2 } from 'lucide-react'
 import { cleanupGames, clearErrors, exportAll, listErrors, oldGames } from '../../lib/dataAdmin'
 import { download } from '../../lib/csv'
 import { loadAppSettings, saveAppSettings } from '../../firebase/db'
 import { TIME_OPTIONS } from '../../lib/defaults'
-import { LOCALE, t } from '../../i18n/az'
+import { t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
 import { Field, Section, Segmented } from '../../components/kit'
 import type { AppSettings } from '../../types'
@@ -61,7 +62,7 @@ function DataSection() {
   }
   const exp = async () => {
     setBusy(true); setMsg(D.exporting)
-    try { download(`quizamcham-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(await exportAll(), null, 2), 'application/json'); setMsg('') } catch { setMsg(t.app.error) } finally { setBusy(false) }
+    try { download(`jabr-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(await exportAll(), null, 2), 'application/json'); setMsg('') } catch { setMsg(t.app.error) } finally { setBusy(false) }
   }
   return (
     <Section icon={Database} title={D.title} sub={D.sub}>
@@ -91,7 +92,7 @@ function ErrorLog() {
           {rows.map((r) => (
             <li key={r.id} className="rounded-xl bg-surface p-3 text-xs">
               <div className="font-bold text-red-700">{r.message}</div>
-              <div className="mt-1 text-muted">{r.at?.toDate().toLocaleString(LOCALE)} · {r.url} · {r.context}</div>
+              <div className="mt-1 text-muted">{(r.at ? fmtDateTime(r.at.toDate()) : '')} · {r.url} · {r.context}</div>
             </li>
           ))}
         </ul>
