@@ -11,6 +11,7 @@ const DEFAULTS = {
   storageBucket: 'birsual.firebasestorage.app',
   messagingSenderId: '31059802078',
   appId: '1:31059802078:web:03428444b45eac9a714f4f',
+  measurementId: 'G-PDCNXPQH5D',
 }
 const env = import.meta.env
 const firebaseConfig = {
@@ -20,6 +21,7 @@ const firebaseConfig = {
   storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || DEFAULTS.storageBucket,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || DEFAULTS.messagingSenderId,
   appId: env.VITE_FIREBASE_APP_ID || DEFAULTS.appId,
+  measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || DEFAULTS.measurementId,
 }
 
 export const firebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.projectId

@@ -20,14 +20,17 @@ export async function ensureAnonymous(): Promise<User> {
   return cred.user
 }
 
-export async function checkAdmin(uid: string): Promise<boolean> {
+export type Role = 'owner' | 'trainer'
+
+export async function adminRole(uid: string): Promise<Role | null> {
   try {
     const snap = await getDoc(doc(db, 'admins', uid))
-    return snap.exists()
+    return snap.exists() ? ((snap.get('role') as Role) ?? 'trainer') : null
   } catch {
-    return false
+    return null
   }
 }
+export const checkAdmin = async (uid: string) => (await adminRole(uid)) !== null
 
 export async function adminLogin(email: string, password: string) {
   const cred = await signInWithEmailAndPassword(auth, email.trim(), password)
@@ -41,15 +44,15 @@ export async function adminLogin(email: string, password: string) {
 
 export const logout = () => signOut(auth)
 
-export type AdminState = { loading: boolean; user: User | null; isAdmin: boolean }
+export type AdminState = { loading: boolean; user: User | null; isAdmin: boolean; role: Role | null }
 
 export function useAdmin(): AdminState {
-  const [state, setState] = useState<AdminState>({ loading: true, user: null, isAdmin: false })
+  const [state, setState] = useState<AdminState>({ loading: true, user: null, isAdmin: false, role: null })
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
-      if (!u || u.isAnonymous) return setState({ loading: false, user: u, isAdmin: false })
-      const ok = await checkAdmin(u.uid)
-      setState({ loading: false, user: u, isAdmin: ok })
+      if (!u || u.isAnonymous) return setState({ loading: false, user: u, isAdmin: false, role: null })
+      const role = await adminRole(u.uid)
+      setState({ loading: false, user: u, isAdmin: role !== null, role })
     })
   }, [])
   return state

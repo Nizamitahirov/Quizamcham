@@ -1,0 +1,26 @@
+{
+  "title": "HR-da AI: Etika və təhlükəsizlik",
+  "description": "Məxfilik, qərəz və məsuliyyətli istifadə üzrə yekun test",
+  "coverEmoji": "🛡️",
+  "coverColor": "#047857",
+  "settings": { "mode": "host", "scoring": "speed", "defaultTime": 30, "streakBonus": true, "showCorrect": true, "leaderboardEvery": 1, "music": { "on": true, "volume": 60, "theme": "synthwave" } },
+  "questions": [
+    { "type": "single", "text": "Namizədlərin CV-lərini AI ilə qiymətləndirərkən ən böyük risk hansıdır?", "timeLimit": 30, "points": "standard",
+      "options": [ {"id":"a","text":"Tarixi məlumatlardan gələn qərəzin (bias) təkrarlanması"}, {"id":"b","text":"Prosesin çox sürətli olması"}, {"id":"c","text":"CV-lərin rəngli olması"}, {"id":"d","text":"İnternet sürəti"} ],
+      "correct": ["a"], "explanation": "Model keçmiş qərarlardan öyrənirsə, oradakı qərəzi də öyrənir. Nəticələr insan tərəfindən yoxlanmalıdır." },
+    { "type": "multi", "text": "Hansılar şəxsi məlumat sayılır? (bir neçə cavab)", "timeLimit": 30, "points": "standard",
+      "options": [ {"id":"a","text":"FİN kod"}, {"id":"b","text":"Maaş"}, {"id":"c","text":"Sağlamlıq məlumatı"}, {"id":"d","text":"Şirkətin ictimai saytı"} ],
+      "correct": ["a","b","c"], "explanation": "Şəxsiyyəti müəyyən edən və həssas məlumatlar xüsusi qorunma tələb edir." },
+    { "type": "truefalse", "text": "AI-ın verdiyi hüquqi istinadları yoxlamadan rəsmi sənəddə istifadə etmək olar.", "timeLimit": 15, "points": "double",
+      "options": [ {"id":"t","text":"Doğru"}, {"id":"f","text":"Yanlış"} ], "correct": ["f"], "explanation": "Halüsinasiya riski var — qanun maddələri və rəqəmlər həmişə ilkin mənbədən yoxlanmalıdır." },
+    { "type": "order", "text": "Məsuliyyətli AI istifadəsinin addımlarını sıralayın", "timeLimit": 45, "points": "standard",
+      "options": [ {"id":"a","text":"Məqsədi və riskləri müəyyən et"}, {"id":"b","text":"Məlumatları anonimləşdir"}, {"id":"c","text":"AI ilə qaralama hazırla"}, {"id":"d","text":"İnsan yoxlaması və təsdiq"} ],
+      "correct": ["a","b","c","d"], "explanation": "Əvvəl məqsəd və risk, sonra məlumatın qorunması, sonra AI, ən sonda insan nəzarəti." },
+    { "type": "single", "text": "İşçi məlumatlarını AI aləti ilə emal etməzdən əvvəl ilk addım nə olmalıdır?", "timeLimit": 30, "points": "standard",
+      "options": [ {"id":"a","text":"Alətin şirkət tərəfindən təsdiqləndiyini və məxfilik şərtlərini yoxlamaq"}, {"id":"b","text":"Bütün məlumatı birbaşa yükləmək"}, {"id":"c","text":"Həmkarlardan soruşmadan başlamaq"}, {"id":"d","text":"Ən ucuz aləti seçmək"} ],
+      "correct": ["a"], "explanation": "Məlumatın harada saxlanıldığı və modelin öyrədilməsində istifadə olunub-olunmadığı əvvəlcədən bilinməlidir." },
+    { "type": "type", "text": "Qərarın məntiqini insanlara izah edə bilən AI-a nə deyilir? (ingiliscə, 2 hərf + AI)", "timeLimit": 40, "points": "standard",
+      "accepted": ["XAI", "explainable AI", "explainable"], "softMatch": true, "options": [], "correct": [],
+      "explanation": "XAI — Explainable AI: qərarın səbəblərini şəffaf göstərən yanaşma." }
+  ]
+}

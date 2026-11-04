@@ -6,6 +6,7 @@ import { QRBlock } from '../../components/QRBlock'
 import { Avatar } from '../../components/Avatar'
 import { shortName } from '../../lib/nameFilter'
 import { serverNow } from '../../lib/timeSync'
+import { TEAMS } from '../../lib/teams'
 import type { Player } from '../../types'
 import type { HostCtx } from './HostGame'
 
@@ -68,7 +69,7 @@ export function HostLobby({ game, players, onKick }: HostCtx & { onKick: (p: Pla
                   <motion.div key={p.uid} layout initial={{ y: -300, opacity: 0, rotate: -20 }} animate={{ y: 0, opacity: 1, rotate: 0, scale: [1, 1.15, 1] }} exit={{ scale: 0, opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 220, damping: 14, delay: Math.min(i, 5) * 0.03 }}
                     className="glass group relative flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-5" title={idle ? t.host.idle : undefined}>
-                    <Avatar avatar={p.avatar} size={52} dim={idle} />
+                    <span className="rounded-full" style={p.team != null && TEAMS[p.team] ? { boxShadow: `0 0 0 3px ${TEAMS[p.team].color}` } : undefined}><Avatar avatar={p.avatar} size={52} dim={idle} /></span>
                     <span className="max-w-44 truncate text-xl font-bold">{shortName(p.firstName, p.lastName)}</span>
                     <button className="absolute -right-1 -top-1 hidden h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white group-hover:flex" onClick={() => onKick(p)} aria-label={t.host.kick}><UserX className="h-4 w-4" /></button>
                   </motion.div>

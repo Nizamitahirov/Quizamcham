@@ -9,10 +9,12 @@ import { loadAppSettings } from '../../firebase/db'
 import { joinGame, lookupPin } from '../../lib/gameEngine'
 import { isValidPin } from '../../lib/pin'
 import { cleanName, isNameAllowed } from '../../lib/nameFilter'
+import { pickTeam } from '../../lib/teams'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
+import { LangSwitch } from '../../components/LangSwitch'
 import { AvatarPicker, randomAvatar } from '../../components/AvatarPicker'
 import { useSession } from '../../store/gameStore'
 import { audio } from '../../audio/AudioEngine'
@@ -36,6 +38,7 @@ export default function Join() {
   const [avatar, setAvatar] = useState<AvatarData>(() => randomAvatar())
   const [banned, setBanned] = useState<string[]>([])
   const [nameFilterOn, setNameFilterOn] = useState(true)
+  const [teamPick, setTeamPick] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     try {
@@ -75,6 +78,8 @@ export default function Join() {
       if (g.phase !== 'lobby' && !g.settings?.lateJoin) return fail(t.join.started)
       if ((g.playerCount ?? 0) >= (g.settings?.maxPlayers ?? 200)) return fail(t.join.full)
       setNameFilterOn(g.settings?.nameFilter !== false)
+      const n = g.settings?.teams ?? 0
+      setTeamPick(n ? pickTeam(Array.from({ length: n }, (_, t) => (g.lobby ?? []).filter((p) => p.team === t).length)) : undefined)
       setGameId(gid)
       setStep('profile')
       setBusy(false)
@@ -92,7 +97,7 @@ export default function Join() {
     audio.unlock()
     setBusy(true)
     try {
-      await joinGame(gameId, uid, f, l, avatar)
+      await joinGame(gameId, uid, f, l, avatar, teamPick)
       try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ firstName: f, lastName: l, avatar })) } catch { /* noop */ }
       audio.pop()
       setGame(gameId)
@@ -110,6 +115,7 @@ export default function Join() {
       <FuturisticBg floor={false} intensity={0.8} />
       <header className="relative z-10 mx-auto flex w-full max-w-md items-center justify-between px-4 pt-5">
         <Link to="/" aria-label={t.app.home}><Logo size={34} /></Link>
+        <LangSwitch />
       </header>
       <main className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col gap-5 px-4 pb-8 pt-6">
         <ol className="flex items-center gap-2" aria-label="progress">
@@ -158,6 +164,7 @@ export default function Join() {
               <AvatarPicker value={avatar} onChange={(a) => { setAvatar(a); audio.unlock(); audio.click() }} />
             </div>
             {error && <p key={shakeKey} className="shake rounded-xl bg-red-500/15 py-2 text-center text-sm font-bold text-red-300" role="alert">{error}</p>}
+            <p className="text-center text-xs leading-relaxed text-white/50">{t.privacy.short} <Link to="/privacy" className="underline">{t.privacy.more}</Link></p>
             <button className="btn btn-primary btn-lg sticky bottom-4 text-xl" disabled={busy || first.trim().length < 2 || last.trim().length < 2}>
               {busy ? t.join.joining : <><Rocket />{t.join.go}</>}
             </button>

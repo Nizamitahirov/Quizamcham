@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 — 2026-11-04
+**Etibarlılıq:** Wake Lock (host və oyunçu), host gecikməsi xəbərdarlığı, tab bağlama qoruması, oflayn banneri, lobbi massivinin limiti, 40 botla yük testi skripti (400 cavab, 0 rədd, p95 252 ms).
+**Təhlükəsizlik:** sahib/təlimçi rolları və Komanda səhifəsi; quiz və oyun sahibliyi; cavab ölçüsü, reaksiya tezliyi, adı yalnız lobbidə dəyişmək qaydaları; öz tempində rejimdə suallar hər oyunçuya ayrıca göndərilir; istəyə bağlı App Check; məxfilik bildirişi; köhnə oyunların silinməsi, JSON ehtiyat nüsxə; Firestore xəta jurnalı.
+**Keyfiyyət:** 24 Firestore qayda testi (emulator), Playwright e2e + axe əlçatanlıq testləri, GitHub Actions CI, PWA (manifest, ikonlar, service worker, offline səhifə), Open Graph şəkli, avatar üslublarının tənbəl yüklənməsi, Firebase Analytics, səhifə səviyyəsində xəta sərhədləri, `useSelfEngine` refaktoru.
+**Funksiyalar:** Tapşırıq rejimi, komanda rejimi, canlı Q&A, rəy sorğusu, iştirak sertifikatı, şablon qalereyası (3 şablon), Excel/CSV idxalı, şəkil yükləmə (sıxılma ilə), sualı başqa quizə köçürmə, quiz etiketləri, Analitika səhifəsi, ingilis dili (AZ/EN), titrəmə.
+
 ## 0.3.0 — 2026-11-03
 - 3 oyun rejimi: Təlimçi idarə edir, Avtomatik (ekranlar özü keçir), Öz tempində (hər oyunçu öz sürəti ilə, ümumi vaxt limiti; host canlı irəliləyişi izləyir).
 - Quiz ayarları pəncərədən çıxarıldı → redaktorda “Suallar / Ayarlar” tabları, seçim kartları, seqment düymələr, vahid bölmə kartları.

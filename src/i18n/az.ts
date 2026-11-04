@@ -111,6 +111,7 @@ export const az = {
     answerTime: (s: string) => `Cavab vaxtı: ${s}`,
     rank: 'Yer',
     getReadyQ: 'Diqqət! Sual gəlir',
+    hostStalled: 'Host bağlantısı gözlənilir… Oyun davam edəcək.',
     next: 'Növbəti sual',
     selfDone: 'Bütün sualları cavabladınız! 🎉',
     selfDoneSub: 'Digərləri bitirənə qədər gözləyin — nəticələr tezliklə',
@@ -182,6 +183,7 @@ export const az = {
     correctPct: (p: number) => `${p}% düzgün`,
     nextUp: 'Növbəti sual',
     live: 'CANLI',
+    offline: 'İnternet bağlantısı yoxdur — oyun dayana bilər!',
     selfTitle: 'Öz tempində — canlı izləmə',
     timeLeft: 'Qalan vaxt',
     done: 'Bitirdi',
@@ -208,7 +210,7 @@ export const az = {
     aiCopy: 'Prompt-u kopyala', aiCopied: 'Kopyalandı ✓',
     aiPaste: 'JSON-u bura yapışdırın', aiImport: 'İdxal et',
     pasteJson: 'JSON yapışdır',
-    credits: 'Avatarlar: DiceBear — Fun Emoji (Davis Uche, CC BY 4.0), Adventurer (Lisa Wischofsky, CC BY 4.0), Bottts (Pablo Stanley).',
+    credits: 'Avatarlar: DiceBear — Fun Emoji (Davis Uche, CC BY 4.0), Big Smile / “Custom Avatar” (Ashley Seo, CC BY 4.0), Bottts (Pablo Stanley, şəxsi və kommersiya istifadəsi üçün pulsuz), Adventurer (Lisa Wischofsky, CC BY 4.0, köhnə oyunlar).',
     login: 'Təlimçi girişi',
     email: 'E-poçt',
     password: 'Şifrə',
@@ -217,7 +219,7 @@ export const az = {
     badCreds: 'E-poçt və ya şifrə yanlışdır',
     notAdmin: 'Bu hesabın admin hüququ yoxdur',
     logout: 'Çıxış',
-    nav: { dashboard: 'Panel', quizzes: 'Quizlər', games: 'Oyunlar', settings: 'Ayarlar', profile: 'Profil', sounds: 'Səslər' },
+    nav: { dashboard: 'Panel', quizzes: 'Quizlər', games: 'Oyunlar', settings: 'Ayarlar', profile: 'Profil', sounds: 'Səslər', team: 'Komanda', analytics: 'Analitika' },
     quizzes: 'Quizlər',
     newQuiz: 'Yeni quiz',
     importJson: 'JSON idxal',
@@ -299,7 +301,9 @@ export const az = {
       host: { title: 'Təlimçi idarə edir', desc: 'Hər suala keçidi siz edirsiniz — müzakirə və izah üçün ideal.' },
       auto: { title: 'Avtomatik', desc: 'Nəticə və reytinq ekranları təyin olunan vaxtdan sonra özü keçir.' },
       self: { title: 'Öz tempində', desc: 'Hər iştirakçı sualları öz sürəti ilə cavablayır, ümumi vaxt limiti ilə.' },
+      assign: { title: 'Tapşırıq (link)', desc: 'Host lazım deyil: linki paylaşın, iştirakçılar son tarixə qədər istədikləri vaxt cavablayır.' },
     },
+    assignDays: 'Son tarix (tapşırıq)', days: (n: number) => `${n} gün`,
     autoDelay: 'Ekran müddəti (avtomatik)', selfMinutes: 'Ümumi vaxt (öz tempində)', minutes: (n: number) => `${n} dəq`,
     tabs: { general: 'Ümumi', gameplay: 'Oyun', music: 'Musiqi', players: 'İştirakçılar' },
     generalSub: 'Oyun rejimi, xal və vaxt', gameplaySub: 'Qarışdırma, reytinq, güc artırıcılar', musicSub: 'Fon musiqisi və səs səviyyəsi', playersSub: 'Qoşulma qaydaları',
@@ -321,6 +325,9 @@ export const az = {
     nameFilter: 'Ad filtri',
     maxPlayers: 'Maks. oyunçu',
     powerUps: 'Güc artırıcılar (50/50, 2x, qalxan)',
+    qa: 'Canlı sual-cavab (Q&A)',
+    feedbackOn: 'Sonda rəy sorğusu',
+    teams: 'Komanda rejimi', teamsOff: 'Fərdi', teamsN: (n: number) => `${n} komanda`,
     readTime: 'Sualı əvvəlcə göstər',
     readNone: 'Minimum (3 s)',
     on: 'Açıq', off: 'Bağlı',
@@ -350,6 +357,79 @@ export const az = {
     security: 'Təhlükəsizlik', newPw: 'Yeni şifrə', currentPw: 'Cari şifrə', changePw: 'Şifrəni dəyiş', pwChanged: 'Şifrə dəyişdirildi ✓', pwShort: 'Şifrə ən azı 8 simvol olmalıdır', pwWrong: 'Cari şifrə yanlışdır',
     trainer: 'Təlimçi',
   },
+  team: {
+    title: 'Komanda', sub: 'Platformaya giriş hüququ olan təlimçilər',
+    owner: 'Sahib', trainer: 'Təlimçi', you: 'siz',
+    add: 'Təlimçi əlavə et', email: 'E-poçt', name: 'Ad', role: 'Rol',
+    created: 'Hesab yaradıldı. Bu müvəqqəti şifrəni təlimçiyə təhlükəsiz kanalla göndərin (bir dəfə göstərilir):',
+    exists: 'Bu e-poçtla hesab artıq var', remove: 'Hüququ ləğv et', removeConfirm: (e: string) => `${e} üçün admin hüququ ləğv edilsin?`,
+    ownerOnly: 'Komandanı yalnız platforma sahibi idarə edə bilər.',
+    roleHint: 'Təlimçi öz quizlərini yaradır və oyun keçirir; sahib hamısını idarə edir.',
+  },
+  analytics: {
+    title: 'Analitika', sub: 'Bütün bitmiş oyunlar üzrə ümumi göstəricilər',
+    games: 'Oyun', players: 'İştirakçı (cəmi)', accuracy: 'Orta dəqiqlik', avgPlayers: 'Oyun başına iştirakçı',
+    weekly: 'Həftəlik iştirakçılar', weeklySub: 'Son 12 həftə · hər sütun bir həftədir',
+    byQuiz: 'Quizlər üzrə', quiz: 'Quiz', runs: 'Oyun', people: 'İştirakçı', acc: 'Dəqiqlik',
+    top: 'Ən fəal iştirakçılar', topSub: 'Adı ilə bir neçə oyunda iştirak edənlər', name: 'Ad', played: 'Oyun', points: 'Cəmi xal', best: 'Ən yaxşı yer',
+    hardest: 'Ən çətin suallar', hardestSub: 'Hər oyunun ən aşağı dəqiqlikli sualı', empty: 'Hələ bitmiş oyun yoxdur', weekOf: (d: string) => `${d} həftəsi`,
+  },
+  templates: {
+    button: 'Şablonlar', title: 'Şablondan başla', sub: 'Hazır quizdən başlayın və öz ehtiyacınıza uyğunlaşdırın', use: 'İstifadə et',
+    blank: 'Boş quiz', blankDesc: 'Sıfırdan öz suallarınızı yazın', questions: (n: number) => `${n} sual`,
+  },
+  csv: {
+    button: 'Excel / CSV', title: 'Excel və ya CSV-dən idxal',
+    desc: 'Excel-də cədvəli seçib kopyalayın və aşağıya yapışdırın (və ya CSV faylı seçin). Birinci sətir başlıqdır.',
+    template: 'Nümunə şablonu yüklə', file: 'CSV faylı seç', paste: 'Cədvəli bura yapışdırın', title2: 'Quiz adı',
+    parsed: (n: number, e: number) => `${n} sual tapıldı${e ? `, ${e} sətirdə xəta` : ''}`, import: 'Quiz yarat', errorRow: (r: number, m: string) => `Sətir ${r}: ${m}`,
+    columns: 'Sütunlar: tip · sual · vaxt · xal · A · B · C · D · E · F · düzgün · izah',
+  },
+  image: { upload: 'Şəkil yüklə', remove: 'Şəkli sil', tooBig: 'Şəkil çox böyükdür', processing: 'Sıxılır…' },
+  copyQ: { button: 'Başqa quizə köçür', title: 'Sualı köçür', pick: 'Hədəf quizi seçin', done: (t: string) => `“${t}” quizinə köçürüldü ✓`, none: 'Başqa quiz yoxdur' },
+  tags: { label: 'Etiketlər', placeholder: 'məs. AI, HR, test (vergüllə)', all: 'Hamısı' },
+  assign: {
+    title: 'Tapşırıq', running: 'Aktivdir', link: 'Paylaşma linki', deadline: 'Son tarix', participants: 'İştirakçı', answers: 'Cavab',
+    copy: 'Linki kopyala', copied: 'Kopyalandı ✓', grade: 'Qiymətləndir və yekunlaşdır', grading: (a: number, b: number) => `Qiymətləndirilir… ${a}/${b}`,
+    gradeConfirm: 'Bütün cavablar qiymətləndiriləcək və tapşırıq bağlanacaq. Davam edilsin?',
+    submitted: 'Cavablarınız qəbul edildi ✓', pending: 'Nəticələr təlimçi tapşırığı yekunlaşdırandan sonra bu linkdə görünəcək.',
+    left: (d: number, h: number) => (d > 0 ? `${d} gün ${h} saat` : `${h} saat`),
+  },
+  teamsUi: { yourTeam: 'Komandanız', board: 'Komanda reytinqi', winner: (n: string) => `Qalib komanda: ${n}` },
+  feedback2: {
+    title: 'Təlimi qiymətləndirin', comment: 'Fikriniz (istəyə bağlı)', send: 'Göndər', thanks: 'Təşəkkürlər! Rəyiniz qeydə alındı 🙏',
+    avg: 'Orta qiymət', count: (n: number) => `${n} rəy`, none: 'Hələ rəy yoxdur',
+  },
+  cert: {
+    button: 'Sertifikat', title: 'İŞTİRAK SERTİFİKATI', given: 'Bu sertifikat təsdiq edir ki,',
+    completed: 'aşağıdakı interaktiv təlim quizində uğurla iştirak etmişdir:', place: (p: number, n: number) => `${p}-ci yer · ${n} iştirakçı`,
+    score: (s: string) => `${s} xal`, trainer: 'Təlimçi', date: 'Tarix',
+  },
+  qa: {
+    button: 'Sual ver', title: 'Sual-cavab', placeholder: 'Təlimçiyə sualınızı yazın…', send: 'Göndər', sent: 'Sualınız göndərildi ✓',
+    empty: 'Hələ sual yoxdur — ilk sualı siz verin!', votes: (n: number) => `${n}`, answered: 'Cavablandı', hide: 'Gizlət', markAnswered: 'Cavablandı',
+    hostTitle: (n: number) => `Q&A (${n})`, disabled: 'Q&A bağlıdır',
+  },
+  privacy: {
+    title: 'Məxfilik bildirişi',
+    short: 'Qoşulmaqla adınız və cavablarınızın bu təlim üçün istifadəsinə razılıq verirsiniz.',
+    more: 'Ətraflı',
+    body: [
+      'Quizamcham təlim zamanı canlı quiz keçirmək üçündür. Qoşulanda yalnız daxil etdiyiniz ad, soyad, seçdiyiniz avatar və quiz cavablarınız saxlanılır.',
+      'E-poçt, telefon nömrəsi və ya digər şəxsi məlumat soruşulmur. Giriş anonim hesabla (Firebase Authentication) həyata keçirilir.',
+      'Məlumatlar Google Firebase (Avropa regionu, eur3) serverlərində saxlanılır və yalnız təlimçi tərəfindən nəticələrin hesablanması və təlim hesabatı üçün istifadə olunur.',
+      'Nəticələr (ad, xal, yer) oyun zamanı ekranda digər iştirakçılara göstərilir.',
+      'Oyun məlumatları təlimçi tərəfindən müəyyən müddətdən sonra silinir. Məlumatlarınızın silinməsini istəsəniz, təlimçiyə müraciət edin.',
+    ],
+  },
+  data: {
+    title: 'Məlumatların idarəsi', sub: 'Saxlama müddəti, ehtiyat nüsxə və xəta jurnalı',
+    cleanup: 'Köhnə oyunları sil', olderThan: (d: number) => `${d} gündən köhnə`, cleanupBtn: 'Sil',
+    cleanupConfirm: (n: number) => `${n} oyun və onların bütün iştirakçı məlumatları silinəcək. Davam edilsin?`,
+    cleaned: (n: number) => `${n} oyun silindi ✓`, none: 'Silinəcək oyun yoxdur',
+    exportAll: 'Bütün məlumatları ixrac et (JSON)', exporting: 'Hazırlanır…',
+    errors: 'Xəta jurnalı', noErrors: 'Xəta qeydə alınmayıb 🎉', clearErrors: 'Jurnalı təmizlə',
+  },
   games: {
     title: 'Oyunlar tarixçəsi',
     empty: 'Hələ oyun keçirilməyib',
@@ -362,8 +442,29 @@ export const az = {
     mostWrong: 'Ən çox seçilən səhv',
     delete: 'Oyunu sil',
   },
+  extra: {
+    teamNames: ['Qırmızılar', 'Mavilər', 'Yaşıllar', 'Sarılar'],
+    cardAmong: (n: number) => `${n} iştirakçı arasında`, cardPoints: 'xal', cardAccuracy: 'dəqiqlik', cardStreak: 'seriya',
+    correctPhrases: ['Əla! 🎉', 'Bomba! 💥', 'Sən alovlanırsan! 🔥', 'Dahi! 🧠', 'Super sürət! ⚡', 'Möhtəşəm! 🚀', 'Tam hədəf! 🎯'],
+    wrongPhrases: ['Az qaldı! 💪', 'Növbəti səninkidir! 🚀', 'Təslim olmaq yox! 😎', 'Heç nə, davam! 🌱', 'Növbəti sualda partla! 💥'],
+    streakText: (n: number) => `${n} ardıcıl! ${'🔥'.repeat(Math.min(n, 5))}`,
+  },
   feedback: { aria: (ok: boolean, p: number) => (ok ? `Düzdür, +${p} xal` : 'Səhvdir') },
 }
 
-export const t = az
 export type Dict = typeof az
+
+// ---- Dil seçimi (az / en). Seçim localStorage-da saxlanılır; dəyişəndə səhifə yenilənir. ----
+import { en } from './en'
+export type Lang = 'az' | 'en'
+export const LANG_KEY = 'qz.lang'
+export function currentLang(): Lang {
+  try { const v = localStorage.getItem(LANG_KEY); if (v === 'en' || v === 'az') return v } catch { /* noop */ }
+  return 'az'
+}
+export function setLang(l: Lang) {
+  try { localStorage.setItem(LANG_KEY, l) } catch { /* noop */ }
+  location.reload()
+}
+export const t: Dict = currentLang() === 'en' ? en : az
+if (typeof document !== 'undefined') document.documentElement.lang = currentLang()

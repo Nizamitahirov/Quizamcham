@@ -41,7 +41,7 @@ if (ai >= 0) {
     console.log('✓ İstifadəçi yaradıldı:', user.uid)
   }
   adminUid = user.uid
-  await db.doc(`admins/${user.uid}`).set({ email, createdAt: FieldValue.serverTimestamp() }, { merge: true })
+  await db.doc(`admins/${user.uid}`).set({ email, role: 'owner', createdAt: FieldValue.serverTimestamp() }, { merge: true })
   console.log('✓ admins/' + user.uid + ' yazıldı')
 }
 

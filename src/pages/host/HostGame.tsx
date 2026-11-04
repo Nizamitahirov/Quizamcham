@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { collection, doc, getDoc, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore'
+import { collection, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore'
 import { AnimatePresence, motion } from 'framer-motion'
 import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, createGame, grantFifty, readMsFor, startSelf, selfAnswersQuery, scoreSelfAnswer, updateLeaderboard, fetchPlayers, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  answersQuery, createGame, grantFifty, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -17,6 +17,8 @@ import { useMuted } from '../../components/MuteButton'
 import { FloatingShapes } from '../../components/FloatingShapes'
 import { FloatingEmojis, useFlying } from '../../components/FloatingEmojis'
 import { QuestionIntro } from '../../components/QuestionIntro'
+import { useLeaveGuard, useWakeLock } from '../../lib/useWakeLock'
+import { useOnline } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
 import { Lock, Unlock, Maximize, Volume2, VolumeX, Pause, Play, SkipForward, Flag, ChevronRight, Users } from 'lucide-react'
@@ -26,7 +28,10 @@ import { HostQuestion, HostReveal } from './HostQuestion'
 import { HostLeaderboard, HostPodium } from './HostPodium'
 import HostSummary from './HostSummary'
 import { HostSelf } from './HostSelf'
-import type { Answer, Game, Player, Question } from '../../types'
+import { useSelfEngine } from './useSelfEngine'
+import { HostQA, useQA } from '../../components/QA'
+import { MessageCircleQuestion } from 'lucide-react'
+import type { Game, Player, Question } from '../../types'
 
 export default function HostGame() {
   const { gameId } = useParams()
@@ -56,6 +61,13 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   const guard = useRef<Set<string>>(new Set())
 
   useEffect(() => { void loadSecret(gameId).then(setQuestions) }, [gameId])
+  const running = !!game && game.phase !== 'finished' && game.phase !== 'lobby'
+  useWakeLock(!!game && game.phase !== 'finished')
+  useLeaveGuard(running)
+  const online = useOnline()
+  const [qaOpen, setQaOpen] = useState(false)
+  const qaItems = useQA(gameId, game?.settings.qa !== false)
+  const qaOpenCount = qaItems.filter((q) => !q.answered && !q.hidden).length
   useEffect(() => { void syncClock(`games/${gameId}/secret/clock`) }, [gameId])
 
   // Oyunçular (yalnız host bütün kolleksiyanı dinləyir)
@@ -64,12 +76,12 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   const active = useMemo(() => players.filter((p) => !p.kicked), [players])
 
   // Lobbi massivini denormalizə et (debounce)
-  const lobbySig = useMemo(() => active.map((p) => `${p.uid}:${p.firstName}:${p.lastName}:${p.avatar?.seed}:${p.avatar?.accessory ?? ''}`).sort().join('|'), [active])
-  const gameLobbySig = useMemo(() => (game?.lobby ?? []).map((p) => `${p.uid}:${p.firstName}:${p.lastName}:${p.avatar?.seed}:${p.avatar?.accessory ?? ''}`).sort().join('|'), [game?.lobby])
+  const lobbySig = useMemo(() => [...active].sort((a, b) => (a.joinedAt?.toMillis() ?? 0) - (b.joinedAt?.toMillis() ?? 0)).slice(-60).map((p) => `${p.uid}:${p.firstName}:${p.lastName}:${p.avatar?.seed}:${p.avatar?.accessory ?? ''}`).sort().join('|') + `#${active.length}`, [active])
+  const gameLobbySig = useMemo(() => (game?.lobby ?? []).map((p) => `${p.uid}:${p.firstName}:${p.lastName}:${p.avatar?.seed}:${p.avatar?.accessory ?? ''}`).sort().join('|') + `#${game?.playerCount ?? 0}`, [game?.lobby, game?.playerCount])
   const prevCount = useRef(0)
   useEffect(() => {
     if (!game || game.phase === 'finished' || lobbySig === gameLobbySig) return
-    const id = setTimeout(() => void updateLobby(gameId, players).catch(() => {}), 700)
+    const id = setTimeout(() => void updateLobby(gameId, players).catch(() => {}), 1200)
     return () => clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lobbySig, gameLobbySig])
@@ -154,46 +166,8 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
     return () => clearInterval(id)
   }, [game, questions, answered, activeCount, once])
 
-  // ---- Öz tempində: cavabları gəldikcə qiymətləndir ----
-  const gameRef = useRef(game)
-  useEffect(() => { gameRef.current = game }, [game])
-  const chains = useRef(new Map<string, Promise<unknown>>())
-  const lbTimer = useRef<number | null>(null)
-  const isSelf = game?.phase === 'self'
-  useEffect(() => {
-    if (!isSelf || !questions) return
-    return onSnapshot(selfAnswersQuery(gameId), (snap) => {
-      snap.docChanges().forEach((c) => {
-        if (c.type !== 'added') return
-        const a = c.doc.data() as Answer
-        if (!a.answeredAt) return
-        const key = `sa-${c.doc.id}`
-        if (guard.current.has(key)) return
-        guard.current.add(key)
-        const prev = chains.current.get(a.uid) ?? Promise.resolve()
-        const job = prev.then(async () => {
-          const ps = await getDoc(doc(db, 'games', gameId, 'players', a.uid))
-          if (!ps.exists()) return
-          const g = gameRef.current
-          if (g) await scoreSelfAnswer(g, questions, { ...(ps.data() as Player), uid: a.uid }, a)
-          if (lbTimer.current) clearTimeout(lbTimer.current)
-          lbTimer.current = window.setTimeout(() => { void fetchPlayers(gameId).then((pl) => updateLeaderboard(gameId, pl, gameRef.current?.leaderboard ?? [])) }, 1500)
-        }).catch((e) => { console.error(e); guard.current.delete(key) })
-        chains.current.set(a.uid, job)
-      })
-    })
-  }, [isSelf, questions, gameId])
-  // Öz tempində: vaxt bitdikdə və ya hamı bitirəndə avtomatik yekunlaşdır
-  useEffect(() => {
-    if (!game || !questions || game.phase !== 'self') return
-    const check = () => {
-      const ends = game.selfEndsAt?.toMillis() ?? Infinity
-      const allDone = active.length > 0 && active.every((p) => (p.history?.length ?? 0) >= game.totalQuestions)
-      if (serverNow() > ends + 6000 || allDone) void once('fin', () => finishGame(game, questions))
-    }
-    const id = setInterval(check, 1000)
-    return () => clearInterval(id)
-  }, [game, questions, active, once])
+  // ---- Öz tempində rejimi (ayrıca hook) ----
+  const gameRef = useSelfEngine({ game, questions, active, gameId, guard, once })
 
   // ---- İdarə ----
   const next = useCallback(() => {
@@ -308,6 +282,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
       {game.phase !== 'podium' && <FuturisticBg floor={game.phase === 'lobby' || game.phase === 'leaderboard'} intensity={isQ ? 0.5 : 1} />}
       {(game.phase === 'podium' || game.phase === 'leaderboard') && <FloatingShapes count={16} />}
       <FloatingEmojis items={flying.items} size={64} />
+      {!online && <div className="absolute inset-x-0 top-0 z-50 bg-red-600 py-2 text-center text-lg font-bold" role="alert">{t.host.offline}</div>}
       {!opened && game.phase !== 'finished' && (
         <button className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-night/90 text-white backdrop-blur" onClick={() => { audio.unlock(); setOpened(true) }}>
           <Logo size={72} />
@@ -328,6 +303,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
           <span className="font-display rounded-xl border border-white/15 bg-white/[.06] px-4 py-1.5 text-xl font-black tracking-widest">PIN {game.pin}</span>
         </span>
       </header>
+      {qaOpen && <HostQA gameId={gameId} onClose={() => setQaOpen(false)} />}
       <main className="relative z-10 flex min-h-0 flex-1 flex-col">
         <AnimatePresence mode="wait">
           <motion.div key={game.phase + game.questionIndex} className="flex min-h-0 flex-1 flex-col" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
@@ -355,6 +331,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
           )}
           <button className="btn btn-ghost btn-icon" aria-label="musiqi" onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? <VolumeX /> : <Volume2 />}</button>
           <button className="btn btn-ghost btn-icon" aria-label="tam ekran" onClick={toggleFs}><Maximize /></button>
+          {game.settings.qa !== false && <button className="btn btn-ghost" onClick={() => setQaOpen((o) => !o)}><MessageCircleQuestion />{t.qa.hostTitle(qaOpenCount)}</button>}
           {game.phase !== 'lobby' && <button className="btn btn-ghost" onClick={endGame}><Flag />{t.host.endGame}</button>}
           <span className="ml-auto hidden text-xs text-white/40 xl:inline">{t.host.shortcuts}</span>
           {autoLeft != null && <span className="chip chip-dark text-sm">{t.host.autoNext(autoLeft)}</span>}

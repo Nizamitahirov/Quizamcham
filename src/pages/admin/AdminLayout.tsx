@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Outlet } from 'react-router-dom'
-import { History, LayoutDashboard, ListChecks, LogOut, Music2, Settings, UserRound } from 'lucide-react'
+import { BarChart3, History, LayoutDashboard, ListChecks, LogOut, Music2, Settings, UserRound, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { loadProfile } from '../../firebase/db'
 import { Avatar } from '../../components/Avatar'
@@ -8,13 +8,16 @@ import { logout, useAdmin } from '../../firebase/auth'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { Logo } from '../../components/Brand'
+import { LangSwitch } from '../../components/LangSwitch'
 
 const NAV = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: t.admin.nav.dashboard },
   { to: '/admin/quizzes', icon: ListChecks, label: t.admin.nav.quizzes },
   { to: '/admin/games', icon: History, label: t.admin.nav.games },
+  { to: '/admin/analytics', icon: BarChart3, label: t.admin.nav.analytics },
   { to: '/admin/sounds', icon: Music2, label: t.admin.nav.sounds },
   { to: '/admin/profile', icon: UserRound, label: t.admin.nav.profile },
+  { to: '/admin/team', icon: Users, label: t.admin.nav.team },
   { to: '/admin/settings', icon: Settings, label: t.admin.nav.settings },
 ]
 const MOBILE = NAV.filter((n) => ['/admin', '/admin/quizzes', '/admin/games', '/admin/profile'].includes(n.to))
@@ -40,7 +43,8 @@ export default function AdminLayout() {
             </NavLink>
           ))}
         </nav>
-        <div className="mt-auto flex items-center gap-3 rounded-xl border border-line p-3">
+        <div className="mt-auto mb-3 flex justify-center"><LangSwitch dark={false} /></div>
+        <div className="flex items-center gap-3 rounded-xl border border-line p-3">
           <NavLink to="/admin/profile" className="flex min-w-0 flex-1 items-center gap-3">
             {prof?.photoUrl ? <img src={prof.photoUrl} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" /> : prof?.avatar ? <Avatar avatar={prof.avatar} size={36} /> : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: 'var(--grad)' }}>{email[0]?.toUpperCase()}</span>}
             <span className="min-w-0">
@@ -54,6 +58,7 @@ export default function AdminLayout() {
 
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-line bg-white/85 px-4 py-3 backdrop-blur lg:hidden">
         <Logo size={30} dark={false} />
+        <LangSwitch dark={false} className="ml-auto mr-2" />
         <button className="btn btn-ghost-dark btn-icon" onClick={() => void logout()} aria-label={t.admin.logout}><LogOut className="h-4 w-4" /></button>
       </header>
 

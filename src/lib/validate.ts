@@ -5,7 +5,7 @@ export function validateQuestion(q: Question): string[] {
   const e = t.editor.errors
   const errs: string[] = []
   if (!q.text.trim()) errs.push(e.emptyText)
-  if (q.imageUrl && !/^https:\/\//i.test(q.imageUrl)) errs.push(e.badImage)
+  if (q.imageUrl && !/^(https:\/\/|data:image\/)/i.test(q.imageUrl)) errs.push(e.badImage)
   switch (q.type) {
     case 'single': case 'multi': case 'truefalse': case 'poll': case 'order':
       if (q.options.length < 2) errs.push(e.fewOptions)

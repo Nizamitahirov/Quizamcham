@@ -10,6 +10,8 @@ import { randomPin } from './pin'
 import { shuffle } from './shuffle'
 import { serverNow } from './timeSync'
 import { shortName } from './nameFilter'
+import { track } from '../firebase/extras'
+import { computeTeams } from './teams'
 
 export const MIN_READ_MS = 3000
 export const readMsFor = (settings: QuizSettings | undefined, q?: Question) => (q?.type === 'slide' ? 1500 : Math.max(MIN_READ_MS, (settings?.readTime ?? 4) * 1000))
@@ -52,6 +54,7 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   batch.set(doc(db, 'pins', pin), { gameId: gameRef.id, active: true, createdAt: serverTimestamp() })
   batch.set(doc(db, 'settings', 'current'), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
   await batch.commit()
+  void track('game_created', { mode: quiz.settings.mode, questions: questions.length })
   return gameRef.id
 }
 
@@ -78,8 +81,9 @@ export const updateLobby = (gameId: string, players: Player[]) => {
   const active = players.filter((p) => !p.kicked)
   const lobby: LobbyEntry[] = active
     .sort((a, b) => (a.joinedAt?.toMillis() ?? 0) - (b.joinedAt?.toMillis() ?? 0))
-    .map((p) => ({ uid: p.uid, firstName: p.firstName, lastName: p.lastName, avatar: p.avatar }))
-  return updateDoc(gref(gameId), { lobby, playerCount: active.length })
+    .map((p) => ({ uid: p.uid, firstName: p.firstName, lastName: p.lastName, avatar: p.avatar, ...(p.team != null ? { team: p.team } : {}) }))
+  // Sənəd ölçüsünü və hər oyunçunun oxuduğu həcmi məhdudlaşdırmaq üçün yalnız son 60 nəfər (say isə tam)
+  return updateDoc(gref(gameId), { lobby: lobby.slice(-60), playerCount: active.length })
 }
 
 export const setLocked = (gameId: string, locked: boolean) => updateDoc(gref(gameId), { locked })
@@ -248,6 +252,7 @@ export async function finishQuestion(game: Game, questions: Question[]) {
     })
   }
   batch.update(gref(game.id), {
+    ...(settings.teams ? { teamBoard: computeTeams(updated.map((u) => u.p), settings.teams) } : {}),
     phase: 'reveal', reveal: JSON.parse(JSON.stringify(reveal)), leaderboard: leaderboardOf(ranked, prevRank),
     answeredCount: answers.size, playerCount: ranked.length, questionEndsAt: null, pausedRemainingMs: null,
   })
@@ -265,17 +270,71 @@ export function nextAfterReveal(game: Game): 'leaderboard' | 'question' | 'podiu
 
 export const toPhase = (gameId: string, phase: Game['phase']) => updateDoc(gref(gameId), { phase })
 
+/** Quizi işə salır və açılmalı olan səhifəni qaytarır (tapşırıq → hesabat, digərləri → host ekranı). */
+export async function launchQuiz(quizId: string, hostUid: string): Promise<string> {
+  const id = await createGame(quizId, hostUid)
+  const g = await getDoc(gref(id))
+  const settings = g.get('settings') as QuizSettings
+  if (settings.mode === 'assign') {
+    await startAssignment(id, await loadSecret(id), settings)
+    return `/admin/games/${id}`
+  }
+  return `/host/${id}`
+}
+
+// ============ Tapşırıq rejimi (host olmadan, son tarixli link) ============
+
+/** Oyunu dərhal açır: suallar ictimai (rəqabət yoxdur), cavablar son tarixə qədər qəbul olunur. */
+export async function startAssignment(gameId: string, questions: Question[], settings: QuizSettings) {
+  await updateDoc(gref(gameId), {
+    phase: 'self', questionIndex: questions.length - 1, startedAt: Timestamp.fromMillis(serverNow()),
+    'settings.lateJoin': true, 'settings.powerUps': false,
+    publicQuestions: JSON.parse(JSON.stringify(questions.map((q) => toPublic(q, settings)))),
+    selfEndsAt: Timestamp.fromMillis(serverNow() + (settings.assignDays || 7) * 86_400_000),
+  })
+}
+
+/** Təlimçi: bütün cavabları qiymətləndirir və tapşırığı yekunlaşdırır. */
+export async function gradeAssignment(game: Game, questions: Question[], onProgress?: (done: number, total: number) => void) {
+  const [players, snap] = await Promise.all([fetchPlayers(game.id), getDocs(collection(db, 'games', game.id, 'answers'))])
+  const byUid = new Map<string, Answer[]>()
+  snap.docs.forEach((d) => { const a = d.data() as Answer; byUid.set(a.uid, [...(byUid.get(a.uid) ?? []), a]) })
+  let done = 0
+  for (const p of players) {
+    let cur: Player = p
+    for (const a of (byUid.get(p.uid) ?? []).sort((x, y) => x.questionIndex - y.questionIndex)) {
+      const next = await scoreSelfAnswer(game, questions, cur, a)
+      if (next) cur = next
+    }
+    onProgress?.(++done, players.length)
+  }
+  await finishGame({ ...game, phase: 'self' }, questions)
+}
+
 // ============ Öz tempində rejimi ============
 
 /** Bütün sualların ictimai hissəsini yayımlayır; hər oyunçu öz sürəti ilə irəliləyir. */
 export async function startSelf(game: Game, questions: Question[]) {
   const minutes = game.settings.selfMinutes || 15
+  // Suallar ictimai sənədə yazılmır: hər oyunçu yalnız öz növbəti sualını öz sənədində alır (qabaqcadan oxumaq olmur)
   await updateDoc(gref(game.id), {
     phase: 'self', questionIndex: questions.length - 1, startedAt: Timestamp.fromMillis(serverNow()),
-    publicQuestions: JSON.parse(JSON.stringify(questions.map((q) => toPublic(q, game.settings)))),
     selfEndsAt: Timestamp.fromMillis(serverNow() + minutes * 60_000),
   })
+  const players = (await fetchPlayers(game.id)).filter((p) => !p.kicked && !p.selfQ)
+  for (let i = 0; i < players.length; i += 400) {
+    const b = writeBatch(db)
+    players.slice(i, i + 400).forEach((p) => b.update(doc(db, 'games', game.id, 'players', p.uid), { selfQ: selfQFor(questions, 0, game.settings) }))
+    await b.commit()
+  }
 }
+
+export const selfQFor = (questions: Question[], index: number, settings: QuizSettings) =>
+  index < questions.length ? JSON.parse(JSON.stringify({ index, q: toPublic(questions[index], settings) })) : { index, q: null }
+
+/** Gec qoşulan oyunçuya ilk sualı ver. */
+export const deliverFirstSelfQ = (gameId: string, uid: string, questions: Question[], settings: QuizSettings) =>
+  updateDoc(doc(db, 'games', gameId, 'players', uid), { selfQ: selfQFor(questions, 0, settings) })
 
 export const startSelfQuestion = (gameId: string, uid: string, qi: number) =>
   setDoc(doc(db, 'games', gameId, 'starts', `${uid}_${qi}`), { uid, q: qi, startedAt: serverTimestamp() })
@@ -316,6 +375,7 @@ export async function scoreSelfAnswer(game: Game, questions: Question[], player:
   await updateDoc(doc(db, 'games', game.id, 'players', player.uid), {
     score: np.score ?? 0, correctCount: np.correctCount ?? 0, streak: np.streak ?? 0, bestStreak: np.bestStreak ?? 0,
     totalCorrectTimeMs: np.totalCorrectTimeMs ?? 0, history: np.history, ...(np.powerups ? { powerups: np.powerups } : {}),
+    selfQ: selfQFor(questions, qi + 1, settings),
     lastResult: JSON.parse(JSON.stringify({
       questionIndex: qi, correct: ev.correct, points: ev.points, streakBonus: bonus, rank: 0, prevRank: 0, answered: value !== null,
       poll: !ev.scored, streak: np.streak ?? 0, total: 0, timeMs, power: used ?? fifty, shielded,
@@ -326,10 +386,10 @@ export async function scoreSelfAnswer(game: Game, questions: Question[], player:
 }
 
 /** Canlı reytinqi (top 10) yeniləyir. */
-export async function updateLeaderboard(gameId: string, players: Player[], prev: LeaderEntry[] = []) {
+export async function updateLeaderboard(gameId: string, players: Player[], prev: LeaderEntry[] = [], teams = 0) {
   const ranked = rankPlayers(players.filter((p) => !p.kicked))
   const prevRank = new Map(prev.map((e) => [e.uid, e.rank]))
-  await updateDoc(gref(gameId), { leaderboard: leaderboardOf(ranked, prevRank), playerCount: ranked.length })
+  await updateDoc(gref(gameId), { leaderboard: leaderboardOf(ranked, prevRank), playerCount: ranked.length, ...(teams ? { teamBoard: computeTeams(players, teams) } : {}) })
 }
 
 /** Oyunu bitir: statistika + oyunçular üçün sual icmalı. */
@@ -361,6 +421,7 @@ export async function finishGame(game: Game, questions: Question[]) {
   const awards = computeAwards(players, scoredIdx.length)
   const batch = writeBatch(db)
   batch.update(gref(game.id), {
+    ...(game.settings.teams ? { teamBoard: computeTeams(players, game.settings.teams) } : {}),
     awards: JSON.parse(JSON.stringify(awards)),
     phase: 'finished', finishedAt: serverTimestamp(), stats: JSON.parse(JSON.stringify(stats)),
     leaderboard: leaderboardOf(ranked, prevRank, 200), review: JSON.parse(JSON.stringify(review)), scoredCount: scoredIdx.length,
@@ -368,6 +429,7 @@ export async function finishGame(game: Game, questions: Question[]) {
   })
   batch.update(doc(db, 'pins', game.pin), { active: false })
   await batch.commit()
+  void track('game_finished', { players: players.length, mode: game.settings.mode })
 }
 
 /** Oyun sonu mükafatları. */
@@ -396,7 +458,7 @@ export async function lookupPin(pin: string): Promise<string | null> {
   return s.get('gameId') as string
 }
 
-export async function joinGame(gameId: string, uid: string, firstName: string, lastName: string, avatar: AvatarData) {
+export async function joinGame(gameId: string, uid: string, firstName: string, lastName: string, avatar: AvatarData, team?: number) {
   const ref = doc(db, 'games', gameId, 'players', uid)
   const existing = await getDoc(ref).catch(() => null)
   if (existing?.exists()) {
@@ -407,7 +469,9 @@ export async function joinGame(gameId: string, uid: string, firstName: string, l
     firstName, lastName, avatar, joinedAt: serverTimestamp(), lastSeen: serverTimestamp(), kicked: false,
     score: 0, correctCount: 0, streak: 0, bestStreak: 0, totalCorrectTimeMs: 0, lastResult: null, history: [],
     powerups: { ...POWER_START }, power: null, fiftyHide: null,
+    ...(team != null ? { team } : {}),
   })
+  void track('player_joined')
 }
 
 export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value'] | null) =>
@@ -418,7 +482,8 @@ export const heartbeat = (gameId: string, uid: string) => updateDoc(doc(db, 'gam
 export const activatePower = (gameId: string, uid: string, q: number, type: PowerType) =>
   updateDoc(doc(db, 'games', gameId, 'players', uid), { power: { q, type } })
 
+/** Sənəd id-si 2 saniyəlik pəncərəyə bağlıdır — Rules oyunçu başına 2 s-də 1 reaksiyaya icazə verir. */
 export const sendReaction = (gameId: string, uid: string, emoji: string) =>
-  setDoc(doc(collection(db, 'games', gameId, 'reactions')), { uid, emoji, createdAt: serverTimestamp() })
+  setDoc(doc(db, 'games', gameId, 'reactions', `${uid}_${Math.floor(serverNow() / 2000)}`), { uid, emoji, createdAt: serverTimestamp() })
 
 export type { QuizSettings }

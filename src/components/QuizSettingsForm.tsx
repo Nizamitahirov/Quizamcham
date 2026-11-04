@@ -1,6 +1,6 @@
-import { Eye, Flame, Footprints, Gamepad2, LogIn, Music, Presentation, Repeat, ShieldCheck, Shuffle, Sparkles, Timer, Users, Volume2, Zap } from 'lucide-react'
+import { ClipboardList, MessageCircleQuestion, Star, Eye, Flame, Footprints, Gamepad2, LogIn, Music, Presentation, Repeat, ShieldCheck, Shuffle, Sparkles, Timer, Users, Volume2, Zap } from 'lucide-react'
 import { t } from '../i18n/az'
-import { AUTO_DELAYS, READ_TIMES, SELF_MINUTES, TIME_OPTIONS } from '../lib/defaults'
+import { ASSIGN_DAYS, AUTO_DELAYS, READ_TIMES, SELF_MINUTES, TIME_OPTIONS } from '../lib/defaults'
 import { Field, OptionCards, Section, Segmented, SwitchRow, type OptionDef } from './kit'
 import { MusicPicker } from './MusicPicker'
 import type { QuizSettings } from '../types'
@@ -12,13 +12,15 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
     { value: 'host', icon: Presentation, title: S.modes.host.title, desc: S.modes.host.desc },
     { value: 'auto', icon: Repeat, title: S.modes.auto.title, desc: S.modes.auto.desc },
     { value: 'self', icon: Footprints, title: S.modes.self.title, desc: S.modes.self.desc },
+    { value: 'assign', icon: ClipboardList, title: S.modes.assign.title, desc: S.modes.assign.desc },
   ]
   const sec = (n: number) => ({ value: n, label: t.editor.sec(n) })
   return (
     <div className="grid gap-4 xl:grid-cols-2">
       <Section icon={Gamepad2} title={S.mode} sub={S.generalSub} className="xl:col-span-2">
-        <OptionCards value={s.mode} options={modes} onChange={(mode) => onChange({ mode })} />
+        <OptionCards cols={4} value={s.mode} options={modes} onChange={(mode) => onChange({ mode })} />
         {s.mode === 'auto' && <Field className="mt-4" label={S.autoDelay}><Segmented value={s.autoDelay ?? 6} options={AUTO_DELAYS.map(sec)} onChange={(autoDelay) => onChange({ autoDelay })} /></Field>}
+        {s.mode === 'assign' && <Field className="mt-4" label={S.assignDays}><Segmented value={s.assignDays ?? 7} options={ASSIGN_DAYS.map((n) => ({ value: n, label: S.days(n) }))} onChange={(assignDays) => onChange({ assignDays })} /></Field>}
         {s.mode === 'self' && <Field className="mt-4" label={S.selfMinutes}><Segmented value={s.selfMinutes ?? 15} options={SELF_MINUTES.map((n) => ({ value: n, label: S.minutes(n) }))} onChange={(selfMinutes) => onChange({ selfMinutes })} /></Field>}
       </Section>
 
@@ -26,8 +28,8 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
         <div className="flex flex-col gap-4">
           <Field label={S.scoring}><Segmented value={s.scoring} options={[{ value: 'speed', label: S.scoringSpeed }, { value: 'accuracy', label: S.scoringAccuracy }]} onChange={(scoring) => onChange({ scoring })} /></Field>
           <Field label={S.defaultTime}><Segmented size="sm" value={s.defaultTime} options={TIME_OPTIONS.map(sec)} onChange={(defaultTime) => onChange({ defaultTime })} /></Field>
-          {s.mode !== 'self' && <Field label={S.readTime}><Segmented value={s.readTime ?? 4} options={READ_TIMES.map((x) => ({ value: x, label: x === 0 ? S.readNone : t.editor.sec(x) }))} onChange={(readTime) => onChange({ readTime })} /></Field>}
-          {s.mode !== 'self' && <Field label={S.leaderboardEvery}><Segmented value={s.leaderboardEvery} options={[{ value: 1, label: S.lbEach }, { value: 3, label: S.lb3 }, { value: 0, label: S.lbEnd }]} onChange={(v) => onChange({ leaderboardEvery: v as QuizSettings['leaderboardEvery'] })} /></Field>}
+          {s.mode !== 'self' && s.mode !== 'assign' && <Field label={S.readTime}><Segmented value={s.readTime ?? 4} options={READ_TIMES.map((x) => ({ value: x, label: x === 0 ? S.readNone : t.editor.sec(x) }))} onChange={(readTime) => onChange({ readTime })} /></Field>}
+          {s.mode !== 'self' && s.mode !== 'assign' && <Field label={S.leaderboardEvery}><Segmented value={s.leaderboardEvery} options={[{ value: 1, label: S.lbEach }, { value: 3, label: S.lb3 }, { value: 0, label: S.lbEnd }]} onChange={(v) => onChange({ leaderboardEvery: v as QuizSettings['leaderboardEvery'] })} /></Field>}
         </div>
       </Section>
 
@@ -38,6 +40,8 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
           <SwitchRow icon={Shuffle} checked={s.shuffleQuestions} onChange={(v) => onChange({ shuffleQuestions: v })} label={S.shuffleQuestions} />
           <SwitchRow icon={Shuffle} checked={s.shuffleOptions} onChange={(v) => onChange({ shuffleOptions: v })} label={S.shuffleOptions} />
           <SwitchRow icon={Eye} checked={s.showCorrect} onChange={(v) => onChange({ showCorrect: v })} label={S.showCorrect} />
+          <SwitchRow icon={MessageCircleQuestion} checked={s.qa !== false} onChange={(v) => onChange({ qa: v })} label={S.qa} />
+          <SwitchRow icon={Star} checked={s.feedback !== false} onChange={(v) => onChange({ feedback: v })} label={S.feedbackOn} />
         </div>
       </Section>
 
@@ -59,6 +63,9 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
             <SwitchRow icon={LogIn} checked={s.lateJoin} onChange={(v) => onChange({ lateJoin: v })} label={S.lateJoin} />
             <SwitchRow icon={ShieldCheck} checked={s.nameFilter} onChange={(v) => onChange({ nameFilter: v })} label={S.nameFilter} />
           </div>
+          <Field label={S.teams} className="py-3">
+            <Segmented value={s.teams ?? 0} options={[{ value: 0, label: S.teamsOff }, ...([2, 3, 4] as const).map((n) => ({ value: n, label: S.teamsN(n) }))]} onChange={(v) => onChange({ teams: v as QuizSettings['teams'] })} />
+          </Field>
           <Field label={S.maxPlayers} className="py-3">
             <div className="flex items-center gap-3">
               <input type="range" min={10} max={200} step={10} value={s.maxPlayers} className="flex-1 accent-[#E8202A]" onChange={(e) => onChange({ maxPlayers: Number(e.target.value) })} />

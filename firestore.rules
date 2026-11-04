@@ -2,22 +2,47 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
 
+    // ---------- Köməkçi funksiyalar ----------
     function signedIn() { return request.auth != null; }
-    function isAdmin() { return signedIn() && exists(/databases/$(db)/documents/admins/$(request.auth.uid)); }
+    function adminDoc() { return /databases/$(db)/documents/admins/$(request.auth.uid); }
+    function isAdmin() { return signedIn() && exists(adminDoc()); }
+    function isOwner() { return isAdmin() && get(adminDoc()).data.get('role', 'trainer') == 'owner'; }
     function game(gameId) { return get(/databases/$(db)/documents/games/$(gameId)).data; }
+    function isGameHost(gameId) { return isAdmin() && (game(gameId).hostUid == request.auth.uid || isOwner()); }
     function nameOk(v) { return v is string && v.size() >= 2 && v.size() <= 20; }
-
-    match /admins/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
-      allow write: if false; // yalnız Console / Admin SDK
+    function answerValueOk(v) {
+      return v == null || v is number || (v is string && v.size() <= 200) || (v is list && v.size() <= 10);
     }
 
+    // ---------- Adminlər (sahib idarə edir) ----------
+    match /admins/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if isOwner()
+        && request.resource.data.keys().hasOnly(['email','role','name','createdAt','createdBy'])
+        && request.resource.data.role in ['owner','trainer'];
+      allow delete: if isOwner() && uid != request.auth.uid;
+    }
+
+    // ---------- Quizlər: bütün təlimçilər oxuyur, yalnız sahibi (və ya platforma sahibi) dəyişir ----------
     match /quizzes/{quizId} {
-      allow read, write: if isAdmin();
-      match /questions/{qid} { allow read, write: if isAdmin(); }
+      allow read: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if isAdmin() && (resource.data.ownerUid == request.auth.uid || isOwner())
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if isAdmin() && (resource.data.ownerUid == request.auth.uid || isOwner());
+      match /questions/{qid} {
+        function quizOwner() { return get(/databases/$(db)/documents/quizzes/$(quizId)).data.ownerUid; }
+        allow read: if isAdmin();
+        allow write: if isAdmin() && (!exists(/databases/$(db)/documents/quizzes/$(quizId)) || quizOwner() == request.auth.uid || isOwner());
+      }
     }
 
     match /pins/{pin} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    match /settings/{doc} {          // settings/current → { activeGameId }, settings/app → ümumi ayarlar
       allow read: if signedIn();
       allow write: if isAdmin();
     }
@@ -32,19 +57,25 @@ service cloud.firestore {
       allow write: if isAdmin() && request.auth.uid == uid;
     }
 
-    match /settings/{doc} {          // settings/current → { activeGameId }, settings/app → admin ayarları
-      allow read: if signedIn();
-      allow write: if isAdmin();
+    match /errors/{id} {             // klient xəta jurnalı (yalnız yazılır, admin oxuyur)
+      allow read, delete: if isAdmin();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['message','stack','url','ua','uid','at','context'])
+        && request.resource.data.message is string && request.resource.data.message.size() <= 500
+        && (!('stack' in request.resource.data) || request.resource.data.stack.size() <= 4000)
+        && request.resource.data.at == request.time;
     }
 
+    // ---------- Oyunlar ----------
     match /games/{gameId} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.hostUid == request.auth.uid;
+      allow update, delete: if isAdmin() && (resource.data.hostUid == request.auth.uid || isOwner());
 
-      match /secret/{doc} { allow read, write: if isAdmin(); }
+      match /secret/{doc} { allow read, write: if isGameHost(gameId); }
 
       match /players/{uid} {
-        allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+        allow read: if isGameHost(gameId) || (signedIn() && request.auth.uid == uid);
         allow create: if signedIn() && request.auth.uid == uid
           && game(gameId).locked == false
           && game(gameId).phase != 'finished'
@@ -52,27 +83,29 @@ service cloud.firestore {
           && nameOk(request.resource.data.firstName)
           && nameOk(request.resource.data.lastName)
           && request.resource.data.avatar is map
-          && request.resource.data.keys().hasOnly(['firstName','lastName','avatar','joinedAt','lastSeen','kicked','score','correctCount','streak','bestStreak','totalCorrectTimeMs','lastResult','history','powerups','power','fiftyHide'])
+          && request.resource.data.keys().hasOnly(['firstName','lastName','avatar','joinedAt','lastSeen','kicked','score','correctCount','streak','bestStreak','totalCorrectTimeMs','lastResult','history','powerups','power','fiftyHide','team'])
           && request.resource.data.score == 0
-          && (!('fiftyHide' in request.resource.data) || request.resource.data.fiftyHide == null)
-          && (!('powerups' in request.resource.data) || (request.resource.data.powerups.fifty <= 1 && request.resource.data.powerups.double <= 1 && request.resource.data.powerups.shield <= 1))
           && request.resource.data.correctCount == 0
           && request.resource.data.history.size() == 0
+          && (!('fiftyHide' in request.resource.data) || request.resource.data.fiftyHide == null)
+          && (!('powerups' in request.resource.data) || (request.resource.data.powerups.fifty <= 1 && request.resource.data.powerups.double <= 1 && request.resource.data.powerups.shield <= 1))
+          && (!('team' in request.resource.data) || (request.resource.data.team is int && request.resource.data.team >= 0 && request.resource.data.team < 4))
           && request.resource.data.kicked == false;
-        // oyunçu yalnız profil, heartbeat və güc artırıcı seçimini dəyişə bilər (inventarı host idarə edir)
-        allow update: if isAdmin() || (signedIn() && request.auth.uid == uid
+        // oyunçu yalnız heartbeat, güc artırıcı seçimi və (yalnız lobbidə) profilini dəyişə bilər; xalları host yazır
+        allow update: if isGameHost(gameId) || (signedIn() && request.auth.uid == uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['firstName','lastName','avatar','lastSeen','power'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['firstName','lastName','avatar']) || game(gameId).phase == 'lobby')
+          && nameOk(request.resource.data.firstName)
+          && nameOk(request.resource.data.lastName)
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['power']) || request.resource.data.power == null
               || (request.resource.data.power.type in ['fifty','double','shield']
                   && (request.resource.data.power.q == game(gameId).questionIndex
-                      || (game(gameId).phase == 'self' && request.resource.data.power.q is int && request.resource.data.power.q < game(gameId).totalQuestions))))
-          && nameOk(request.resource.data.firstName)
-          && nameOk(request.resource.data.lastName));
-        allow delete: if isAdmin();
+                      || (game(gameId).phase == 'self' && request.resource.data.power.q is int && request.resource.data.power.q < game(gameId).totalQuestions)))));
+        allow delete: if isGameHost(gameId);
       }
 
-      match /starts/{startId} {        // öz tempində rejimi: sualın başlama vaxtı (yalnız bir dəfə)
-        allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      match /starts/{startId} {        // öz tempində / tapşırıq: sualın başlama vaxtı (bir dəfə)
+        allow read: if isGameHost(gameId) || (signedIn() && resource.data.uid == request.auth.uid);
         allow create: if signedIn()
           && startId == request.auth.uid + '_' + string(request.resource.data.q)
           && request.resource.data.keys().hasOnly(['uid','q','startedAt'])
@@ -85,12 +118,13 @@ service cloud.firestore {
       }
 
       match /answers/{answerId} {
-        allow read: if isAdmin();
+        allow read: if isGameHost(gameId);
         allow create: if signedIn()
           && answerId == request.auth.uid + '_' + string(request.resource.data.questionIndex)
           && request.resource.data.keys().hasOnly(['uid','questionIndex','value','answeredAt'])
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.answeredAt == request.time
+          && answerValueOk(request.resource.data.value)
           && exists(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid))
           && get(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid)).data.kicked == false
           && (
@@ -105,12 +139,46 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      // Reaksiyalar: sənəd id-si = uid_<2 saniyəlik pəncərə> → oyunçu başına 2 saniyədə ən çox 1
       match /reactions/{rid} {
-        allow read: if isAdmin();
+        function bucket() { return int(request.time.toMillis() / 2000); }
+        allow read, delete: if isGameHost(gameId);
         allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['uid','emoji','createdAt'])
           && request.resource.data.uid == request.auth.uid
-          && request.resource.data.emoji is string && request.resource.data.emoji.size() <= 8;
-        allow delete: if isAdmin();
+          && request.resource.data.emoji is string && request.resource.data.emoji.size() <= 8
+          && request.resource.data.createdAt == request.time
+          && (rid == request.auth.uid + '_' + string(bucket()) || rid == request.auth.uid + '_' + string(bucket() - 1));
+      }
+
+      // Canlı sual-cavab (Q&A)
+      match /qa/{qid} {
+        allow read: if signedIn();
+        allow create: if signedIn()
+          && request.resource.data.keys().hasOnly(['uid','name','text','createdAt','votes','answered','hidden'])
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.text is string && request.resource.data.text.size() >= 3 && request.resource.data.text.size() <= 200
+          && request.resource.data.name is string && request.resource.data.name.size() <= 40
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.votes.size() == 0
+          && request.resource.data.answered == false && request.resource.data.hidden == false
+          && game(gameId).phase != 'finished';
+        // oyunçu yalnız öz səsini əlavə edə/silə bilər
+        allow update: if isGameHost(gameId) || (signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['votes'])
+          && request.resource.data.votes.toSet().difference(resource.data.votes.toSet()).union(resource.data.votes.toSet().difference(request.resource.data.votes.toSet())) == [request.auth.uid].toSet());
+        allow delete: if isGameHost(gameId);
+      }
+
+      // Təlim sonu rəy sorğusu
+      match /feedback/{uid} {
+        allow read: if isGameHost(gameId);
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['rating','comment','name','at'])
+          && request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
+          && (!('comment' in request.resource.data) || (request.resource.data.comment is string && request.resource.data.comment.size() <= 500))
+          && request.resource.data.at == request.time
+          && exists(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid));
       }
     }
   }

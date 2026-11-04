@@ -3,15 +3,16 @@ import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom
 import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { loadAppSettings, loadQuiz, quizToJson, saveQuizFull } from '../../firebase/db'
-import { createGame, toPublic } from '../../lib/gameEngine'
+import { copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull } from '../../firebase/db'
+import { compressImage } from '../../lib/image'
+import { launchQuiz, toPublic } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { download } from '../../lib/csv'
 import { ALL_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
 import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
 import { ListChecks } from 'lucide-react'
-import { ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
+import { FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
 import { TILE_COLORS, Shape } from '../../components/AnswerTile'
@@ -34,6 +35,7 @@ export default function QuizEditor() {
   const [state, setState] = useState<SaveState>('saved')
   const [savedAt, setSavedAt] = useState<Date | null>(null)
   const [tab, setTab] = useState<'questions' | 'settings'>('questions')
+  const [copying, setCopying] = useState<Question | null>(null)
   const [showPreview, setShowPreview] = useState(false)
   const [launching, setLaunching] = useState(false)
   const [defaultTime, setDefaultTime] = useState<number | null>(null)
@@ -151,8 +153,7 @@ export default function QuizEditor() {
     setLaunching(true)
     try {
       await save()
-      const gid = await createGame(quiz.id, user!.uid)
-      nav(`/host/${gid}`)
+      nav(await launchQuiz(quiz.id, user!.uid))
     } finally {
       setLaunching(false)
     }
@@ -183,14 +184,21 @@ export default function QuizEditor() {
           <Play className="fill-current" />{launching ? t.admin.launching : t.admin.launch}
         </button>
       </div>
-      <textarea className="input mb-4 min-h-12" placeholder={t.editor.description} value={quiz.description} maxLength={300} rows={1} onChange={(e) => setQuizField({ description: e.target.value })} />
+      <div className="mb-4 grid gap-3 md:grid-cols-[2fr_1fr]">
+        <textarea className="input min-h-12" placeholder={t.editor.description} value={quiz.description} maxLength={300} rows={1} onChange={(e) => setQuizField({ description: e.target.value })} />
+        <div className="relative">
+          <Tag className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+          <input className="input pl-9" aria-label={t.tags.label} placeholder={t.tags.placeholder} defaultValue={(quiz.tags ?? []).join(', ')}
+            onBlur={(e) => setQuizField({ tags: [...new Set(e.target.value.split(',').map((x) => x.trim()).filter(Boolean))].slice(0, 8) })} />
+        </div>
+      </div>
       {errCount > 0 && <p className="mb-3 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700"><AlertTriangle className="h-4 w-4" />{t.editor.issues(errCount)}</p>}
 
       <div className="mb-4"><Tabs value={tab} onChange={setTab} tabs={[{ value: 'questions', label: `${t.admin.editorTabs.questions} (${questions.length})`, icon: ListChecks, badge: errCount }, { value: 'settings', label: t.admin.editorTabs.settings, icon: Settings2 }]} /></div>
 
       {tab === 'settings' ? <SettingsForm s={quiz.settings} onChange={setSettings} /> : (
       <div className="grid gap-4 lg:grid-cols-[300px_1fr_280px]">
-        <QuestionList questions={questions} sel={sel} errors={errors} onSelect={setSel} onReorder={reorder} onAdd={addQ} onDup={dupQ} onDel={delQ} />
+        <QuestionList questions={questions} sel={sel} errors={errors} onSelect={setSel} onReorder={reorder} onAdd={addQ} onDup={dupQ} onDel={delQ} onCopy={setCopying} />
         {current ? (
           <>
             <QuestionEditor q={current} errors={errors.get(current.id) ?? []} onChange={updateQ} />
@@ -202,6 +210,7 @@ export default function QuizEditor() {
       </div>
       )}
 
+      <CopyQuestionModal q={copying} currentQuizId={quiz.id} onClose={() => setCopying(null)} />
       <Modal open={showPreview && !!current} onClose={() => setShowPreview(false)} title={t.editor.preview}>
         {current && <PhonePreview q={current} shuffle={quiz.settings.shuffleOptions} />}
       </Modal>
@@ -209,7 +218,7 @@ export default function QuizEditor() {
   )
 }
 
-function SortRow({ q, i, active, hasErr, onSelect, onDup, onDel }: { q: Question; i: number; active: boolean; hasErr: boolean; onSelect: () => void; onDup: () => void; onDel: () => void }) {
+function SortRow({ q, i, active, hasErr, onSelect, onDup, onDel, onCopy }: { q: Question; i: number; active: boolean; hasErr: boolean; onSelect: () => void; onDup: () => void; onDel: () => void; onCopy: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id })
   return (
     <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : undefined }}
@@ -225,15 +234,16 @@ function SortRow({ q, i, active, hasErr, onSelect, onDup, onDel }: { q: Question
       </button>
       <div className="hidden gap-1 group-hover:flex">
         <button className="rounded-lg p-1.5 text-muted hover:bg-surface" onClick={onDup} title={t.editor.duplicate}><Copy className="h-4 w-4" /></button>
+        <button className="rounded-lg p-1.5 text-muted hover:bg-surface" onClick={onCopy} title={t.copyQ.button}><FolderInput className="h-4 w-4" /></button>
         <button className="rounded-lg p-1.5 text-red-600 hover:bg-red-50" onClick={onDel} title={t.editor.delete}><Trash2 className="h-4 w-4" /></button>
       </div>
     </li>
   )
 }
 
-function QuestionList({ questions, sel, errors, onSelect, onReorder, onAdd, onDup, onDel }: {
+function QuestionList({ questions, sel, errors, onSelect, onReorder, onAdd, onDup, onDel, onCopy }: {
   questions: Question[]; sel: string | null; errors: Map<string, string[]>; onSelect: (id: string) => void; onReorder: (a: number, b: number) => void
-  onAdd: (t?: QuestionType) => void; onDup: (q: Question) => void; onDel: (q: Question) => void
+  onAdd: (t?: QuestionType) => void; onDup: (q: Question) => void; onDel: (q: Question) => void; onCopy: (q: Question) => void
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const [type, setType] = useState<QuestionType>('single')
@@ -247,7 +257,7 @@ function QuestionList({ questions, sel, errors, onSelect, onReorder, onAdd, onDu
         <SortableContext items={questions.map((q) => q.id)} strategy={verticalListSortingStrategy}>
           <ol className="scrollbar-thin flex flex-col gap-1.5 overflow-auto p-0.5">
             {questions.map((q, i) => (
-              <SortRow key={q.id} q={q} i={i} active={q.id === sel} hasErr={(errors.get(q.id) ?? []).length > 0} onSelect={() => onSelect(q.id)} onDup={() => onDup(q)} onDel={() => onDel(q)} />
+              <SortRow key={q.id} q={q} i={i} active={q.id === sel} hasErr={(errors.get(q.id) ?? []).length > 0} onSelect={() => onSelect(q.id)} onDup={() => onDup(q)} onDel={() => onDel(q)} onCopy={() => onCopy(q)} />
             ))}
           </ol>
         </SortableContext>
@@ -264,6 +274,8 @@ function QuestionList({ questions, sel, errors, onSelect, onReorder, onAdd, onDu
 
 function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]; onChange: (q: Question) => void }) {
   const [imgErr, setImgErr] = useState(false)
+  const [imgBusy, setImgBusy] = useState(false)
+  const imgRef = useRef<HTMLInputElement>(null)
   const set = (patch: Partial<Question>) => onChange({ ...q, ...patch })
   const hasOptions = ['single', 'multi', 'truefalse', 'poll', 'order'].includes(q.type)
   const maxOpts = q.type === 'order' ? 5 : 6
@@ -290,8 +302,18 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
       </div>
       <div>
         <label className="label" htmlFor="qimg">{t.editor.imageUrl}</label>
-        <input id="qimg" className="input" placeholder="https://…" value={q.imageUrl ?? ''} onChange={(e) => { setImgErr(false); set({ imageUrl: e.target.value || undefined }) }} />
-        {q.imageUrl && /^https:\/\//.test(q.imageUrl) && (
+        <div className="flex gap-2">
+          <input id="qimg" className="input flex-1" placeholder="https://…" value={q.imageUrl?.startsWith('data:') ? '' : q.imageUrl ?? ''} onChange={(e) => { setImgErr(false); set({ imageUrl: e.target.value || undefined }) }} />
+          <button type="button" className="btn btn-soft" disabled={imgBusy} onClick={() => imgRef.current?.click()}><ImageUp />{imgBusy ? t.image.processing : t.image.upload}</button>
+          {q.imageUrl && <button type="button" className="btn btn-ghost-dark btn-icon" title={t.image.remove} onClick={() => set({ imageUrl: undefined })}><X /></button>}
+          <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+            const f = e.target.files?.[0]; e.target.value = ''
+            if (!f) return
+            setImgBusy(true); setImgErr(false)
+            try { set({ imageUrl: await compressImage(f) }) } catch { setImgErr(true) } finally { setImgBusy(false) }
+          }} />
+        </div>
+        {q.imageUrl && /^(https:\/\/|data:image\/)/.test(q.imageUrl) && (
           imgErr ? <p className="mt-1 text-sm text-red-600">{t.editor.imageBad}</p>
             : <img src={q.imageUrl} alt="" onError={() => setImgErr(true)} className="mt-2 max-h-40 rounded-xl object-contain" />
         )}
@@ -405,6 +427,26 @@ function QuestionSettings({ q, onChange }: { q: Question; onChange: (q: Question
         </div>
       )}
     </aside>
+  )
+}
+
+function CopyQuestionModal({ q, currentQuizId, onClose }: { q: Question | null; currentQuizId: string; onClose: () => void }) {
+  const [list, setList] = useState<{ id: string; title: string; coverEmoji: string }[] | null>(null)
+  const [msg, setMsg] = useState('')
+  useEffect(() => { if (q) { setMsg(''); void listQuizzes().then((l) => setList(l.filter((x) => x.id !== currentQuizId))) } }, [q, currentQuizId])
+  return (
+    <Modal open={!!q} onClose={onClose} title={t.copyQ.title}>
+      <p className="mb-3 text-sm text-muted">{t.copyQ.pick}</p>
+      {!list ? <Spinner /> : list.length === 0 ? <p className="text-sm text-muted">{t.copyQ.none}</p> : (
+        <ul className="scrollbar-thin flex max-h-80 flex-col gap-1 overflow-auto">
+          {list.map((x) => (
+            <li key={x.id}><button className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-surface" onClick={async () => { if (q) { try { setMsg(t.copyQ.done(await copyQuestionTo(x.id, q))) } catch { setMsg(t.app.error) } } }}>
+              <span className="text-2xl">{x.coverEmoji}</span><span className="text-sm font-semibold">{x.title}</span></button></li>
+          ))}
+        </ul>
+      )}
+      {msg && <p className="mt-3 text-sm font-semibold text-ok">{msg}</p>}
+    </Modal>
   )
 }
 

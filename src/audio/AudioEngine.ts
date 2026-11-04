@@ -4,6 +4,7 @@
  */
 import type { MusicTheme, SoundSettings } from '../types'
 import { THEMES } from './themes'
+import { haptic } from '../lib/haptics'
 
 type Track = 'lobby' | 'question' | null
 const MUTE_KEY = 'qz.muted'
@@ -223,10 +224,11 @@ class Engine {
     return true
   }
   pop() { this.sfx((t, o) => { this.tone(midi(84), t, 0.08, 'sine', 0.3, o); this.tone(midi(91), t + 0.05, 0.1, 'sine', 0.25, o) }) }
-  click() { this.sfx((t, o) => this.tone(1200, t, 0.05, 'square', 0.12, o, 4000)) }
+  click() { haptic.tap(); this.sfx((t, o) => this.tone(1200, t, 0.05, 'square', 0.12, o, 4000)) }
 
   /** Qələbə: orijinal diskofank fanfarı (oktava bas + akkord ştabı + yüksələn arpecio). */
   correct() {
+    haptic.correct()
     if (this.playClip('correct')) return
     this.sfx((t, o) => {
       const b = 60 / 116 / 2
@@ -238,6 +240,7 @@ class Engine {
   }
   /** Məyus: orijinal enən "vah-vah" melodiyası, vibrato ilə. */
   wrong() {
+    haptic.wrong()
     if (this.playClip('wrong')) return
     this.sfx((t, o) => {
       const seq = [[55, 0, 0.32], [54, 0.36, 0.32], [53, 0.72, 0.32], [52, 1.08, 1.1]] as const

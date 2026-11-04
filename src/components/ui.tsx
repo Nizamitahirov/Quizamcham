@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import { useRouteError } from 'react-router-dom'
+import { logError } from '../lib/errorLog'
 import { t } from '../i18n/az'
 
 export function Spinner({ label = t.app.loading }: { label?: string }) {
@@ -75,6 +77,8 @@ export function Modal({ open, onClose, title, children, wide }: { open: boolean;
 }
 
 export function RouteError() {
+  const err = useRouteError()
+  useEffect(() => { logError(err, 'route') }, [err])
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-night p-6 text-center text-white">
       <div className="text-6xl">😵</div>

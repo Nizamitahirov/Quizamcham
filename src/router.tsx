@@ -19,6 +19,9 @@ const Games = lazy(() => import('./pages/admin/Games'))
 const GameReport = lazy(() => import('./pages/admin/GameReport'))
 const Settings = lazy(() => import('./pages/admin/Settings'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const Privacy = lazy(() => import('./pages/Privacy'))
+const Team = lazy(() => import('./pages/admin/Team'))
+const Analytics = lazy(() => import('./pages/admin/Analytics'))
 
 const S = (el: ReactNode) => <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>}>{el}</Suspense>
 
@@ -29,6 +32,7 @@ export const router = createBrowserRouter([
     children: [
       { path: '/', element: S(<Home />) },
       { path: '/join', element: S(<Join />) },
+      { path: '/privacy', element: S(<Privacy />) },
       { path: '/play', element: S(<Play />) },
       { path: '/g/:gameId', element: S(<PlayerGame />) },
       { path: '/host/:gameId', element: S(<HostGame />) },
@@ -37,14 +41,16 @@ export const router = createBrowserRouter([
         path: '/admin',
         element: S(<AdminLayout />),
         children: [
-          { index: true, element: S(<Dashboard />) },
-          { path: 'quizzes', element: S(<QuizList />) },
-          { path: 'quiz/:quizId', element: S(<QuizEditor />) },
-          { path: 'games', element: S(<Games />) },
-          { path: 'games/:gameId', element: S(<GameReport />) },
-          { path: 'settings', element: S(<Settings />) },
-          { path: 'profile', element: S(<Profile />) },
-          { path: 'sounds', element: S(<Sounds />) },
+          { index: true, element: S(<Dashboard />), errorElement: <RouteError /> },
+          { path: 'quizzes', element: S(<QuizList />), errorElement: <RouteError /> },
+          { path: 'quiz/:quizId', element: S(<QuizEditor />), errorElement: <RouteError /> },
+          { path: 'games', element: S(<Games />), errorElement: <RouteError /> },
+          { path: 'games/:gameId', element: S(<GameReport />), errorElement: <RouteError /> },
+          { path: 'settings', element: S(<Settings />), errorElement: <RouteError /> },
+          { path: 'profile', element: S(<Profile />), errorElement: <RouteError /> },
+          { path: 'sounds', element: S(<Sounds />), errorElement: <RouteError /> },
+          { path: 'team', element: S(<Team />), errorElement: <RouteError /> },
+          { path: 'analytics', element: S(<Analytics />), errorElement: <RouteError /> },
         ],
       },
       { path: '*', element: S(<NotFound />) },

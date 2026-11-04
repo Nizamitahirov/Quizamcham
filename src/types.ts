@@ -3,7 +3,7 @@ import type { Timestamp } from 'firebase/firestore'
 export type QuestionType = 'single' | 'multi' | 'truefalse' | 'type' | 'poll' | 'order' | 'slider' | 'wordcloud' | 'open' | 'slide'
 export type PointsMode = 'standard' | 'double' | 'none'
 export type Phase = 'lobby' | 'countdown' | 'question' | 'reveal' | 'leaderboard' | 'podium' | 'finished' | 'self'
-export type GameMode = 'host' | 'auto' | 'self'
+export type GameMode = 'host' | 'auto' | 'self' | 'assign'
 
 export interface Option { id: string; text: string }
 export interface SliderCfg { min: number; max: number; step: number; answer: number; tolerance: number }
@@ -31,6 +31,7 @@ export interface QuizSettings {
   mode: GameMode
   autoDelay: number // avtomatik rejimdə nəticə/reytinq ekranlarının müddəti (s)
   selfMinutes: number // öz tempində rejimdə ümumi vaxt (dəq)
+  assignDays: number // tapşırıq rejimində son tarix (gün)
   scoring: 'speed' | 'accuracy'
   defaultTime: number
   streakBonus: boolean
@@ -43,6 +44,9 @@ export interface QuizSettings {
   nameFilter: boolean
   maxPlayers: number
   powerUps: boolean
+  qa: boolean
+  feedback: boolean
+  teams: 0 | 2 | 3 | 4
   readTime: number // sualı cavablardan əvvəl göstərmə (s)
 }
 
@@ -61,6 +65,7 @@ export interface Quiz {
   settings: QuizSettings
   questionOrder: string[]
   ownerUid: string
+  tags?: string[]
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }
@@ -81,7 +86,7 @@ export interface PublicQuestion {
   body?: string
 }
 
-export interface LobbyEntry { uid: string; firstName: string; lastName: string; avatar: AvatarData }
+export interface LobbyEntry { uid: string; firstName: string; lastName: string; avatar: AvatarData; team?: number }
 export interface LeaderEntry { uid: string; name: string; avatar: AvatarData; score: number; rank: number; delta: number }
 
 export interface Reveal {
@@ -127,9 +132,12 @@ export interface Game {
   preview?: Preview | null
   awards?: Award[]
   publicQuestions?: PublicQuestion[]
+  teamBoard?: TeamEntry[]
   selfEndsAt?: Timestamp | null
   host?: HostProfile | null
 }
+
+export interface TeamEntry { team: number; score: number; members: number; total: number }
 
 export interface HostProfile { name: string; title?: string; org?: string; avatar?: AvatarData | null; photoUrl?: string }
 export interface TrainerProfile extends HostProfile { bio?: string; email?: string; defaults?: Partial<QuizSettings> }
@@ -160,6 +168,8 @@ export interface Player {
   powerups?: PowerInventory
   power?: PowerUse | null
   fiftyHide?: { q: number; ids: string[] } | null
+  selfQ?: { index: number; q: PublicQuestion | null } | null
+  team?: number
 }
 
 export type AnswerValue = string[] | string | number
