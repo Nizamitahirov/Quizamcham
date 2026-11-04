@@ -160,6 +160,8 @@ export interface Player {
   powerups?: PowerInventory
   power?: PowerUse | null
   fiftyHide?: { q: number; ids: string[] } | null
+  selfQ?: { index: number; q: PublicQuestion | null } | null
+  team?: number
 }
 
 export type AnswerValue = string[] | string | number

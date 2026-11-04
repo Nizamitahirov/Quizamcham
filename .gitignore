@@ -7,3 +7,7 @@ dist
 *-firebase-adminsdk-*.json
 service-account*.json
 .firebase
+firestore-debug.log
+ui-debug.log
+test-results
+playwright-report

@@ -11,7 +11,7 @@ import { AnswerTile } from '../../components/AnswerTile'
 import { QuestionInput } from './QuestionInputs'
 import { PowerBar } from './PowerBar'
 import { CORRECT, WRONG, STICKERS_OK, STICKERS_BAD, pick } from '../../content/feedback'
-import type { AnswerValue, Game, Player } from '../../types'
+import type { AnswerValue, Game, Player, PublicQuestion } from '../../types'
 
 const fmt = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
 
@@ -24,6 +24,11 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
   const [now, setNow] = useState(serverNow())
   useEffect(() => { const id = setInterval(() => setNow(serverNow()), 250); return () => clearInterval(id) }, [])
   const left = (game.selfEndsAt?.toMillis() ?? now) - now
+  // Sualları host hər oyunçunun öz sənədinə bir-bir göndərir; nəticə ekranı üçün yadda saxlayırıq
+  const [cache, setCache] = useState<Record<number, PublicQuestion>>(() => (player.selfQ?.q ? { [player.selfQ.index]: player.selfQ.q } : {}))
+  const sq = player.selfQ
+  useEffect(() => { if (sq?.q) setCache((c) => (c[sq.index] ? c : { ...c, [sq.index]: sq.q! })) }, [sq])
+  const qFor = (i: number) => cache[i] ?? game.publicQuestions?.[i] ?? null
 
   if (idx >= total || left <= 0) {
     return (
@@ -48,16 +53,15 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
       <AnimatePresence mode="wait">
         <motion.div key={idx + stage} className="flex flex-1 flex-col" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.22 }}>
           {stage === 'result'
-            ? <SelfResult game={game} player={player} qi={idx} onNext={() => { const n = idx + 1; try { sessionStorage.setItem(key, String(n)) } catch { /* noop */ } setIdx(n); setStage('answer') }} />
-            : <SelfQuestion game={game} player={player} uid={uid} qi={idx} waiting={stage === 'wait'} onSent={() => setStage('wait')} onResult={() => setStage('result')} />}
+            ? <SelfResult game={game} player={player} qi={idx} q={qFor(idx)} onNext={() => { const n = idx + 1; try { sessionStorage.setItem(key, String(n)) } catch { /* noop */ } setIdx(n); setStage('answer') }} />
+            : qFor(idx) ? <SelfQuestion game={game} player={player} uid={uid} qi={idx} q={qFor(idx)!} waiting={stage === 'wait'} onSent={() => setStage('wait')} onResult={() => setStage('result')} /> : <div className="m-auto"><Hourglass className="h-10 w-10 animate-spin text-orange-400" /></div>}
         </motion.div>
       </AnimatePresence>
     </div>
   )
 }
 
-function SelfQuestion({ game, player, uid, qi, waiting, onSent, onResult }: { game: Game; player: Player; uid: string; qi: number; waiting: boolean; onSent: () => void; onResult: () => void }) {
-  const q = game.publicQuestions?.[qi]
+function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult }: { game: Game; player: Player; uid: string; qi: number; q: PublicQuestion; waiting: boolean; onSent: () => void; onResult: () => void }) {
   const startRef = useRef<number>(Date.now())
   const sent = useRef(false)
   const [remaining, setRemaining] = useState((q?.timeLimit ?? 30) * 1000)
@@ -120,9 +124,8 @@ function SelfQuestion({ game, player, uid, qi, waiting, onSent, onResult }: { ga
   )
 }
 
-function SelfResult({ game, player, qi, onNext }: { game: Game; player: Player; qi: number; onNext: () => void }) {
+function SelfResult({ game, player, qi, q, onNext }: { game: Game; player: Player; qi: number; q: PublicQuestion | null; onNext: () => void }) {
   const r = player.lastResult
-  const q = game.publicQuestions?.[qi]
   const seed = useMemo(() => Math.random(), [])
   const fx = useRef(false)
   useEffect(() => {

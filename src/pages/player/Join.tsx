@@ -158,6 +158,7 @@ export default function Join() {
               <AvatarPicker value={avatar} onChange={(a) => { setAvatar(a); audio.unlock(); audio.click() }} />
             </div>
             {error && <p key={shakeKey} className="shake rounded-xl bg-red-500/15 py-2 text-center text-sm font-bold text-red-300" role="alert">{error}</p>}
+            <p className="text-center text-xs leading-relaxed text-white/50">{t.privacy.short} <Link to="/privacy" className="underline">{t.privacy.more}</Link></p>
             <button className="btn btn-primary btn-lg sticky bottom-4 text-xl" disabled={busy || first.trim().length < 2 || last.trim().length < 2}>
               {busy ? t.join.joining : <><Rocket />{t.join.go}</>}
             </button>

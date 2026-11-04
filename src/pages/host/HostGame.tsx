@@ -6,7 +6,7 @@ import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, createGame, grantFifty, readMsFor, startSelf, selfAnswersQuery, scoreSelfAnswer, updateLeaderboard, fetchPlayers, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  answersQuery, createGame, grantFifty, readMsFor, startSelf, deliverFirstSelfQ, selfAnswersQuery, scoreSelfAnswer, updateLeaderboard, fetchPlayers, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -189,6 +189,18 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
       })
     })
   }, [isSelf, questions, gameId])
+  // Öz tempində: gec qoşulanlara ilk sualı ver
+  useEffect(() => {
+    if (!game || !questions || game.phase !== 'self') return
+    active.forEach((p) => {
+      if (p.selfQ || (p.history?.length ?? 0) > 0) return
+      const key = `sq0-${p.uid}`
+      if (guard.current.has(key)) return
+      guard.current.add(key)
+      void deliverFirstSelfQ(gameId, p.uid, questions, game.settings).catch(() => guard.current.delete(key))
+    })
+  }, [game, questions, active, gameId])
+
   // Öz tempində: vaxt bitdikdə və ya hamı bitirəndə avtomatik yekunlaşdır
   useEffect(() => {
     if (!game || !questions || game.phase !== 'self') return

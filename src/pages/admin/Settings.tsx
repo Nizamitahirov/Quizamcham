@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Save, ShieldCheck, SlidersHorizontal } from 'lucide-react'
+import { Bug, Database, Download, Save, ShieldCheck, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { cleanupGames, clearErrors, exportAll, listErrors, oldGames } from '../../lib/dataAdmin'
+import { download } from '../../lib/csv'
 import { loadAppSettings, saveAppSettings } from '../../firebase/db'
 import { TIME_OPTIONS } from '../../lib/defaults'
 import { t } from '../../i18n/az'
@@ -35,8 +37,65 @@ export default function Settings() {
         <Section icon={ShieldCheck} title={S.nameFilter}>
           <Field label={S.bannedWords}><textarea className="input" rows={3} value={words} onChange={(e) => setWords(e.target.value)} /></Field>
         </Section>
+        <DataSection />
+        <ErrorLog />
         <p className="text-xs leading-relaxed text-muted">{t.admin.credits}</p>
       </div>
     </div>
+  )
+}
+
+function DataSection() {
+  const D = t.data
+  const [days, setDays] = useState(30)
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState(false)
+  const cleanup = async () => {
+    setBusy(true); setMsg('')
+    try {
+      const list = await oldGames(days)
+      if (!list.length) { setMsg(D.none); return }
+      if (!confirm(D.cleanupConfirm(list.length))) return
+      setMsg(D.cleaned(await cleanupGames(days)))
+    } catch { setMsg(t.app.error) } finally { setBusy(false) }
+  }
+  const exp = async () => {
+    setBusy(true); setMsg(D.exporting)
+    try { download(`quizamcham-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(await exportAll(), null, 2), 'application/json'); setMsg('') } catch { setMsg(t.app.error) } finally { setBusy(false) }
+  }
+  return (
+    <Section icon={Database} title={D.title} sub={D.sub}>
+      <div className="flex flex-col gap-5">
+        <Field label={D.cleanup}>
+          <div className="flex flex-wrap items-center gap-3">
+            <Segmented value={days} options={[7, 30, 90, 180].map((d) => ({ value: d, label: D.olderThan(d) }))} onChange={setDays} />
+            <button className="btn btn-danger" disabled={busy} onClick={() => void cleanup()}><Trash2 />{D.cleanupBtn}</button>
+          </div>
+        </Field>
+        <div><button className="btn btn-secondary" disabled={busy} onClick={() => void exp()}><Download />{D.exportAll}</button></div>
+        {msg && <p className="text-sm font-semibold text-muted">{msg}</p>}
+      </div>
+    </Section>
+  )
+}
+
+function ErrorLog() {
+  const D = t.data
+  const [rows, setRows] = useState<Awaited<ReturnType<typeof listErrors>> | null>(null)
+  const load = () => { void listErrors().then(setRows).catch(() => setRows([])) }
+  useEffect(load, [])
+  return (
+    <Section icon={Bug} title={D.errors} actions={rows?.length ? <button className="btn btn-ghost-dark btn-sm" onClick={async () => { await clearErrors(); load() }}><Trash2 />{D.clearErrors}</button> : undefined}>
+      {!rows ? <Spinner /> : rows.length === 0 ? <p className="text-sm text-muted">{D.noErrors}</p> : (
+        <ul className="scrollbar-thin flex max-h-80 flex-col gap-2 overflow-auto">
+          {rows.map((r) => (
+            <li key={r.id} className="rounded-xl bg-surface p-3 text-xs">
+              <div className="font-bold text-red-700">{r.message}</div>
+              <div className="mt-1 text-muted">{r.at?.toDate().toLocaleString('az-AZ')} · {r.url} · {r.context}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   )
 }

@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Outlet } from 'react-router-dom'
-import { History, LayoutDashboard, ListChecks, LogOut, Music2, Settings, UserRound } from 'lucide-react'
+import { History, LayoutDashboard, ListChecks, LogOut, Music2, Settings, UserRound, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { loadProfile } from '../../firebase/db'
 import { Avatar } from '../../components/Avatar'
@@ -15,6 +15,7 @@ const NAV = [
   { to: '/admin/games', icon: History, label: t.admin.nav.games },
   { to: '/admin/sounds', icon: Music2, label: t.admin.nav.sounds },
   { to: '/admin/profile', icon: UserRound, label: t.admin.nav.profile },
+  { to: '/admin/team', icon: Users, label: t.admin.nav.team },
   { to: '/admin/settings', icon: Settings, label: t.admin.nav.settings },
 ]
 const MOBILE = NAV.filter((n) => ['/admin', '/admin/quizzes', '/admin/games', '/admin/profile'].includes(n.to))
