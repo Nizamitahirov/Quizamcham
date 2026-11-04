@@ -1,5 +1,5 @@
 /* Jabr service worker: tətbiq qabığını keşləyir (offline açılış), Firebase sorğularına toxunmur. */
-const VERSION = 'jabr-v2'
+const VERSION = 'jabr-v3'
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/offline.html']
 
 self.addEventListener('install', (e) => {
