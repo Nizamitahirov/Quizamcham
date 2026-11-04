@@ -25,6 +25,7 @@ export function normalizeQuiz(q: Partial<Quiz> & { id: string }): Quiz {
     settings: withDefaults(q.settings),
     questionOrder: q.questionOrder ?? [],
     ownerUid: q.ownerUid ?? '',
+    tags: q.tags ?? [],
     createdAt: q.createdAt,
     updatedAt: q.updatedAt,
   }
@@ -50,6 +51,7 @@ const quizMeta = (quiz: Quiz, questions: Question[]) => ({
   settings: quiz.settings,
   questionOrder: questions.map((q) => q.id),
   ownerUid: quiz.ownerUid,
+  tags: quiz.tags ?? [],
   updatedAt: serverTimestamp(),
 })
 
@@ -76,6 +78,18 @@ export async function createQuiz(ownerUid: string, partial: Partial<Quiz> = {}, 
   questions.forEach((q) => batch.set(doc(db, 'quizzes', ref.id, 'questions', q.id), cleanQuestion(q)))
   await batch.commit()
   return ref.id
+}
+
+/** Sualı başqa quizin sonuna köçürür (yeni id ilə). */
+export async function copyQuestionTo(targetQuizId: string, q: Question) {
+  const target = await loadQuiz(targetQuizId)
+  if (!target) throw new Error('not-found')
+  const copy = { ...JSON.parse(JSON.stringify(q)), id: uid6() } as Question
+  const batch = writeBatch(db)
+  batch.set(doc(db, 'quizzes', targetQuizId, 'questions', copy.id), copy)
+  batch.set(doc(db, 'quizzes', targetQuizId), { questionOrder: [...target.quiz.questionOrder, copy.id], ownerUid: target.quiz.ownerUid, updatedAt: serverTimestamp() }, { merge: true })
+  await batch.commit()
+  return target.quiz.title
 }
 
 export async function deleteQuiz(quizId: string) {

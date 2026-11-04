@@ -1,0 +1,19 @@
+{
+  "title": "Buz qırıcı: Tanış olaq!",
+  "description": "Təlimin əvvəlində qrupu isitmək üçün sorğular və söz buludu",
+  "coverEmoji": "🧊",
+  "coverColor": "#2563EB",
+  "settings": { "mode": "host", "scoring": "speed", "defaultTime": 20, "streakBonus": false, "showCorrect": true, "leaderboardEvery": 0, "music": { "on": true, "volume": 60, "theme": "funk" } },
+  "questions": [
+    { "type": "wordcloud", "text": "Bir sözlə: bu gün özünüzü necə hiss edirsiniz?", "timeLimit": 30, "points": "none", "options": [], "correct": [] },
+    { "type": "poll", "text": "İşdə süni intellektdən nə qədər istifadə edirsiniz?", "timeLimit": 20, "points": "none",
+      "options": [ {"id":"a","text":"Hər gün"}, {"id":"b","text":"Həftədə bir neçə dəfə"}, {"id":"c","text":"Arabir"}, {"id":"d","text":"Heç istifadə etməmişəm"} ], "correct": [] },
+    { "type": "poll", "text": "Ən çox hansı iş üçün AI-dan istifadə etmək istərdiniz?", "timeLimit": 20, "points": "none",
+      "options": [ {"id":"a","text":"Vakansiya elanları"}, {"id":"b","text":"CV-lərin ilkin baxışı"}, {"id":"c","text":"Təlim materialları"}, {"id":"d","text":"Hesabatlar və təhlil"} ], "correct": [] },
+    { "type": "slider", "text": "Sizcə 5 ildən sonra HR işlərinin neçə faizi AI ilə avtomatlaşacaq?", "timeLimit": 25, "points": "standard", "options": [], "correct": [],
+      "slider": { "min": 0, "max": 100, "step": 5, "answer": 30, "tolerance": 15 }, "explanation": "Müxtəlif hesabatlar 25–40% aralığında proqnoz verir — dəqiq rəqəm deyil, istiqamət vacibdir." },
+    { "type": "truefalse", "text": "AI HR mütəxəssisini tamamilə əvəz edəcək.", "timeLimit": 15, "points": "standard",
+      "options": [ {"id":"t","text":"Doğru"}, {"id":"f","text":"Yanlış"} ], "correct": ["f"], "explanation": "AI rutin işləri sürətləndirir, amma insan mühakiməsi, empatiya və qərar məsuliyyəti insanda qalır." },
+    { "type": "open", "text": "Bu təlimdən ən çox nə öyrənmək istəyirsiniz?", "timeLimit": 60, "points": "none", "options": [], "correct": [] }
+  ]
+}

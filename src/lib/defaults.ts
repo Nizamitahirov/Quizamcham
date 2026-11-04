@@ -6,6 +6,7 @@ export const DEFAULT_SETTINGS: QuizSettings = {
   mode: 'host',
   autoDelay: 6,
   selfMinutes: 15,
+  assignDays: 7,
   scoring: 'speed',
   defaultTime: 45,
   streakBonus: true,
@@ -27,6 +28,7 @@ export const DEFAULT_SETTINGS: QuizSettings = {
 export const READ_TIMES = [0, 3, 4, 5, 8]
 export const AUTO_DELAYS = [4, 6, 8, 10, 15]
 export const SELF_MINUTES = [5, 10, 15, 20, 30, 45, 60]
+export const ASSIGN_DAYS = [1, 3, 7, 14, 30]
 export const POWER_START = { fifty: 1, double: 1, shield: 1 } as const
 
 export const DEFAULT_APP_SETTINGS: AppSettings = { defaultTime: 45, musicVolume: 60, brandText: 'Quizamcham', bannedWords: [] }

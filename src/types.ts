@@ -3,7 +3,7 @@ import type { Timestamp } from 'firebase/firestore'
 export type QuestionType = 'single' | 'multi' | 'truefalse' | 'type' | 'poll' | 'order' | 'slider' | 'wordcloud' | 'open' | 'slide'
 export type PointsMode = 'standard' | 'double' | 'none'
 export type Phase = 'lobby' | 'countdown' | 'question' | 'reveal' | 'leaderboard' | 'podium' | 'finished' | 'self'
-export type GameMode = 'host' | 'auto' | 'self'
+export type GameMode = 'host' | 'auto' | 'self' | 'assign'
 
 export interface Option { id: string; text: string }
 export interface SliderCfg { min: number; max: number; step: number; answer: number; tolerance: number }
@@ -31,6 +31,7 @@ export interface QuizSettings {
   mode: GameMode
   autoDelay: number // avtomatik rejimdə nəticə/reytinq ekranlarının müddəti (s)
   selfMinutes: number // öz tempində rejimdə ümumi vaxt (dəq)
+  assignDays: number // tapşırıq rejimində son tarix (gün)
   scoring: 'speed' | 'accuracy'
   defaultTime: number
   streakBonus: boolean
@@ -64,6 +65,7 @@ export interface Quiz {
   settings: QuizSettings
   questionOrder: string[]
   ownerUid: string
+  tags?: string[]
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }

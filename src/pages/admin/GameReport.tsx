@@ -9,6 +9,7 @@ import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { ArrowLeft, Download, Star } from 'lucide-react'
 import { useFeedback } from '../../lib/feedback'
+import { AssignmentPanel } from './AssignmentPanel'
 import { Avatar } from '../../components/Avatar'
 import { TILE_COLORS } from '../../components/AnswerTile'
 import type { Game } from '../../types'
@@ -18,11 +19,12 @@ export default function GameReport() {
   const [game, setGame] = useState<Game | null>(null)
   const [r, setR] = useState<GameReportData | null>(null)
   const fb = useFeedback(gameId ?? '_')
+  const [tick, setTick] = useState(0)
   useEffect(() => {
     if (!gameId) return
     void getDoc(doc(db, 'games', gameId)).then((s) => setGame(s.exists() ? ({ ...(s.data() as Game), id: s.id }) : null))
     void loadReport(gameId).then(setR)
-  }, [gameId])
+  }, [gameId, tick])
   if (!r || !game) return <div className="p-10"><Spinner /></div>
   const pct = (x: number) => `${Math.round(x * 100)}%`
   return (
@@ -35,6 +37,8 @@ export default function GameReport() {
         </div>
         <button className="btn btn-primary" onClick={() => download(`quizamcham-${game.pin}.csv`, reportCsv(r))}><Download />{t.host.exportCsv}</button>
       </div>
+
+      {game.settings?.mode === 'assign' && game.phase === 'self' && <AssignmentPanel game={game} onGraded={() => setTick((x) => x + 1)} />}
 
       <div className="card mb-8 overflow-x-auto">
         <table className="w-full text-left text-sm">

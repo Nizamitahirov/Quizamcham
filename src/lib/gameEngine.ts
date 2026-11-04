@@ -270,6 +270,47 @@ export function nextAfterReveal(game: Game): 'leaderboard' | 'question' | 'podiu
 
 export const toPhase = (gameId: string, phase: Game['phase']) => updateDoc(gref(gameId), { phase })
 
+/** Quizi işə salır və açılmalı olan səhifəni qaytarır (tapşırıq → hesabat, digərləri → host ekranı). */
+export async function launchQuiz(quizId: string, hostUid: string): Promise<string> {
+  const id = await createGame(quizId, hostUid)
+  const g = await getDoc(gref(id))
+  const settings = g.get('settings') as QuizSettings
+  if (settings.mode === 'assign') {
+    await startAssignment(id, await loadSecret(id), settings)
+    return `/admin/games/${id}`
+  }
+  return `/host/${id}`
+}
+
+// ============ Tapşırıq rejimi (host olmadan, son tarixli link) ============
+
+/** Oyunu dərhal açır: suallar ictimai (rəqabət yoxdur), cavablar son tarixə qədər qəbul olunur. */
+export async function startAssignment(gameId: string, questions: Question[], settings: QuizSettings) {
+  await updateDoc(gref(gameId), {
+    phase: 'self', questionIndex: questions.length - 1, startedAt: Timestamp.fromMillis(serverNow()),
+    'settings.lateJoin': true, 'settings.powerUps': false,
+    publicQuestions: JSON.parse(JSON.stringify(questions.map((q) => toPublic(q, settings)))),
+    selfEndsAt: Timestamp.fromMillis(serverNow() + (settings.assignDays || 7) * 86_400_000),
+  })
+}
+
+/** Təlimçi: bütün cavabları qiymətləndirir və tapşırığı yekunlaşdırır. */
+export async function gradeAssignment(game: Game, questions: Question[], onProgress?: (done: number, total: number) => void) {
+  const [players, snap] = await Promise.all([fetchPlayers(game.id), getDocs(collection(db, 'games', game.id, 'answers'))])
+  const byUid = new Map<string, Answer[]>()
+  snap.docs.forEach((d) => { const a = d.data() as Answer; byUid.set(a.uid, [...(byUid.get(a.uid) ?? []), a]) })
+  let done = 0
+  for (const p of players) {
+    let cur: Player = p
+    for (const a of (byUid.get(p.uid) ?? []).sort((x, y) => x.questionIndex - y.questionIndex)) {
+      const next = await scoreSelfAnswer(game, questions, cur, a)
+      if (next) cur = next
+    }
+    onProgress?.(++done, players.length)
+  }
+  await finishGame({ ...game, phase: 'self' }, questions)
+}
+
 // ============ Öz tempində rejimi ============
 
 /** Bütün sualların ictimai hissəsini yayımlayır; hər oyunçu öz sürəti ilə irəliləyir. */

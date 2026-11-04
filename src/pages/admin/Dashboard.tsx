@@ -8,9 +8,9 @@ import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { QRDownload } from '../../components/QRBlock'
 import { AiImport } from '../../components/AiImport'
+import { TemplateGallery } from '../../components/ImportModals'
 import type { AdminState } from '../../firebase/auth'
 import type { GameStats, Phase } from '../../types'
-import seed from '../../../seed/ai-pretest.json'
 
 type G = { id: string; title?: string; pin?: string; playerCount?: number; phase?: Phase; createdAt?: Timestamp; stats?: GameStats | null }
 
@@ -20,6 +20,7 @@ export default function Dashboard() {
   const [quizCount, setQuizCount] = useState<number | null>(null)
   const [games, setGames] = useState<G[] | null>(null)
   const [ai, setAi] = useState(false)
+  const [tpl, setTpl] = useState(false)
   useEffect(() => {
     void listQuizzes().then((q) => setQuizCount(q.length)).catch(() => setQuizCount(0))
     void listGames(200).then((g) => setGames(g as G[])).catch(() => setGames([]))
@@ -98,7 +99,7 @@ export default function Dashboard() {
             <h2 className="mb-4 text-lg font-bold">{t.admin.quickActions}</h2>
             <div className="flex flex-col gap-2">
               <button className="btn btn-secondary justify-start" onClick={() => setAi(true)}><Bot className="text-brand" />{t.admin.aiTitle}</button>
-              <button className="btn btn-secondary justify-start" onClick={() => void importData(seed)}><Sparkles className="text-brand" />{t.admin.importSeed}</button>
+              <button className="btn btn-secondary justify-start" onClick={() => setTpl(true)}><Sparkles className="text-brand" />{t.templates.title}</button>
               <Link className="btn btn-secondary justify-start" to="/admin/quizzes"><ListChecks className="text-brand" />{t.admin.quizzes}</Link>
             </div>
           </div>
@@ -111,6 +112,7 @@ export default function Dashboard() {
         </section>
       </div>
       <AiImport open={ai} onClose={() => setAi(false)} onImport={importData} />
+      <TemplateGallery open={tpl} onClose={() => setTpl(false)} onPick={async (raw) => { if (raw) await importData(raw); else nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`) }} />
     </div>
   )
 }

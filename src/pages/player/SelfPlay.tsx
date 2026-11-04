@@ -13,7 +13,11 @@ import { PowerBar } from './PowerBar'
 import { CORRECT, WRONG, STICKERS_OK, STICKERS_BAD, pick } from '../../content/feedback'
 import type { AnswerValue, Game, Player, PublicQuestion } from '../../types'
 
-const fmt = (ms: number) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
+const fmt = (ms: number) => {
+  const s = Math.max(0, Math.ceil(ms / 1000))
+  if (s >= 3600) return t.assign.left(Math.floor(s / 86400), Math.floor((s % 86400) / 3600))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
 
 /** Öz tempində rejimi: oyunçu sualları ardıcıl, öz sürəti ilə cavablayır. */
 export function SelfPlay({ game, player, uid }: { game: Game; player: Player; uid: string }) {
@@ -30,6 +34,17 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
   useEffect(() => { if (sq?.q) setCache((c) => (c[sq.index] ? c : { ...c, [sq.index]: sq.q! })) }, [sq])
   const qFor = (i: number) => cache[i] ?? game.publicQuestions?.[i] ?? null
 
+  const assign = game.settings.mode === 'assign'
+  const advance = () => { const n = idx + 1; try { sessionStorage.setItem(key, String(n)) } catch { /* noop */ } setIdx(n); setStage('answer') }
+  if (assign && (idx >= total || left <= 0)) {
+    return (
+      <div className="m-auto flex flex-col items-center gap-4 text-center">
+        <Sticker emoji="📨" size={110} />
+        <h2 className="text-3xl font-black">{t.assign.submitted}</h2>
+        <p className="max-w-xs text-white/60">{t.assign.pending}</p>
+      </div>
+    )
+  }
   if (idx >= total || left <= 0) {
     return (
       <div className="m-auto flex flex-col items-center gap-4 text-center">
@@ -53,15 +68,15 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
       <AnimatePresence mode="wait">
         <motion.div key={idx + stage} className="flex flex-1 flex-col" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.22 }}>
           {stage === 'result'
-            ? <SelfResult game={game} player={player} qi={idx} q={qFor(idx)} onNext={() => { const n = idx + 1; try { sessionStorage.setItem(key, String(n)) } catch { /* noop */ } setIdx(n); setStage('answer') }} />
-            : qFor(idx) ? <SelfQuestion game={game} player={player} uid={uid} qi={idx} q={qFor(idx)!} waiting={stage === 'wait'} onSent={() => setStage('wait')} onResult={() => setStage('result')} /> : <div className="m-auto"><Hourglass className="h-10 w-10 animate-spin text-orange-400" /></div>}
+            ? <SelfResult game={game} player={player} qi={idx} q={qFor(idx)} onNext={advance} />
+            : qFor(idx) ? <SelfQuestion game={game} player={player} uid={uid} qi={idx} q={qFor(idx)!} waiting={stage === 'wait'} onSent={() => { if (!assign) setStage('wait') }} onSubmitted={assign ? advance : undefined} onResult={() => setStage('result')} /> : <div className="m-auto"><Hourglass className="h-10 w-10 animate-spin text-orange-400" /></div>}
         </motion.div>
       </AnimatePresence>
     </div>
   )
 }
 
-function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult }: { game: Game; player: Player; uid: string; qi: number; q: PublicQuestion; waiting: boolean; onSent: () => void; onResult: () => void }) {
+function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onSubmitted }: { game: Game; player: Player; uid: string; qi: number; q: PublicQuestion; waiting: boolean; onSent: () => void; onResult: () => void; onSubmitted?: () => void }) {
   const startRef = useRef<number>(Date.now())
   const sent = useRef(false)
   const [remaining, setRemaining] = useState((q?.timeLimit ?? 30) * 1000)
@@ -78,7 +93,8 @@ function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult }: {
     if (v !== null) audio.click()
     onSent()
     try { await submitAnswer(game.id, uid, qi, v) } catch { /* təkrar və ya gec — host nəticəni yazacaq */ }
-  }, [game.id, uid, qi, onSent])
+    onSubmitted?.()
+  }, [game.id, uid, qi, onSent, onSubmitted])
 
   useEffect(() => {
     if (!q) return

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Bot, Copy, FileJson, Pencil, Play, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
+import { Bot, Copy, FileJson, FileSpreadsheet, LayoutTemplate, Pencil, Play, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
 import { createQuiz, deleteQuiz, duplicateQuiz, listQuizzes, loadQuiz, parseQuizJson } from '../../firebase/db'
-import { createGame } from '../../lib/gameEngine'
+import { launchQuiz } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
 import { AiImport } from '../../components/AiImport'
+import { CsvImport, TemplateGallery } from '../../components/ImportModals'
 import type { AdminState } from '../../firebase/auth'
 import type { Quiz } from '../../types'
 import seed from '../../../seed/ai-pretest.json'
@@ -19,12 +20,16 @@ export default function QuizList() {
   const [msg, setMsg] = useState('')
   const [q, setQ] = useState('')
   const [ai, setAi] = useState(false)
+  const [tpl, setTpl] = useState(false)
+  const [csv, setCsv] = useState(false)
+  const [tag, setTag] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const reload = useCallback(() => { void listQuizzes().then(setItems).catch(() => setItems([])) }, [])
   useEffect(reload, [reload])
-  const filtered = useMemo(() => (items ?? []).filter((x) => `${x.title} ${x.description}`.toLocaleLowerCase('az-AZ').includes(q.toLocaleLowerCase('az-AZ'))), [items, q])
+  const filtered = useMemo(() => (items ?? []).filter((x) => `${x.title} ${x.description} ${(x.tags ?? []).join(' ')}`.toLocaleLowerCase('az-AZ').includes(q.toLocaleLowerCase('az-AZ')) && (!tag || (x.tags ?? []).includes(tag))), [items, q, tag])
+  const allTags = useMemo(() => [...new Set((items ?? []).flatMap((x) => x.tags ?? []))].sort(), [items])
 
   const importData = async (raw: unknown) => {
     const { quiz, questions } = parseQuizJson(raw)
@@ -42,7 +47,7 @@ export default function QuizList() {
       const data = await loadQuiz(id)
       if (!data?.questions.length) { setMsg(t.admin.noQuestions); return }
       if (data.questions.some((x) => validateQuestion(x).length)) { setMsg(t.admin.cannotLaunch); return }
-      nav(`/host/${await createGame(id, user!.uid)}`)
+      nav(await launchQuiz(id, user!.uid))
     } catch {
       setMsg(t.app.error)
     } finally {
@@ -54,6 +59,8 @@ export default function QuizList() {
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">
       <PageHeader title={t.admin.quizzes} sub={items ? t.admin.questionsCount(items.length).replace('sual', 'quiz') : undefined}>
+        <button className="btn btn-secondary" onClick={() => setTpl(true)}><LayoutTemplate className="text-brand" />{t.templates.button}</button>
+        <button className="btn btn-secondary" onClick={() => setCsv(true)}><FileSpreadsheet className="text-brand" />{t.csv.button}</button>
         <button className="btn btn-secondary" onClick={() => fileRef.current?.click()}><FileJson />{t.admin.importJson}</button>
         <button className="btn btn-secondary" onClick={() => setAi(true)}><Bot className="text-brand" />AI</button>
         <button className="btn btn-primary" onClick={async () => nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`)}><Plus />{t.admin.newQuiz}</button>
@@ -63,6 +70,13 @@ export default function QuizList() {
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input className="input pl-9" placeholder={t.admin.search} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
+      {allTags.length > 0 && (
+        <div className="mb-5 flex flex-wrap gap-2">
+          {[null, ...allTags].map((tg) => (
+            <button key={tg ?? '_all'} className={`chip ${tag === tg ? 'text-white' : 'bg-white text-[#4A4E69] ring-1 ring-line'}`} style={tag === tg ? { background: 'var(--grad)' } : undefined} onClick={() => setTag(tg)}>{tg ?? t.tags.all}</button>
+          ))}
+        </div>
+      )}
       {msg && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800" role="status">{msg}</p>}
       {!items ? <Spinner /> : items.length === 0 ? (
         <div className="card flex flex-col items-center gap-4 p-10 text-center">
@@ -82,6 +96,7 @@ export default function QuizList() {
               <div className="flex flex-1 flex-col gap-2 p-4">
                 <h2 className="line-clamp-1 text-base font-bold">{x.title || t.admin.untitled}</h2>
                 {x.description && <p className="line-clamp-2 text-sm text-muted">{x.description}</p>}
+                {(x.tags ?? []).length > 0 && <div className="flex flex-wrap gap-1">{x.tags!.map((tg) => <span key={tg} className="chip chip-brand">{tg}</span>)}</div>}
                 <p className="text-xs text-muted">{t.admin.lastEdit}: {fmt(x)}</p>
                 <div className="mt-auto flex items-center gap-1 pt-2">
                   <button className="btn btn-primary btn-sm flex-1" disabled={busyId === x.id || x.count === 0} onClick={() => void launch(x.id)}><Play className="fill-current" />{busyId === x.id ? t.admin.launching : t.admin.launch}</button>
@@ -95,6 +110,8 @@ export default function QuizList() {
         </div>
       )}
       <AiImport open={ai} onClose={() => setAi(false)} onImport={importData} />
+      <TemplateGallery open={tpl} onClose={() => setTpl(false)} onPick={async (raw) => { if (raw) await importData(raw); else nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`) }} />
+      <CsvImport open={csv} onClose={() => setCsv(false)} onImport={async (title, qs) => nav(`/admin/quiz/${await createQuiz(user!.uid, { title }, qs)}`)} />
     </div>
   )
 }
