@@ -126,6 +126,7 @@ function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onS
           <div className="glass flex flex-col items-center gap-3 px-4 py-10 text-center">
             <motion.div animate={{ rotate: [0, 180, 360] }} transition={{ repeat: Infinity, duration: 2.4, ease: 'linear' }}><Hourglass className="h-12 w-12 text-orange-400" /></motion.div>
             <p className="text-lg font-bold">{t.game.waitingResult}</p>
+            <StallNotice />
           </div>
         ) : q.type === 'slide' ? (
           <div className="flex flex-col items-center gap-4 text-center">
@@ -176,4 +177,12 @@ function SelfResult({ game, player, qi, q, onNext }: { game: Game; player: Playe
       <button className="btn btn-primary btn-lg mt-auto w-full" onClick={onNext}>{qi + 1 >= game.totalQuestions ? <><PartyPopper />{t.game.gameOver}</> : <>{t.game.next}<ArrowRight /></>}</button>
     </div>
   )
+}
+
+/** Nəticə 10 saniyədən çox gecikirsə (host ekranı bağlanıb/yuxudadır) — xəbərdarlıq. Cavab artıq saxlanılıb. */
+function StallNotice() {
+  const [show, setShow] = useState(false)
+  useEffect(() => { const id = setTimeout(() => setShow(true), 10000); return () => clearTimeout(id) }, [])
+  if (!show) return null
+  return <p className="rounded-xl bg-amber-400/15 px-3 py-2 text-sm font-semibold text-amber-200" role="alert">{t.game.hostStalledSelf}</p>
 }

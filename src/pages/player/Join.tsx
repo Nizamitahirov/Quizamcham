@@ -9,7 +9,6 @@ import { loadAppSettings } from '../../firebase/db'
 import { joinGame, lookupPin } from '../../lib/gameEngine'
 import { isValidPin } from '../../lib/pin'
 import { cleanName, isNameAllowed } from '../../lib/nameFilter'
-import { pickTeam } from '../../lib/teams'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
@@ -38,7 +37,6 @@ export default function Join() {
   const [avatar, setAvatar] = useState<AvatarData>(() => randomAvatar())
   const [banned, setBanned] = useState<string[]>([])
   const [nameFilterOn, setNameFilterOn] = useState(true)
-  const [teamPick, setTeamPick] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     try {
@@ -51,7 +49,7 @@ export default function Join() {
       // Bərpa: əvvəlki oyun hələ gedirsə, ora qayıt
       if (storedGame && !params.get('pin')) {
         const [g, p] = await Promise.all([getDoc(doc(db, 'games', storedGame)).catch(() => null), getDoc(doc(db, 'games', storedGame, 'players', u.uid)).catch(() => null)])
-        if (g?.exists() && p?.exists() && g.get('phase') !== 'finished' && !p.get('kicked')) nav(`/g/${storedGame}`, { replace: true })
+        if (g?.exists() && p?.exists() && !p.get('kicked')) nav(`/g/${storedGame}`, { replace: true })
       }
       if (params.get('pin') && isValidPin(params.get('pin')!)) void checkPin(params.get('pin')!, u.uid)
     }).catch(() => setError(t.app.error))
@@ -66,20 +64,28 @@ export default function Join() {
     setBusy(true)
     setError('')
     try {
-      const gid = await lookupPin(p)
-      if (!gid) return fail(t.join.notFound)
-      const gs = await getDoc(doc(db, 'games', gid))
+      const found = await lookupPin(p)
+      if (!found) return fail(t.join.notFound)
+      const gid = found.gameId
+      // Əvvəlcə öz iştirakçı sənədi: bu oyunun iştirakçısıdırsa, oyun bitmiş olsa belə nəticəyə keçir
+      const mine = await getDoc(doc(db, 'games', gid, 'players', u)).catch(() => null)
+      if (mine?.exists()) {
+        if (mine.get('kicked')) return fail(t.join.kicked)
+        setGame(gid); nav(`/g/${gid}`); return
+      }
+      if (!found.active) return fail(t.join.finished)
+      let gs
+      try { gs = await getDoc(doc(db, 'games', gid)) } catch (e) {
+        // bitmiş oyun kənar şəxslərə bağlıdır
+        return fail((e as { code?: string }).code === 'permission-denied' ? t.join.finished : t.app.error)
+      }
       if (!gs.exists()) return fail(t.join.notFound)
       const g = gs.data() as Game
-      const mine = await getDoc(doc(db, 'games', gid, 'players', u)).catch(() => null)
-      if (mine?.exists() && !mine.get('kicked') && g.phase !== 'finished') { setGame(gid); nav(`/g/${gid}`); return }
       if (g.phase === 'finished') return fail(t.join.finished)
       if (g.locked) return fail(t.join.locked)
       if (g.phase !== 'lobby' && !g.settings?.lateJoin) return fail(t.join.started)
       if ((g.playerCount ?? 0) >= (g.settings?.maxPlayers ?? 200)) return fail(t.join.full)
       setNameFilterOn(g.settings?.nameFilter !== false)
-      const n = g.settings?.teams ?? 0
-      setTeamPick(n ? pickTeam(Array.from({ length: n }, (_, t) => (g.lobby ?? []).filter((p) => p.team === t).length)) : undefined)
       setGameId(gid)
       setStep('profile')
       setBusy(false)
@@ -97,7 +103,7 @@ export default function Join() {
     audio.unlock()
     setBusy(true)
     try {
-      await joinGame(gameId, uid, f, l, avatar, teamPick)
+      await joinGame(gameId, uid, f, l, avatar)
       try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ firstName: f, lastName: l, avatar })) } catch { /* noop */ }
       audio.pop()
       setGame(gameId)
@@ -133,6 +139,7 @@ export default function Join() {
               <h1 className="text-3xl font-black">{t.join.title}</h1>
               <p className="mt-1 text-sm text-white/60">{t.home.subtitle}</p>
             </div>
+            {params.get('none') && <p className="rounded-xl bg-amber-400/15 px-3 py-2 text-sm font-semibold text-amber-200" role="status">{t.join.noActive}</p>}
             <label className="label-dark mb-0" htmlFor="pin">{t.join.pin}</label>
             <input
               id="pin" className="input-dark font-display h-20 text-center text-5xl font-black tracking-[.35em]" inputMode="numeric" pattern="[0-9]*" autoComplete="one-time-code"

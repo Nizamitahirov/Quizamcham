@@ -3,8 +3,9 @@ import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom
 import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull } from '../../firebase/db'
+import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull } from '../../firebase/db'
 import { compressImage } from '../../lib/image'
+import { canManage } from '../../lib/access'
 import { launchQuiz, toPublic } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { download } from '../../lib/csv'
@@ -12,7 +13,7 @@ import { ALL_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../l
 import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
 import { ListChecks } from 'lucide-react'
-import { FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
+import { Lock, FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
 import { TILE_COLORS, Shape } from '../../components/AnswerTile'
@@ -27,7 +28,8 @@ const TYPE_ICON: Record<QuestionType, string> = { single: '◉', multi: '☑', t
 
 export default function QuizEditor() {
   const { quizId } = useParams()
-  const { user } = useOutletContext<AdminState>()
+  const admin = useOutletContext<AdminState>()
+  const { user } = admin
   const nav = useNavigate()
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
@@ -85,6 +87,9 @@ export default function QuizEditor() {
     return () => { window.removeEventListener('beforeunload', h); if (timer.current) void save() }
   }, [save])
 
+  const readOnly = !!quiz && !canManage(admin, quiz.ownerUid)
+  const readOnlyRef = useRef(false)
+  useEffect(() => { readOnlyRef.current = readOnly }, [readOnly])
   const commit = useCallback((nextQuiz: Quiz, nextQs: Question[], dirtyIds: string[] = [], opts: { noUndo?: boolean } = {}) => {
     if (latest.current && !opts.noUndo) {
       undoStack.current.push(latest.current)
@@ -95,6 +100,7 @@ export default function QuizEditor() {
     setQuiz(nextQuiz)
     setQuestions(nextQs)
     dirtyIds.forEach((id) => dirty.current.add(id))
+    if (readOnlyRef.current) return // başqasının quizi: yerli baxış, yadda saxlanılmır
     setState('dirty')
     if (timer.current) clearTimeout(timer.current)
     timer.current = window.setTimeout(() => void save(), 1500)
@@ -179,11 +185,17 @@ export default function QuizEditor() {
         <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-600' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
           {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' && savedAt ? <CheckCircle2 className="h-4 w-4" /> : state === 'error' ? <AlertTriangle className="h-4 w-4" /> : null}{status}
         </span>
-        <button className="btn btn-secondary" onClick={() => void save()}><Save />{t.app.save}</button>
+        <button className="btn btn-secondary" disabled={readOnly} onClick={() => void save()}><Save />{t.app.save}</button>
         <button className="btn btn-primary" disabled={launching || errCount > 0 || !questions.length} title={errCount ? t.admin.cannotLaunch : undefined} onClick={() => void launch()}>
           <Play className="fill-current" />{launching ? t.admin.launching : t.admin.launch}
         </button>
       </div>
+      {readOnly && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+          <Lock className="h-4 w-4" /><span className="flex-1">{t.admin.readOnly}</span>
+          <button className="btn btn-secondary btn-sm" onClick={async () => { const id = await duplicateQuiz(quiz.id, user!.uid, t.admin.copySuffix); if (id) nav(`/admin/quiz/${id}`) }}><Copy />{t.admin.makeCopy}</button>
+        </div>
+      )}
       <div className="mb-4 grid gap-3 md:grid-cols-[2fr_1fr]">
         <textarea className="input min-h-12" placeholder={t.editor.description} value={quiz.description} maxLength={300} rows={1} onChange={(e) => setQuizField({ description: e.target.value })} />
         <div className="relative">

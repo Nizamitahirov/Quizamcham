@@ -2,18 +2,22 @@ import { useEffect, useMemo, useState } from 'react'
 import type { Timestamp } from 'firebase/firestore'
 import { BarChart3, Brain, Gamepad2, Target, Trophy, Users } from 'lucide-react'
 import { listGames } from '../../firebase/db'
+import { useOutletContext } from 'react-router-dom'
+import { visibleGames } from '../../lib/access'
+import type { AdminState } from '../../firebase/auth'
 import { t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
 import { Section } from '../../components/kit'
 import type { GameStats, LeaderEntry } from '../../types'
 
-type G = { id: string; title?: string; quizId?: string; phase?: string; playerCount?: number; createdAt?: Timestamp; stats?: GameStats | null; leaderboard?: LeaderEntry[] }
+type G = { id: string; hostUid?: string; title?: string; quizId?: string; phase?: string; playerCount?: number; createdAt?: Timestamp; stats?: GameStats | null; leaderboard?: LeaderEntry[] }
 const A = t.analytics
 const WEEK = 7 * 86_400_000
 
 export default function Analytics() {
+  const admin = useOutletContext<AdminState>()
   const [games, setGames] = useState<G[] | null>(null)
-  useEffect(() => { void listGames(500).then((g) => setGames((g as G[]).filter((x) => x.phase === 'finished'))).catch(() => setGames([])) }, [])
+  useEffect(() => { void listGames(500).then((g) => setGames(visibleGames(admin, g as G[]).filter((x) => x.phase === 'finished'))).catch(() => setGames([])) }, [admin])
 
   const data = useMemo(() => {
     const gs = games ?? []

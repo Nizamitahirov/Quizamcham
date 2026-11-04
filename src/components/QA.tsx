@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { addDoc, arrayRemove, arrayUnion, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { arrayRemove, arrayUnion, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { serverNow } from '../lib/timeSync'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, EyeOff, MessageCircleQuestion, Send, ThumbsUp, X } from 'lucide-react'
 import { db } from '../firebase/config'
@@ -21,11 +22,15 @@ export function PlayerQA({ gameId, uid, name }: { gameId: string; uid: string; n
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
   const [sent, setSent] = useState(false)
+  const [tooFast, setTooFast] = useState(false)
   const items = useQA(gameId, open).filter((i) => !i.hidden)
   const send = async () => {
     const v = text.trim()
     if (v.length < 3) return
-    await addDoc(collection(db, 'games', gameId, 'qa'), { uid, name, text: v.slice(0, 200), createdAt: serverTimestamp(), votes: [], answered: false, hidden: false }).catch(() => {})
+    // id = uid_<10 s pəncərə>: Rules 10 saniyədə ən çox 1 suala icazə verir
+    const ok = await setDoc(doc(db, 'games', gameId, 'qa', `${uid}_${Math.floor(serverNow() / 10000)}`), { uid, name, text: v.slice(0, 200), createdAt: serverTimestamp(), votes: [], answered: false, hidden: false })
+      .then(() => true).catch(() => false)
+    if (!ok) { setTooFast(true); setTimeout(() => setTooFast(false), 3000); return }
     setText(''); setSent(true); setTimeout(() => setSent(false), 2500)
   }
   const vote = (q: QAItem) => updateDoc(doc(db, 'games', gameId, 'qa', q.id), { votes: q.votes.includes(uid) ? arrayRemove(uid) : arrayUnion(uid) }).catch(() => {})
@@ -44,6 +49,7 @@ export function PlayerQA({ gameId, uid, name }: { gameId: string; uid: string; n
                 <button className="btn btn-primary btn-icon min-h-12 w-12" disabled={text.trim().length < 3} aria-label={t.qa.send}><Send /></button>
               </form>
               {sent && <p className="text-xs font-bold text-green-300">{t.qa.sent}</p>}
+              {tooFast && <p className="text-xs font-bold text-amber-300">{t.qa.tooFast}</p>}
               <ul className="scrollbar-thin flex flex-col gap-2 overflow-auto">
                 {items.length === 0 && <li className="py-6 text-center text-sm text-white/50">{t.qa.empty}</li>}
                 {items.map((q) => (

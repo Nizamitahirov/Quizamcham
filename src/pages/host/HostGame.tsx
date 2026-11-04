@@ -6,7 +6,7 @@ import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, createGame, grantFifty, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  answersQuery, assignTeams, createGame, grantFifty, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -45,10 +45,10 @@ export default function HostGame() {
       </div>
     )
   }
-  return <HostConsole gameId={gameId!} uid={admin.user!.uid} />
+  return <HostConsole gameId={gameId!} uid={admin.user!.uid} isOwner={admin.role === 'owner'} />
 }
 
-function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
+function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; isOwner: boolean }) {
   const nav = useNavigate()
   const { data: game, loading, missing } = useGame(gameId)
   const [questions, setQuestions] = useState<Question[] | null>(null)
@@ -60,7 +60,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
   const flying = useFlying()
   const guard = useRef<Set<string>>(new Set())
 
-  useEffect(() => { void loadSecret(gameId).then(setQuestions) }, [gameId])
+  useEffect(() => { void loadSecret(gameId).then(setQuestions).catch(() => setQuestions([])) }, [gameId])
   const running = !!game && game.phase !== 'finished' && game.phase !== 'lobby'
   useWakeLock(!!game && game.phase !== 'finished')
   useLeaveGuard(running)
@@ -166,6 +166,16 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
     return () => clearInterval(id)
   }, [game, questions, answered, activeCount, once])
 
+  // Komandaları host bölüşdürür (yeni qoşulanlar)
+  const teamSig = useMemo(() => active.map((p) => `${p.uid}:${p.team ?? '-'}`).join('|'), [active])
+  useEffect(() => {
+    const n = game?.settings.teams ?? 0
+    if (!game || !n || game.phase === 'finished' || !active.some((p) => p.team == null || p.team >= n)) return
+    const id = setTimeout(() => void assignTeams(gameId, active, n).catch(() => {}), 400)
+    return () => clearTimeout(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamSig, game?.settings.teams, game?.phase])
+
   // ---- Öz tempində rejimi (ayrıca hook) ----
   const gameRef = useSelfEngine({ game, questions, active, gameId, guard, once })
 
@@ -269,6 +279,7 @@ function HostConsole({ gameId, uid }: { gameId: string; uid: string }) {
 
   if (loading || !questions) return <div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>
   if (missing || !game) return <div className="flex min-h-dvh items-center justify-center bg-night text-2xl">{t.app.notFound}</div>
+  if (game.hostUid !== uid && !isOwner) return <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-night p-6 text-center text-xl">{t.admin.noAccess}<Link className="btn btn-primary" to="/admin">{t.host.backToAdmin}</Link></div>
 
   const nextLabel = game.phase === 'lobby' ? t.host.start
     : game.phase === 'reveal' ? ({ leaderboard: t.host.showLeaderboard, podium: t.host.showPodium, question: t.host.next })[nextAfterReveal(game)]

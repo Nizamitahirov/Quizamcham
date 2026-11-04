@@ -10,12 +10,14 @@ import { QRDownload } from '../../components/QRBlock'
 import { AiImport } from '../../components/AiImport'
 import { TemplateGallery } from '../../components/ImportModals'
 import type { AdminState } from '../../firebase/auth'
+import { visibleGames } from '../../lib/access'
 import type { GameStats, Phase } from '../../types'
 
-type G = { id: string; title?: string; pin?: string; playerCount?: number; phase?: Phase; createdAt?: Timestamp; stats?: GameStats | null }
+type G = { id: string; hostUid?: string; title?: string; pin?: string; playerCount?: number; phase?: Phase; createdAt?: Timestamp; stats?: GameStats | null }
 
 export default function Dashboard() {
-  const { user } = useOutletContext<AdminState>()
+  const admin = useOutletContext<AdminState>()
+  const { user } = admin
   const nav = useNavigate()
   const [quizCount, setQuizCount] = useState<number | null>(null)
   const [games, setGames] = useState<G[] | null>(null)
@@ -23,8 +25,8 @@ export default function Dashboard() {
   const [tpl, setTpl] = useState(false)
   useEffect(() => {
     void listQuizzes().then((q) => setQuizCount(q.length)).catch(() => setQuizCount(0))
-    void listGames(200).then((g) => setGames(g as G[])).catch(() => setGames([]))
-  }, [])
+    void listGames(200).then((g) => setGames(visibleGames(admin, g as G[]))).catch(() => setGames([]))
+  }, [admin])
   const kpi = useMemo(() => {
     const gs = games ?? []
     const players = gs.reduce((s, g) => s + (g.playerCount ?? 0), 0)
@@ -106,8 +108,9 @@ export default function Dashboard() {
           <div className="card p-5">
             <h2 className="mb-1 flex items-center gap-2 text-lg font-bold"><QrCode className="h-5 w-5 text-brand" />{t.admin.permanentQr}</h2>
             <p className="mb-3 text-sm text-muted">{t.admin.permanentQrHint}</p>
-            <code className="mb-3 block truncate rounded-lg bg-surface px-3 py-2 text-sm">{window.location.origin}/play</code>
-            <QRDownload url={`${window.location.origin}/play`} filename="quizamcham-play-qr.png" label={t.admin.downloadQr} className="btn btn-primary w-full" />
+
+            <code className="mb-3 block truncate rounded-lg bg-surface px-3 py-2 text-sm">{`${window.location.origin}/play?t=${user?.uid}`}</code>
+            <QRDownload url={`${window.location.origin}/play?t=${user?.uid}`} filename="quizamcham-play-qr.png" label={t.admin.downloadQr} className="btn btn-primary w-full" />
           </div>
         </section>
       </div>

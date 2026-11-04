@@ -10,15 +10,15 @@ import { Spinner } from '../../components/ui'
 import { Logo } from '../../components/Brand'
 import { LangSwitch } from '../../components/LangSwitch'
 
-const NAV = [
+const NAV: { to: string; end?: boolean; icon: typeof Settings; label: string; ownerOnly?: boolean }[] = [
   { to: '/admin', end: true, icon: LayoutDashboard, label: t.admin.nav.dashboard },
   { to: '/admin/quizzes', icon: ListChecks, label: t.admin.nav.quizzes },
   { to: '/admin/games', icon: History, label: t.admin.nav.games },
   { to: '/admin/analytics', icon: BarChart3, label: t.admin.nav.analytics },
-  { to: '/admin/sounds', icon: Music2, label: t.admin.nav.sounds },
+  { to: '/admin/sounds', icon: Music2, label: t.admin.nav.sounds, ownerOnly: true },
   { to: '/admin/profile', icon: UserRound, label: t.admin.nav.profile },
   { to: '/admin/team', icon: Users, label: t.admin.nav.team },
-  { to: '/admin/settings', icon: Settings, label: t.admin.nav.settings },
+  { to: '/admin/settings', icon: Settings, label: t.admin.nav.settings, ownerOnly: true },
 ]
 const MOBILE = NAV.filter((n) => ['/admin', '/admin/quizzes', '/admin/games', '/admin/profile'].includes(n.to))
 
@@ -35,7 +35,7 @@ export default function AdminLayout() {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-white p-4 lg:flex">
         <div className="px-2 py-3"><Logo size={36} dark={false} sub="Live quiz" /></div>
         <nav className="mt-6 flex flex-col gap-1">
-          {NAV.map((n) => (
+          {NAV.filter((n) => !n.ownerOnly || admin.role === 'owner').map((n) => (
             <NavLink key={n.to} end={n.end} to={n.to}
               className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${isActive ? 'text-white shadow-[var(--glow)]' : 'text-[#4A4E69] hover:bg-surface'}`}
               style={({ isActive }) => (isActive ? { background: 'var(--grad)' } : undefined)}>

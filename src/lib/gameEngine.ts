@@ -11,7 +11,7 @@ import { shuffle } from './shuffle'
 import { serverNow } from './timeSync'
 import { shortName } from './nameFilter'
 import { track } from '../firebase/extras'
-import { computeTeams } from './teams'
+import { computeTeams, pickTeam } from './teams'
 
 export const MIN_READ_MS = 3000
 export const readMsFor = (settings: QuizSettings | undefined, q?: Question) => (q?.type === 'slide' ? 1500 : Math.max(MIN_READ_MS, (settings?.readTime ?? 4) * 1000))
@@ -52,7 +52,11 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   batch.set(doc(db, 'games', gameRef.id, 'secret', 'key'), { questions: JSON.parse(JSON.stringify(questions)) })
   batch.set(gameRef, { ...game, createdAt: serverTimestamp() })
   batch.set(doc(db, 'pins', pin), { gameId: gameRef.id, active: true, createdAt: serverTimestamp() })
-  batch.set(doc(db, 'settings', 'current'), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
+  // Daimi QR: tapşırıq rejimi canlı təlimin QR-ını dəyişmir; hər təlimçinin öz QR-ı da var
+  if (quiz.settings.mode !== 'assign') {
+    batch.set(doc(db, 'settings', 'current'), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
+    batch.set(doc(db, 'settings', `play_${hostUid}`), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
+  }
   await batch.commit()
   void track('game_created', { mode: quiz.settings.mode, questions: questions.length })
   return gameRef.id
@@ -87,6 +91,21 @@ export const updateLobby = (gameId: string, players: Player[]) => {
 }
 
 export const setLocked = (gameId: string, locked: boolean) => updateDoc(gref(gameId), { locked })
+
+/**
+ * Komandaları host bölüşdürür (yeganə yazan → yarış vəziyyəti yoxdur).
+ * Komandası olmayan oyunçular qoşulma sırası ilə ən az üzvü olan komandaya düşür.
+ */
+export async function assignTeams(gameId: string, players: Player[], n: number) {
+  const counts = Array.from({ length: n }, () => 0)
+  players.forEach((p) => { if (!p.kicked && p.team != null && p.team < n) counts[p.team]++ })
+  const pending = players.filter((p) => !p.kicked && (p.team == null || p.team >= n))
+    .sort((a, b) => (a.joinedAt?.toMillis() ?? 0) - (b.joinedAt?.toMillis() ?? 0))
+  if (!pending.length) return
+  const batch = writeBatch(db)
+  pending.forEach((p) => { const tm = pickTeam(counts); counts[tm]++; batch.update(doc(db, 'games', gameId, 'players', p.uid), { team: tm }) })
+  await batch.commit()
+}
 
 export const kickPlayer = (gameId: string, uid: string) => updateDoc(doc(db, 'games', gameId, 'players', uid), { kicked: true })
 
@@ -165,6 +184,9 @@ export async function finishQuestion(game: Game, questions: Question[]) {
   const qi = game.questionIndex
   const q = questions[qi]
   if (!q) return
+  // Təkrar hesablamaya qarşı (məs. iki host tabı): serverdəki faza artıq dəyişibsə, heç nə etmə
+  const fresh = await getDocFromServer(gref(game.id))
+  if (fresh.get('phase') !== 'question' || fresh.get('questionIndex') !== qi) return
   const [players, answers] = await Promise.all([fetchPlayers(game.id), fetchAnswers(game.id, qi)])
   const startedMs = game.questionStartedAt?.toMillis() ?? 0
   const settings = game.settings
@@ -176,7 +198,8 @@ export async function finishQuestion(game: Game, questions: Question[]) {
   if (['single', 'multi', 'truefalse', 'poll'].includes(q.type)) q.options.forEach((o) => (distribution[o.id] = 0))
 
   const updated = players.map((p) => {
-    if (p.kicked) return { p, item: null as HistoryItem | null, bonus: 0, answered: false, ev: null, used: null as PowerType | null, shielded: false, timeMs: null as number | null }
+    // kənarlaşdırılmış və ya bu sual üçün artıq hesablanmış oyunçu toxunulmaz qalır
+    if (p.kicked || (p.history ?? []).some((h) => h.q === qi)) return { p, item: null as HistoryItem | null, bonus: 0, answered: false, ev: null, used: null as PowerType | null, shielded: false, timeMs: null as number | null }
     const a = answers.get(p.uid)
     const answered = !!a
     const timeMs = a?.answeredAt ? Math.max(0, a.answeredAt.toMillis() - startedMs) : null
@@ -288,7 +311,7 @@ export async function launchQuiz(quizId: string, hostUid: string): Promise<strin
 export async function startAssignment(gameId: string, questions: Question[], settings: QuizSettings) {
   await updateDoc(gref(gameId), {
     phase: 'self', questionIndex: questions.length - 1, startedAt: Timestamp.fromMillis(serverNow()),
-    'settings.lateJoin': true, 'settings.powerUps': false,
+    'settings.lateJoin': true, 'settings.powerUps': false, 'settings.teams': 0,
     publicQuestions: JSON.parse(JSON.stringify(questions.map((q) => toPublic(q, settings)))),
     selfEndsAt: Timestamp.fromMillis(serverNow() + (settings.assignDays || 7) * 86_400_000),
   })
@@ -424,9 +447,17 @@ export async function finishGame(game: Game, questions: Question[]) {
     ...(game.settings.teams ? { teamBoard: computeTeams(players, game.settings.teams) } : {}),
     awards: JSON.parse(JSON.stringify(awards)),
     phase: 'finished', finishedAt: serverTimestamp(), stats: JSON.parse(JSON.stringify(stats)),
-    leaderboard: leaderboardOf(ranked, prevRank, 200), review: JSON.parse(JSON.stringify(review)), scoredCount: scoredIdx.length,
+    leaderboard: leaderboardOf(ranked, prevRank, 200), scoredCount: scoredIdx.length,
     currentQuestion: null, questionEndsAt: null, selfEndsAt: null,
   })
+  // Daimi QR bu oyuna aparırdısa, boşalt (bitmiş oyuna yönləndirməsin)
+  for (const key of ['current', `play_${game.hostUid}`]) {
+    const ref = doc(db, 'settings', key)
+    const cur = await getDoc(ref).catch(() => null)
+    if (cur?.get('activeGameId') === game.id) batch.set(ref, { activeGameId: null, pin: null, updatedAt: serverTimestamp() })
+  }
+  // Düzgün cavablı icmal ayrıca sənəddədir: yalnız iştirakçılar və host oxuya bilər
+  batch.set(doc(db, 'games', game.id, 'results', 'review'), { items: JSON.parse(JSON.stringify(review)) })
   batch.update(doc(db, 'pins', game.pin), { active: false })
   await batch.commit()
   void track('game_finished', { players: players.length, mode: game.settings.mode })
@@ -452,10 +483,11 @@ export function computeAwards(players: Player[], scoredCount: number): Award[] {
 
 // ============ Oyunçu əməliyyatları ============
 
-export async function lookupPin(pin: string): Promise<string | null> {
+/** PIN → oyun. Bitmiş oyunun PIN-i də qaytarılır (iştirakçı nəticəsinə qayıda bilsin). */
+export async function lookupPin(pin: string): Promise<{ gameId: string; active: boolean } | null> {
   const s = await getDoc(doc(db, 'pins', pin))
-  if (!s.exists() || s.get('active') === false) return null
-  return s.get('gameId') as string
+  if (!s.exists()) return null
+  return { gameId: s.get('gameId') as string, active: s.get('active') !== false }
 }
 
 export async function joinGame(gameId: string, uid: string, firstName: string, lastName: string, avatar: AvatarData, team?: number) {
