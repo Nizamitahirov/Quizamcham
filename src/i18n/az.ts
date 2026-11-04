@@ -1,5 +1,5 @@
 export const az = {
-  app: { name: 'Quizamcham', tagline: 'Canlı interaktiv quiz', loading: 'Yüklənir…', back: 'Geri', cancel: 'Ləğv et', confirm: 'Təsdiqlə', close: 'Bağla', save: 'Yadda saxla', delete: 'Sil', yes: 'Bəli', no: 'Xeyr', error: 'Xəta baş verdi. Yenidən cəhd edin.', notConfigured: 'Firebase konfiqurasiyası tapılmadı (.env.local).', about: 'Haqqında', offline: 'Bağlantı bərpa olunur…', soon: 'Tezliklə', notFound: 'Səhifə tapılmadı', home: 'Ana səhifə' },
+  app: { name: 'Jabr', tagline: 'Canlı interaktiv quiz', loading: 'Yüklənir…', back: 'Geri', cancel: 'Ləğv et', confirm: 'Təsdiqlə', close: 'Bağla', save: 'Yadda saxla', delete: 'Sil', yes: 'Bəli', no: 'Xeyr', error: 'Xəta baş verdi. Yenidən cəhd edin.', notConfigured: 'Firebase konfiqurasiyası tapılmadı (.env.local).', about: 'Haqqında', offline: 'Bağlantı bərpa olunur…', soon: 'Tezliklə', notFound: 'Səhifə tapılmadı', home: 'Ana səhifə' },
   home: {
     join: 'Oyuna qoşul', admin: 'Təlimçi girişi', subtitle: 'PIN kodu daxil edin və ya QR-ı skan edin',
     badge: 'Canlı · Real vaxt · Mobil',
@@ -14,7 +14,7 @@ export const az = {
   },
   about: {
     title: 'Haqqında',
-    text: 'Quizamcham — AmCham Azərbaycan “NextGen HR Leaders” proqramı üçün canlı quiz platforması.',
+    text: 'Jabr — AmCham Azərbaycan “NextGen HR Leaders” proqramı üçün canlı quiz platforması.',
     avatars: 'Avatarlar DiceBear (dicebear.com) ilə yaradılır:',
     music: 'Musiqi və səs effektləri brauzerdə kodla yaradılır.',
   },
@@ -133,7 +133,7 @@ export const az = {
     review: 'Cavablarıma bax',
     hideReview: 'Gizlət',
     share: 'Paylaş',
-    shareText: (name: string, place: number, score: number) => `${name} Quizamcham-da ${place}-ci yer tutdu: ${score} xal! 🎉`,
+    shareText: (name: string, place: number, score: number) => `${name} Jabr-da ${place}-ci yer tutdu: ${score} xal! 🎉`,
     copied: 'Kopyalandı ✓',
     champion: 'Çempion! 👑',
     podium: 'Podiumdasınız! 🏆',
@@ -365,6 +365,7 @@ export const az = {
     defaults: 'Yeni quizlər üçün standart ayarlar', defaultsSub: 'Yeni yaradılan hər quiz bu ayarlarla başlayır',
     security: 'Təhlükəsizlik', newPw: 'Yeni şifrə', currentPw: 'Cari şifrə', changePw: 'Şifrəni dəyiş', pwChanged: 'Şifrə dəyişdirildi ✓', pwShort: 'Şifrə ən azı 8 simvol olmalıdır', pwWrong: 'Cari şifrə yanlışdır',
     trainer: 'Təlimçi',
+    previewHint: 'Lobbidə belə görünür',
   },
   team: {
     title: 'Komanda', sub: 'Platformaya giriş hüququ olan təlimçilər',
@@ -413,6 +414,7 @@ export const az = {
     button: 'Sertifikat', title: 'İŞTİRAK SERTİFİKATI', given: 'Bu sertifikat təsdiq edir ki,',
     completed: 'aşağıdakı interaktiv təlim quizində uğurla iştirak etmişdir:', place: (p: number, n: number) => `${p}-ci yer · ${n} iştirakçı`,
     score: (s: string) => `${s} xal`, trainer: 'Təlimçi', date: 'Tarix',
+    badgeLabel: 'YER', badgeAria: (p: number) => `${p}-ci yer nişanı`,
   },
   qa: {
     button: 'Sual ver', title: 'Sual-cavab', placeholder: 'Təlimçiyə sualınızı yazın…', send: 'Göndər', sent: 'Sualınız göndərildi ✓',
@@ -425,7 +427,7 @@ export const az = {
     short: 'Qoşulmaqla adınız və cavablarınızın bu təlim üçün istifadəsinə razılıq verirsiniz.',
     more: 'Ətraflı',
     body: [
-      'Quizamcham təlim zamanı canlı quiz keçirmək üçündür. Qoşulanda yalnız daxil etdiyiniz ad, soyad, seçdiyiniz avatar və quiz cavablarınız saxlanılır.',
+      'Jabr təlim zamanı canlı quiz keçirmək üçündür. Qoşulanda yalnız daxil etdiyiniz ad, soyad, seçdiyiniz avatar və quiz cavablarınız saxlanılır.',
       'E-poçt, telefon nömrəsi və ya digər şəxsi məlumat soruşulmur. Giriş anonim hesabla (Firebase Authentication) həyata keçirilir.',
       'Məlumatlar Google Firebase (Avropa regionu, eur3) serverlərində saxlanılır və yalnız təlimçi tərəfindən nəticələrin hesablanması və təlim hesabatı üçün istifadə olunur.',
       'Nəticələr (ad, xal, yer) oyun zamanı ekranda digər iştirakçılara göstərilir.',

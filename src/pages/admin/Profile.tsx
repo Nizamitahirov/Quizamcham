@@ -49,15 +49,17 @@ export default function Profile() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-4 sm:p-8">
+    <div className="mx-auto max-w-7xl p-4 sm:p-8">
       <PageHeader title={t.profile.title} sub={t.profile.sub}>
         {msg && <span className="text-sm font-semibold text-ok">{msg}</span>}
         <button className="btn btn-primary" disabled={busy} onClick={() => void save()}><Save />{t.app.save}</button>
       </PageHeader>
 
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-        {/* Önizləmə kartı */}
-        <div className="noise relative h-fit overflow-hidden rounded-3xl bg-night p-6 text-white">
+        {/* Önizləmə kartı — sağ sütunun hündürlüyünə uzanır, məzmun ortada */}
+        <div className="noise relative flex min-h-80 flex-col justify-center overflow-hidden rounded-3xl bg-night p-6 text-white lg:h-full">
+          <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full opacity-50 blur-3xl" style={{ background: '#E8202A' }} />
+          <div className="absolute left-6 top-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">{t.profile.previewHint}</div>
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-60 blur-3xl" style={{ background: '#FF7A1A' }} />
           <div className="relative flex flex-col items-center gap-3 text-center">
             <div className="rounded-full p-1.5" style={{ background: 'var(--grad)' }}>
@@ -81,7 +83,7 @@ export default function Profile() {
               <Field label={t.profile.bio} className="sm:col-span-2"><textarea className="input" rows={3} maxLength={280} value={p.bio ?? ''} onChange={(e) => set({ bio: e.target.value })} /></Field>
               <Field label={t.profile.avatar} className="sm:col-span-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  {PRESETS.slice(0, 16).map((a) => {
+                  {PRESETS.map((a) => {
                     const on = p.avatar?.seed === a.seed && p.avatar?.style === a.style
                     return <button key={a.style + a.seed} type="button" onClick={() => set({ avatar: a, photoUrl: '' })} className={`rounded-full p-0.5 transition ${on ? 'ring-2 ring-brand ring-offset-2' : 'opacity-80 hover:opacity-100'}`}><Avatar avatar={a} size={40} /></button>
                   })}
@@ -92,7 +94,7 @@ export default function Profile() {
           </Section>
 
           <Section icon={KeyRound} title={t.profile.security} sub={user.email ?? ''}>
-            <div className="grid items-end gap-4 sm:grid-cols-[1fr_1fr_auto]">
+            <div className="grid items-end gap-4 md:grid-cols-[1fr_1fr_auto]">
               <Field label={t.profile.currentPw}><input className="input" type="password" autoComplete="current-password" value={cur} onChange={(e) => setCur(e.target.value)} /></Field>
               <Field label={t.profile.newPw}><input className="input" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>
               <button className="btn btn-secondary" disabled={!cur || !pw} onClick={() => void changePw()}>{t.profile.changePw}</button>

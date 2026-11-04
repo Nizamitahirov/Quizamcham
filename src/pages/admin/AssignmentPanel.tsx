@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
+import { fmtDateTime } from '../../lib/format'
 import { collection, getCountFromServer } from 'firebase/firestore'
 import { CalendarClock, ClipboardCheck, Copy, Link2, Users } from 'lucide-react'
 import { db } from '../../firebase/config'
 import { gradeAssignment, loadSecret } from '../../lib/gameEngine'
-import { LOCALE, t } from '../../i18n/az'
+import { t } from '../../i18n/az'
 import { QRDownload } from '../../components/QRBlock'
 import { Section } from '../../components/kit'
 import type { Game } from '../../types'
@@ -40,7 +41,7 @@ export function AssignmentPanel({ game, onGraded }: { game: Game; onGraded: () =
               <button className="btn btn-secondary" onClick={() => { void navigator.clipboard.writeText(url); setCopied(true) }}><Copy />{copied ? A.copied : A.copy}</button></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-xl bg-surface p-3"><div className="label flex items-center gap-1"><CalendarClock className="h-3.5 w-3.5" />{A.deadline}</div><div className="text-sm font-bold">{game.selfEndsAt?.toDate().toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })}</div></div>
+            <div className="rounded-xl bg-surface p-3"><div className="label flex items-center gap-1"><CalendarClock className="h-3.5 w-3.5" />{A.deadline}</div><div className="text-sm font-bold">{game.selfEndsAt ? fmtDateTime(game.selfEndsAt.toDate()) : ''}</div></div>
             <div className="rounded-xl bg-surface p-3"><div className="label flex items-center gap-1"><Users className="h-3.5 w-3.5" />{A.participants}</div><div className="text-2xl font-black">{counts?.p ?? '–'}</div></div>
             <div className="rounded-xl bg-surface p-3"><div className="label">{A.answers}</div><div className="text-2xl font-black">{counts?.a ?? '–'}</div></div>
           </div>

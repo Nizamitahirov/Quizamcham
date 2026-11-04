@@ -48,7 +48,7 @@ export default function Login() {
             })}
           </ul>
         </div>
-        <p className="relative text-xs text-white/40">© {new Date().getFullYear()} Quizamcham · AmCham NextGen HR Leaders</p>
+        <p className="relative text-xs text-white/40">© {new Date().getFullYear()} Jabr · AmCham NextGen HR Leaders</p>
       </div>
       <div className="flex items-center justify-center px-4 py-10">
         <motion.form initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="w-full max-w-sm">

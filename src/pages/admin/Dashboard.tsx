@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { fmtDateTime } from '../../lib/format'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { Timestamp } from 'firebase/firestore'
 import { ArrowRight, Bot, Gamepad2, ListChecks, Plus, QrCode, Target, Users, Sparkles } from 'lucide-react'
 import { createQuiz, listGames, listQuizzes, parseQuizJson } from '../../firebase/db'
-import { LOCALE, t } from '../../i18n/az'
+import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { QRDownload } from '../../components/QRBlock'
 import { AiImport } from '../../components/AiImport'
@@ -96,7 +97,7 @@ export default function Dashboard() {
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: 'var(--grad)' }}><Gamepad2 className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{g.title}</span>
-                      <span className="text-xs text-muted">{g.createdAt?.toDate().toLocaleString(LOCALE, { dateStyle: 'medium', timeStyle: 'short' })} · PIN {g.pin}</span>
+                      <span className="text-xs text-muted">{g.createdAt ? fmtDateTime(g.createdAt.toDate()) : ''} · PIN {g.pin}</span>
                     </span>
                     <span className="flex items-center gap-1 text-sm font-semibold text-muted"><Users className="h-4 w-4" />{g.playerCount ?? 0}</span>
                     {g.phase !== 'finished' ? <span className="chip bg-green-100 text-green-700">{t.admin.live}</span> : g.stats && <span className="chip bg-surface text-[#4A4E69]">{Math.round((g.stats.avgAccuracy ?? 0) * 100)}%</span>}
@@ -121,7 +122,7 @@ export default function Dashboard() {
             <p className="mb-3 text-sm text-muted">{t.admin.permanentQrHint}</p>
 
             <code className="mb-3 block truncate rounded-lg bg-surface px-3 py-2 text-sm">{`${window.location.origin}/play?t=${user?.uid}`}</code>
-            <QRDownload url={`${window.location.origin}/play?t=${user?.uid}`} filename="quizamcham-play-qr.png" label={t.admin.downloadQr} className="btn btn-primary w-full" />
+            <QRDownload url={`${window.location.origin}/play?t=${user?.uid}`} filename="jabr-play-qr.png" label={t.admin.downloadQr} className="btn btn-primary w-full" />
           </div>
         </section>
       </div>

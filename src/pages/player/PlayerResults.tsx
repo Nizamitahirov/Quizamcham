@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Award, Check, ChevronDown, Crown, Download, Share2, X } from 'lucide-react'
+import { Award, Check, ChevronDown, Download, Share2, X } from 'lucide-react'
+import { PlaceBadge } from '../../components/PlaceBadge'
 import { LOCALE, t } from '../../i18n/az'
 import { Avatar } from '../../components/Avatar'
 import { AnimatedNumber } from '../../components/AnimatedNumber'
@@ -50,10 +51,10 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
     setBusy(true)
     try {
       const blob = await renderShareCard({ name: `${player.firstName} ${player.lastName}`, title: game.title, place: rank, total, score: player.score, accuracy, streak: player.bestStreak, avatar: player.avatar, awards: myAwards.map((a) => t.awards[a.key]) })
-      const file = new File([blob], 'quizamcham-netice.png', { type: 'image/png' })
+      const file = new File([blob], 'jabr-netice.png', { type: 'image/png' })
       const text = t.results.shareText(shortName(player.firstName, player.lastName), rank, player.score)
       if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], text })
-      else download('quizamcham-netice.png', blob)
+      else download('jabr-netice.png', blob)
     } catch { /* ləğv edildi */ } finally { setBusy(false) }
   }
 
@@ -79,7 +80,7 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
     <div className="flex flex-col gap-4 pb-6">
       <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring' }} className="glass-strong gradient-border relative flex flex-col items-center gap-2 overflow-hidden p-6 text-center" id="result-card">
         <div className="pointer-events-none absolute -top-24 h-48 w-72 rounded-full opacity-50 blur-3xl" style={{ background: 'var(--grad)' }} />
-        {rank === 1 && <Crown className="wobble relative h-12 w-12 text-yellow-300" fill="currentColor" />}
+        {rank >= 1 && rank <= 3 && <div className="absolute right-2 top-2 z-10"><PlaceBadge place={rank} size={64} /></div>}
         <div className="relative rounded-full p-1.5" style={{ background: 'var(--grad)' }}><Avatar avatar={player.avatar} size={104} /></div>
         <p className="relative text-xl font-black">{player.firstName} {player.lastName}</p>
         {rank > 0 && <p className="font-display text-grad relative text-6xl font-black">{t.results.place(rank)}</p>}

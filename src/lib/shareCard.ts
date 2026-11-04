@@ -1,3 +1,5 @@
+import { badgeImage, badgeInk, type Place } from './badge'
+import { fmtDate } from './format'
 import { avatarUri } from '../components/Avatar'
 import { LOCALE, t } from '../i18n/az'
 import type { AvatarData } from '../types'
@@ -18,10 +20,10 @@ export async function renderShareCard(d: CardData): Promise<Blob> {
   glow(1000, 80, 700, 'rgba(255,122,26,.55)'); glow(60, 1300, 760, 'rgba(232,32,42,.55)')
   const grad = g.createLinearGradient(0, 0, W, 0); grad.addColorStop(0, '#E8202A'); grad.addColorStop(1, '#FF8A1A')
   // loqo
-  g.fillStyle = grad; roundRect(g, 80, 80, 84, 84, 26); g.fill()
-  g.fillStyle = '#fff'; g.font = '900 52px Montserrat'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Q', 122, 124)
-  g.textAlign = 'left'; g.font = '900 46px Montserrat'; g.fillText('Quiz', 190, 124)
-  const qw = g.measureText('Quiz').width; g.fillStyle = grad; g.fillText('amcham', 190 + qw, 124)
+  g.textBaseline = 'alphabetic'
+  drawWordmark(g, 80, 150, 72, '#ffffff', 'left')
+  g.textBaseline = 'middle'
+  if (d.place >= 1 && d.place <= 3) await drawBadge(g, d.place as Place, W - 250, 50, 170)
   // avatar
   const img = await loadImg(await avatarUri(d.avatar.style, d.avatar.seed))
   g.save(); g.beginPath(); g.arc(W / 2, 420, 170, 0, Math.PI * 2); g.fillStyle = grad; g.fill(); g.beginPath(); g.arc(W / 2, 420, 156, 0, Math.PI * 2); g.clip(); g.drawImage(img, W / 2 - 156, 264, 312, 312); g.restore()
@@ -63,9 +65,9 @@ export async function renderCertificate(d: CertData, labels: { title: string; gi
   const glow = (x: number, y: number, r: number, col: string) => { const rg = g.createRadialGradient(x, y, 0, x, y, r); rg.addColorStop(0, col); rg.addColorStop(1, 'transparent'); g.fillStyle = rg; g.fillRect(0, 0, W, H) }
   glow(W - 120, 120, 420, 'rgba(255,138,26,.18)'); glow(120, H - 120, 420, 'rgba(232,32,42,.14)')
   // loqo
-  g.fillStyle = grad; roundRect(g, W / 2 - 50, 120, 100, 100, 30); g.fill()
-  g.fillStyle = '#fff'; g.font = '900 62px Montserrat'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Q', W / 2, 172)
-  g.fillStyle = '#0F1129'; g.font = '800 30px Montserrat'; g.fillText('Quizamcham', W / 2, 262)
+  g.textBaseline = 'alphabetic'
+  drawWordmark(g, W / 2, 240, 96, '#0F1129', 'center')
+  g.textAlign = 'center'; g.textBaseline = 'middle'
   g.fillStyle = grad; g.font = '900 74px Montserrat'; g.fillText(labels.title, W / 2, 380)
   g.fillStyle = '#6B6F8A'; g.font = '600 32px Montserrat'; g.fillText(labels.given, W / 2, 470)
   g.fillStyle = '#0F1129'; g.font = '900 96px Montserrat'; g.fillText(d.name, W / 2, 580)
@@ -73,11 +75,49 @@ export async function renderCertificate(d: CertData, labels: { title: string; gi
   g.fillStyle = '#6B6F8A'; g.font = '600 32px Montserrat'; g.fillText(labels.completed, W / 2, 712)
   g.fillStyle = '#0F1129'; g.font = '800 46px Montserrat'; g.fillText(`“${d.quiz.slice(0, 60)}”`, W / 2, 785)
   g.fillStyle = '#E8202A'; g.font = '800 36px Montserrat'; g.fillText(`${labels.place}  ·  ${labels.score}`, W / 2, 865)
+  // 1–3-cü yerlər üçün nişan (imzaların arasında, möhür kimi)
+  if (d.place >= 1 && d.place <= 3) await drawBadge(g, d.place as Place, W / 2 - 95, 884, 190)
   // imzalar
   g.textAlign = 'left'; g.fillStyle = '#0F1129'; g.font = '700 30px Montserrat'
   g.fillText(d.trainer || '—', 220, 1040); g.fillStyle = '#C9CCDA'; g.fillRect(220, 1065, 420, 3); g.fillStyle = '#6B6F8A'; g.font = '600 24px Montserrat'; g.fillText(labels.trainer, 220, 1100)
   g.textAlign = 'right'; g.fillStyle = '#0F1129'; g.font = '700 30px Montserrat'
-  g.fillText(d.date.toLocaleDateString(LOCALE, { day: 'numeric', month: 'long', year: 'numeric' }), W - 220, 1040)
+  g.fillText(fmtDate(d.date), W - 220, 1040)
   g.fillStyle = '#C9CCDA'; g.fillRect(W - 640, 1065, 420, 3); g.fillStyle = '#6B6F8A'; g.font = '600 24px Montserrat'; g.fillText(labels.date, W - 220, 1100)
   return new Promise((res) => c.toBlob((b) => res(b!), 'image/png'))
+}
+
+/** "Jabr" sözü + brend qradiyentli nöqtə (UI loqosu ilə eyni). y — mətnin əsas xətti. */
+function drawWordmark(g: CanvasRenderingContext2D, x: number, y: number, px: number, color: string, align: 'left' | 'center') {
+  g.save()
+  g.font = `900 ${px}px Montserrat`
+  g.textAlign = 'left'
+  g.textBaseline = 'alphabetic'
+  const w = g.measureText('Jabr').width
+  const r = px * 0.12, gap = px * 0.05
+  const total = w + gap + 2 * r
+  const sx = align === 'center' ? x - total / 2 : x
+  g.fillStyle = color
+  g.fillText('Jabr', sx, y)
+  const dg = g.createLinearGradient(sx + w, y - 2 * r, sx + w + 2 * r + gap, y)
+  dg.addColorStop(0, '#E8202A'); dg.addColorStop(1, '#FF8A1A')
+  g.fillStyle = dg
+  g.shadowColor = 'rgba(255,90,31,.45)'; g.shadowBlur = px * 0.18
+  g.beginPath(); g.arc(sx + w + gap + r, y - r, r, 0, Math.PI * 2); g.fill()
+  g.restore()
+}
+
+/** Yer nişanı: SVG forması + Montserrat ilə rəqəm və "YER". size — en (px), hündürlük = 1.3 × en. */
+async function drawBadge(g: CanvasRenderingContext2D, place: Place, x: number, y: number, size: number) {
+  const img = await badgeImage(place)
+  const s = size / 200
+  g.drawImage(img, x, y, size, size * 1.3)
+  g.save()
+  g.fillStyle = badgeInk(place)
+  g.textAlign = 'center'
+  g.textBaseline = 'alphabetic'
+  g.font = `900 ${Math.round(64 * s)}px Montserrat`
+  g.fillText(String(place), x + 100 * s, y + 122 * s)
+  g.font = `800 ${Math.round(13 * s)}px Montserrat`
+  g.fillText(t.cert.badgeLabel.split('').join(String.fromCharCode(8202)), x + 100 * s, y + 146 * s)
+  g.restore()
 }

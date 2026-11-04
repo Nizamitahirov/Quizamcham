@@ -31,7 +31,7 @@ export const SELF_MINUTES = [5, 10, 15, 20, 30, 45, 60]
 export const ASSIGN_DAYS = [1, 3, 7, 14, 30]
 export const POWER_START = { fifty: 1, double: 1, shield: 1 } as const
 
-export const DEFAULT_APP_SETTINGS: AppSettings = { defaultTime: 45, musicVolume: 60, brandText: 'Quizamcham', bannedWords: [] }
+export const DEFAULT_APP_SETTINGS: AppSettings = { defaultTime: 45, musicVolume: 60, brandText: 'Jabr', bannedWords: [] }
 
 export const TYPE_DEFAULT_TIME: Record<QuestionType, number> = {
   single: 30, multi: 45, truefalse: 20, type: 45, poll: 20, order: 45, slider: 30, wordcloud: 45, open: 60, slide: 0,

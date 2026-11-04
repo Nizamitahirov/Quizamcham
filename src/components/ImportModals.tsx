@@ -51,7 +51,7 @@ export function CsvImport({ open, onClose, onImport }: { open: boolean; onClose:
       <p className="mb-2 text-sm text-muted">{C.desc}</p>
       <p className="mb-3 text-xs font-semibold text-muted">{C.columns}</p>
       <div className="mb-3 flex flex-wrap gap-2">
-        <button className="btn btn-soft btn-sm" onClick={() => download('quizamcham-sablon.csv', toCsv(CSV_TEMPLATE))}><Download />{C.template}</button>
+        <button className="btn btn-soft btn-sm" onClick={() => download('jabr-sablon.csv', toCsv(CSV_TEMPLATE))}><Download />{C.template}</button>
         <button className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()}><Upload />{C.file}</button>
         <input ref={fileRef} type="file" accept=".csv,.tsv,.txt,text/csv" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setText(await f.text()); e.target.value = '' }} />
       </div>

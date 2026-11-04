@@ -17,7 +17,7 @@ export default function HostSummary({ game, onNewGame }: { game: Game; onNewGame
   const fb = useFeedback(game.id)
   const exportCsv = async () => {
     setBusy(true)
-    try { download(`quizamcham-${game.pin}.csv`, reportCsv(await loadReport(game.id))) } finally { setBusy(false) }
+    try { download(`jabr-${game.pin}.csv`, reportCsv(await loadReport(game.id))) } finally { setBusy(false) }
   }
   const pct = (x: number) => `${Math.round(x * 100)}%`
   return (

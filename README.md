@@ -1,4 +1,6 @@
-# Quizamcham
+# Jabr.
+
+> Əvvəlki adı: Quizamcham. Repo və Firebase layihəsi adları dəyişməyib.
 
 AmCham Azərbaycan “NextGen HR Leaders” proqramı üçün canlı, mobil-öncəlikli quiz platforması.
 **Stek:** React 19 · Vite 8 · TypeScript · Tailwind 4 · Framer Motion · Firebase (Auth + Firestore). Spesifikasiya: [SPEC.md](SPEC.md) · Qərarlar: [docs/DECISIONS.md](docs/DECISIONS.md) · Dəyişikliklər: [CHANGELOG.md](CHANGELOG.md).
