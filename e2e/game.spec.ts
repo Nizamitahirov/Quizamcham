@@ -56,3 +56,63 @@ test('avtomatik rejimdə tam oyun: qoşulma → cavab → nəticə', async ({ br
   await expect(players[0].locator('#result-card')).toContainText('1-ci yer', { timeout: 20_000 })
   await expect(players[1].locator('#result-card')).toContainText('2-ci yer')
 })
+
+/** Öz tempində: hər iştirakçıya fərqli ardıcıllıq, nəticələr sonda (hamı bitirəndə podium → yekun). */
+const SELF_QUIZ = {
+  title: `E2E self ${new Date().toISOString().slice(0, 16)}`, coverEmoji: '🧪',
+  settings: { mode: 'self', selfMinutes: 5, selfShuffle: true, selfFeedback: false },
+  questions: ['Bir', 'İki', 'Üç', 'Dörd', 'Beş'].map((w, i) => ({
+    type: 'single', text: `Sual ${w}?`, timeLimit: 30,
+    options: [{ id: 'a', text: `Düz ${i}` }, { id: 'b', text: `Səhv ${i}` }], correct: ['a'],
+  })),
+}
+
+test('öz tempində: fərqli ardıcıllıq, dayanmadan sona qədər, nəticələr sonda', async ({ browser }) => {
+  const host = await (await browser.newContext({ viewport: { width: 1600, height: 1000 } })).newPage()
+  await host.goto('/admin/login')
+  await host.locator('#em').fill(EMAIL!)
+  await host.locator('#pw').fill(PASSWORD!)
+  await host.getByRole('button', { name: 'Daxil ol' }).click()
+  await host.waitForURL('**/admin')
+  await host.goto('/admin/quizzes')
+  await host.getByRole('button', { name: 'AI' }).click()
+  await host.locator('textarea.input').fill(JSON.stringify(SELF_QUIZ))
+  await host.getByRole('button', { name: 'İdxal et' }).click()
+  await host.waitForURL(/\/admin\/quiz\//)
+  await host.waitForTimeout(2500)
+  await host.getByRole('button', { name: 'Oyunu başlat' }).click()
+  await host.waitForURL(/\/host\//)
+  await host.getByText('Lobbini aç').click()
+  const pin = (await host.locator('.text-grad.tracking-\\[\\.12em\\]').innerText()).trim()
+
+  const players: Page[] = []
+  for (const [f, l] of [['Aysel', 'Məmmədova'], ['Tural', 'Əliyev']]) {
+    const p = await (await browser.newContext({ ...devices['iPhone 13'] })).newPage()
+    await p.goto(`/join?pin=${pin}`)
+    await p.locator('#fn').fill(f)
+    await p.locator('#ln').fill(l)
+    await p.locator('form button.btn-primary').click()
+    await expect(p.getByText('Siz oyundasınız')).toBeVisible({ timeout: 20_000 })
+    players.push(p)
+  }
+  await host.locator('footer').getByRole('button', { name: /Başla/ }).click()
+
+  const orders: string[][] = []
+  for (const [i, p] of players.entries()) {
+    const seen: string[] = []
+    for (let k = 0; k < SELF_QUIZ.questions.length; k++) {
+      await expect(p.locator('main h2').filter({ hasText: /^Sual / }).filter({ hasNotText: seen.at(-1) ?? '§' })).toBeVisible({ timeout: 20_000 })
+      seen.push((await p.locator('main h2').filter({ hasText: /^Sual / }).innerText()).trim())
+      // Aysel hamısını düz, Tural hamısını səhv cavablayır — nəticə ekranı göstərilmir, dərhal növbəti sual
+      await p.locator('main button[aria-label]', { hasText: i === 0 ? 'Düz' : 'Səhv' }).first().click()
+    }
+    orders.push(seen)
+    await expect(p.getByText('Bitirənlər')).toBeVisible({ timeout: 20_000 })
+  }
+  expect(new Set(orders[0])).toEqual(new Set(SELF_QUIZ.questions.map((q) => q.text)))
+  expect(new Set(orders[1])).toEqual(new Set(SELF_QUIZ.questions.map((q) => q.text)))
+  console.log('orders', JSON.stringify(orders))
+  // Hamı bitirdi → podium → (15 s sonra) yekun nəticə
+  await expect(players[0].locator('#result-card')).toContainText('1-ci yer', { timeout: 60_000 })
+  await expect(players[1].locator('#result-card')).toContainText('2-ci yer', { timeout: 20_000 })
+})

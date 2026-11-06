@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0 — 2026-11-06 (performans və ədalət)
+**Qoşulma**
+- Yeni telefonda eyni anda iki anonim giriş yaranırdı; səhifə köhnə uid ilə yazırdı və qoşulma "Lobbi bağlıdır" ilə rədd olunurdu. İndi bütün çağırışlar tək girişi paylaşır.
+- Oyun ekranı uid gələn ilk anda iştirakçını "yoxdur" sayıb qoşulma səhifəsinə qaytarırdı (join ↔ oyun dövrəsi, "çox gec qoşulur"). Yüklənmə vəziyyəti indi hər sənəd yolu üçün ayrıca izlənir; keşdən gələn "yoxdur" server təsdiqi sayılmır.
+- Qoşulma bir şəbəkə gedişidir və təkrara davamlıdır; rədd olunanda səbəb oyunun hazırkı vəziyyətindən dəqiq göstərilir (başlayıb / bağlıdır / doludur / ad uyğun deyil). 6 s-dən uzun çəkəndə "bağlantı zəifdir, gözləyin" bildirişi.
+- İştirakçı telefonlarında Firestore yaddaş keşi (IndexedDB + çox-tab koordinasiyası yalnız admin/host ekranlarında).
+
+**Sualın açılması**
+- Sualın cavabları, başlama və bitmə vaxtı oxuma mərhələsində yazılır; telefon cavabları server saatı ilə özü açır, hostun ikinci yazısını gözləmir. Şəbəkə gecikməsi oxuma vaxtının içində "əriyir".
+- Sual telefona yenə də gec çatarsa, an server vaxtı ilə qeyd olunur və sürət xalı o andan hesablanır (ən çox 5 s güzəşt).
+
+**Öz tempində rejimi**
+- "Hər iştirakçıya fərqli ardıcıllıq" (standart açıq; tapşırıq rejimində də): yanaşı oturanlar eyni anda fərqli suallar görür.
+- "Hər sualdan sonra nəticəni göstər" söndürülə bilər: iştirakçı dayanmadan sona qədər cavablayır, bitirəndə "Bitirənlər X/N" ekranında gözləyir; proyektorda xal gizlidir.
+- Növbəti sual cavab gələn kimi göndərilir (qiymətləndirməni gözləmir). Hamı bitirəndə və ya vaxt dolanda nəticələr podiumda açıqlanır.
+
 ## 0.5.2 — 2026-11-04
 - **Loqo şrifti:** Petrov Sans-a bənzər pulsuz (OFL) **Figtree 800** — yumşaq keçidli həndəsi forma. Nöqtə yenə brend qradiyentindədir (qırmızı→narıncı). İkonlar, OG şəkli, sertifikat və paylaşım kartı yeniləndi.
 

@@ -48,6 +48,8 @@ export interface QuizSettings {
   feedback: boolean
   teams: 0 | 2 | 3 | 4
   readTime: number // sualı cavablardan əvvəl göstərmə (s)
+  selfShuffle?: boolean // öz tempində / tapşırıq: hər iştirakçıya sualların fərqli ardıcıllığı
+  selfFeedback?: boolean // öz tempində: hər sualdan sonra nəticə (false → nəticələr sonda)
 }
 
 export type PowerType = 'fifty' | 'double' | 'shield'
@@ -134,6 +136,8 @@ export interface Game {
   publicQuestions?: PublicQuestion[]
   teamBoard?: TeamEntry[]
   selfEndsAt?: Timestamp | null
+  countdownAt?: Timestamp | null // sualın oxuma mərhələsinin server vaxtı (başlanğıc = countdownAt + readMs)
+  selfDone?: number // öz tempində: bütün sualları bitirənlərin sayı
   host?: HostProfile | null
 }
 
@@ -168,7 +172,7 @@ export interface Player {
   powerups?: PowerInventory
   power?: PowerUse | null
   fiftyHide?: { q: number; ids: string[] } | null
-  selfQ?: { index: number; q: PublicQuestion | null } | null
+  selfQ?: { index: number; step?: number; q: PublicQuestion | null } | null
   team?: number
 }
 

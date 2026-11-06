@@ -15,7 +15,11 @@ export function HostSelf({ game, players }: { game: Game; players: Player[] }) {
   const [now, setNow] = useState(serverNow())
   useEffect(() => { const id = setInterval(() => setNow(serverNow()), 500); return () => clearInterval(id) }, [])
   const left = (game.selfEndsAt?.toMillis() ?? now) - now
-  const ranked = rankPlayers(players)
+  // "Nəticələr sonda" rejimində proyektorda xal/yer göstərilmir — yalnız irəliləyiş
+  const hidden = game.settings.selfFeedback === false
+  const ranked = hidden
+    ? [...players].sort((a, b) => (b.history?.length ?? 0) - (a.history?.length ?? 0) || a.firstName.localeCompare(b.firstName)).map((p, i) => ({ ...p, rank: i + 1 }))
+    : rankPlayers(players)
   const done = players.filter((p) => (p.history?.length ?? 0) >= game.totalQuestions).length
   return (
     <div className="flex min-h-0 flex-1 gap-8 p-8">
@@ -40,12 +44,12 @@ export function HostSelf({ game, players }: { game: Game; players: Player[] }) {
             const pct = Math.min(100, (n / game.totalQuestions) * 100)
             return (
               <motion.li layout key={p.uid} className="glass flex items-center gap-4 px-4 py-3">
-                <span className="font-display w-8 text-center text-2xl font-black text-white/60">{p.rank}</span>
+                {!hidden && <span className="font-display w-8 text-center text-2xl font-black text-white/60">{p.rank}</span>}
                 <Avatar avatar={p.avatar} size={44} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-3">
                     <span className="truncate text-xl font-bold">{shortName(p.firstName, p.lastName)}</span>
-                    <span className="flex items-center gap-2 text-lg font-black tabular-nums">{n >= game.totalQuestions && <CheckCircle2 className="h-5 w-5 text-green-400" />}{n}/{game.totalQuestions} · {p.score.toLocaleString(LOCALE)}</span>
+                    <span className="flex items-center gap-2 text-lg font-black tabular-nums">{n >= game.totalQuestions && <CheckCircle2 className="h-5 w-5 text-green-400" />}{n}/{game.totalQuestions}{!hidden && <> · {p.score.toLocaleString(LOCALE)}</>}</span>
                   </div>
                   <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-white/10"><motion.div className="h-full rounded-full" style={{ background: 'var(--grad)' }} animate={{ width: `${pct}%` }} /></div>
                 </div>

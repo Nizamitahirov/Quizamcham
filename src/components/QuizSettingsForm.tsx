@@ -35,6 +35,12 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
         {s.mode === 'auto' && <Field className="mt-4" label={S.autoDelay}><Segmented value={s.autoDelay ?? 6} options={AUTO_DELAYS.map(sec)} onChange={(autoDelay) => onChange({ autoDelay })} /></Field>}
         {s.mode === 'assign' && <Field className="mt-4" label={S.assignDays}><Segmented value={s.assignDays ?? 7} options={ASSIGN_DAYS.map((n) => ({ value: n, label: S.days(n) }))} onChange={(assignDays) => onChange({ assignDays })} /></Field>}
         {s.mode === 'self' && <Field className="mt-4" label={S.selfMinutes}><Segmented value={s.selfMinutes ?? 15} options={SELF_MINUTES.map((n) => ({ value: n, label: S.minutes(n) }))} onChange={(selfMinutes) => onChange({ selfMinutes })} /></Field>}
+        {(s.mode === 'self' || s.mode === 'assign') && (
+          <div className={`mt-4 grid gap-2 ${s.mode === 'self' ? 'lg:grid-cols-2' : ''}`}>
+            <div className="rounded-xl border border-line px-3"><SwitchRow icon={Shuffle} checked={s.selfShuffle !== false} onChange={(selfShuffle) => onChange({ selfShuffle })} label={S.selfShuffle} desc={S.selfShuffleHint} /></div>
+            {s.mode === 'self' && <div className="rounded-xl border border-line px-3"><SwitchRow icon={Eye} checked={s.selfFeedback !== false} onChange={(selfFeedback) => onChange({ selfFeedback })} label={S.selfFeedback} desc={S.selfFeedbackHint} /></div>}
+          </div>
+        )}
       </Section>
 
       <Section icon={Timer} title={S.scoring} sub={S.generalSub}>

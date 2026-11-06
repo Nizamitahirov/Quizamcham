@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Clock, Flame, Hourglass, Trophy } from 'lucide-react'
 import { ensureAnonymous } from '../../firebase/auth'
 import { useGame, usePlayer, useInterval } from '../../lib/hooks'
-import { heartbeat, sendReaction, submitAnswer } from '../../lib/gameEngine'
+import { heartbeat, markSeenLate, sendReaction, submitAnswer } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
 import { shortName } from '../../lib/nameFilter'
 import { LOCALE, t } from '../../i18n/az'
@@ -57,7 +57,9 @@ export default function PlayerGame() {
     return () => window.removeEventListener('pointerdown', h)
   }, [])
 
-  const phase = game?.phase
+  // Sual oxuma mərhələsində artıq planlaşdırılıb: cavablar server saatı ilə bu telefonda özü açılır (hostu gözləmədən)
+  const live = useLiveQuestion(game)
+  const phase = game?.phase === 'countdown' && live ? 'question' : game?.phase
   useEffect(() => {
     if (!game) return
     audio.setTheme(game.settings.music?.theme ?? 'energetic')
@@ -83,14 +85,15 @@ export default function PlayerGame() {
   if (pMissing || !player) return <Navigate to={`/join?pin=${game.pin}`} replace />
   if (player.kicked) return <Message emoji="🚪" text={t.join.kicked} />
 
+  const view: Game = phase && phase !== game.phase ? { ...game, phase } : game
   const react = (e: string) => { flying.add(e); void sendReaction(game.id, uid, e).catch(() => {}) }
   const rank = player.lastResult?.rank ?? 0
-  const reveal = game.phase === 'reveal' && player.lastResult?.questionIndex === game.questionIndex && !player.lastResult.poll
+  const reveal = view.phase === 'reveal' && player.lastResult?.questionIndex === game.questionIndex && !player.lastResult.poll
   const tint = reveal ? (player.lastResult!.correct ? 'from-green-600/40' : 'from-red-600/35') : ''
 
   return (
     <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night">
-      <FuturisticBg floor={game.phase === 'lobby'} intensity={game.phase === 'question' ? 0.5 : 0.9} />
+      <FuturisticBg floor={view.phase === 'lobby'} intensity={view.phase === 'question' ? 0.5 : 0.9} />
       {tint && <div className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${tint} to-transparent`} />}
       <FloatingEmojis items={flying.items} />
       {stalled && <div className="fixed inset-x-0 top-0 z-50 bg-amber-400 px-3 py-2 text-center text-sm font-bold text-black" role="alert">{t.game.hostStalled}</div>}
@@ -110,16 +113,31 @@ export default function PlayerGame() {
           <MuteButton />
         </div>
       </header>
-      {game.settings.qa !== false && game.settings.mode !== 'assign' && !['question', 'countdown', 'self', 'finished'].includes(game.phase) && <PlayerQA gameId={game.id} uid={uid} name={shortName(player.firstName, player.lastName)} />}
+      {game.settings.qa !== false && game.settings.mode !== 'assign' && !['question', 'countdown', 'self', 'finished'].includes(view.phase) && <PlayerQA gameId={game.id} uid={uid} name={shortName(player.firstName, player.lastName)} />}
       <main className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col p-4 pb-20">
         <AnimatePresence mode="wait">
-          <motion.div key={game.phase + game.questionIndex} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
-            <PhaseView game={game} player={player} uid={uid} onReact={react} />
+          <motion.div key={view.phase + view.questionIndex} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
+            <PhaseView game={view} player={player} uid={uid} onReact={react} />
           </motion.div>
         </AnimatePresence>
       </main>
     </div>
   )
+}
+
+/** Oxuma mərhələsindəki sualın başlama anı (server saatı ilə) çatıbmı? */
+function useLiveQuestion(game: Game | null) {
+  const start = game?.phase === 'countdown' && game.currentQuestion ? game.questionStartedAt?.toMillis() ?? null : null
+  const [live, setLive] = useState(false)
+  useEffect(() => {
+    setLive(false)
+    if (start == null) return
+    const wait = start - serverNow()
+    if (wait <= 0) { setLive(true); return }
+    const id = setTimeout(() => setLive(true), wait)
+    return () => clearTimeout(id)
+  }, [start, game?.questionIndex])
+  return live && start != null
 }
 
 /** Host irəliləmirsə (sualın vaxtı keçib, amma faza dəyişmir) xəbərdarlıq — əlavə Firestore xərci olmadan. */
@@ -157,7 +175,7 @@ function PhaseView({ game, player, uid, onReact }: { game: Game; player: Player;
     case 'question': return <QuestionView game={game} uid={uid} player={player} />
     case 'reveal': return <RevealView game={game} player={player} />
     case 'leaderboard': return <LeaderboardView game={game} player={player} />
-    case 'podium': return <PodiumWait player={player} />
+    case 'podium': return <PodiumWait player={player} game={game} />
     case 'finished': return <PlayerResults game={game} player={player} />
     case 'self': return <SelfPlay game={game} player={player} uid={uid} />
   }
@@ -227,6 +245,14 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'late' | 'error'>(() => { try { return sessionStorage.getItem(key) ? 'sent' : 'idle' } catch { return 'idle' } })
   const [remaining, setRemaining] = useState(Infinity)
   const sentRef = useRef(false)
+  // Sual bu ekrana gec çatıbsa (şəbəkə), server vaxtı ilə qeyd et — sürət xalı itməsin
+  const seenRef = useRef(false)
+  useEffect(() => {
+    if (seenRef.current || !q || q.type === 'slide' || !game.questionStartedAt) return
+    seenRef.current = true
+    const lag = serverNow() - game.questionStartedAt.toMillis()
+    if (lag > 1500 && lag < q.timeLimit * 1000) void markSeenLate(game.id, uid, game.questionIndex).catch(() => {})
+  }, [q, game.id, game.questionIndex, game.questionStartedAt, uid])
   if (!q) return <Spinner />
   if (q.type === 'slide') {
     return (
@@ -401,9 +427,12 @@ function LeaderboardView({ game, player }: { game: Game; player: Player }) {
   )
 }
 
-function PodiumWait({ player }: { player: Player }) {
-  const r = player.lastResult
-  useEffect(() => { if (r && r.rank > 0 && r.rank <= 3) setTimeout(() => celebrate(3000), 2500) }, [r])
+function PodiumWait({ player, game }: { player: Player; game: Game }) {
+  // öz tempində rejimdə fərdi nəticədə yer yoxdur — reytinqdən götürülür
+  const lbRank = game.leaderboard.find((e) => e.uid === player.uid)?.rank ?? 0
+  const r = player.lastResult && player.lastResult.rank > 0 ? player.lastResult : lbRank ? { ...(player.lastResult ?? {}), rank: lbRank } as NonNullable<Player['lastResult']> : player.lastResult
+  const top3 = !!r && r.rank > 0 && r.rank <= 3
+  useEffect(() => { if (top3) { const id = setTimeout(() => celebrate(3000), 2500); return () => clearTimeout(id) } }, [top3])
   return (
     <div className="m-auto flex flex-col items-center gap-4 text-center">
       <Sticker emoji="🏆" size={130} />

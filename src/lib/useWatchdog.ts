@@ -23,7 +23,7 @@ export function useWatchdog(game: Game | null, player: Player | null, uid: strin
       if (document.visibilityState !== 'visible') return
       const age = Date.now() - seen.current.at
       const stuck =
-        (game.phase === 'countdown' && age > (game.preview?.readMs ?? 4000) + 4000) ||
+        (game.phase === 'countdown' && !game.questionStartedAt && age > (game.preview?.readMs ?? 4000) + 4000) ||
         (game.phase === 'question' && !game.questionEndsAt && game.pausedRemainingMs == null && game.currentQuestion?.type !== 'slide' && age > 3000) ||
         (game.phase === 'question' && game.questionEndsAt && Date.now() > game.questionEndsAt.toMillis() + 6000) ||
         (game.phase === 'reveal' && player?.lastResult?.questionIndex !== game.questionIndex && age > 5000)

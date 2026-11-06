@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowRight, Check, Clock, Flame, Hourglass, PartyPopper, X } from 'lucide-react'
+import { ArrowRight, Check, Clock, Flame, Hourglass, PartyPopper, Users, X } from 'lucide-react'
 import { LOCALE, t } from '../../i18n/az'
 import { audio } from '../../audio/AudioEngine'
-import { startSelfQuestion, submitAnswer } from '../../lib/gameEngine'
+import { selfOrder, startSelfQuestion, submitAnswer } from '../../lib/gameEngine'
 import { serverNow } from '../../lib/timeSync'
 import { burst } from '../../components/Confetti'
 import { Sticker } from '../../components/Sticker'
@@ -33,8 +33,13 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
   const sq = player.selfQ
   useEffect(() => { if (sq?.q) setCache((c) => (c[sq.index] ? c : { ...c, [sq.index]: sq.q! })) }, [sq])
   const qFor = (i: number) => cache[i] ?? game.publicQuestions?.[i] ?? null
+  // Hər iştirakçının öz sual ardıcıllığı (host da eyni ardıcıllığı hesablayır)
+  const order = useMemo(() => selfOrder(game.id, uid, total, game.settings), [game.id, uid, total, game.settings])
+  const qi = order[idx] ?? idx
 
   const assign = game.settings.mode === 'assign'
+  // "Nəticələr sonda": cavabdan sonra dərhal növbəti suala keçir, nəticə hamı bitirəndən sonra açıqlanır
+  const instant = assign || game.settings.selfFeedback === false
   const advance = () => { const n = idx + 1; try { sessionStorage.setItem(key, String(n)) } catch { /* noop */ } setIdx(n); setStage('answer') }
   if (assign && (idx >= total || left <= 0)) {
     return (
@@ -46,15 +51,26 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
     )
   }
   if (idx >= total || left <= 0) {
+    const done = game.selfDone ?? 0
+    const all = game.playerCount || 0
     return (
-      <div className="m-auto flex flex-col items-center gap-4 text-center">
+      <div className="m-auto flex w-full flex-col items-center gap-4 text-center">
         <Sticker emoji="🏁" size={110} />
         <h2 className="text-3xl font-black">{left <= 0 && idx < total ? t.game.timeUp : t.game.selfDone}</h2>
-        <p className="text-white/60">{t.game.selfDoneSub}</p>
-        <div className="glass flex items-center gap-6 px-6 py-4">
-          <div><div className="label-dark">{t.results.totalScore}</div><div className="font-display text-3xl font-black">{player.score.toLocaleString(LOCALE)}</div></div>
-          <div><div className="label-dark">{t.results.correctCount}</div><div className="font-display text-3xl font-black">{player.correctCount}/{total}</div></div>
-        </div>
+        <p className="max-w-xs text-white/60">{instant ? t.game.selfDoneEnd : t.game.selfDoneSub}</p>
+        {!instant && (
+          <div className="glass flex items-center gap-6 px-6 py-4">
+            <div><div className="label-dark">{t.results.totalScore}</div><div className="font-display text-3xl font-black">{player.score.toLocaleString(LOCALE)}</div></div>
+            <div><div className="label-dark">{t.results.correctCount}</div><div className="font-display text-3xl font-black">{player.correctCount}/{total}</div></div>
+          </div>
+        )}
+        {all > 0 && (
+          <div className="glass w-full max-w-xs px-5 py-4">
+            <div className="flex items-center justify-between text-sm font-bold"><span className="flex items-center gap-2 text-white/70"><Users className="h-4 w-4" />{t.game.finishedCount}</span><span className="font-display text-lg font-black tabular-nums">{Math.min(done, all)}/{all}</span></div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10"><motion.div className="h-full rounded-full" style={{ background: 'var(--grad)' }} animate={{ width: `${Math.min(100, (done / all) * 100)}%` }} /></div>
+            <p className="mt-2 text-xs text-white/50">{t.game.revealAtEnd}</p>
+          </div>
+        )}
       </div>
     )
   }
@@ -68,8 +84,8 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
       <AnimatePresence mode="wait">
         <motion.div key={idx + stage} className="flex flex-1 flex-col" initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.22 }}>
           {stage === 'result'
-            ? <SelfResult game={game} player={player} qi={idx} q={qFor(idx)} onNext={advance} />
-            : qFor(idx) ? <SelfQuestion game={game} player={player} uid={uid} qi={idx} q={qFor(idx)!} waiting={stage === 'wait'} onSent={() => { if (!assign) setStage('wait') }} onSubmitted={assign ? advance : undefined} onResult={() => setStage('result')} /> : <div className="m-auto"><Hourglass className="h-10 w-10 animate-spin text-orange-400" /></div>}
+            ? <SelfResult game={game} player={player} qi={qi} last={idx + 1 >= total} q={qFor(qi)} onNext={advance} />
+            : qFor(qi) ? <SelfQuestion game={game} player={player} uid={uid} qi={qi} q={qFor(qi)!} waiting={stage === 'wait'} onSent={() => { if (!instant) setStage('wait') }} onSubmitted={instant ? advance : undefined} onResult={() => { if (!instant) setStage('result') }} /> : <div className="m-auto"><Hourglass className="h-10 w-10 animate-spin text-orange-400" /></div>}
         </motion.div>
       </AnimatePresence>
     </div>
@@ -141,8 +157,8 @@ function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onS
   )
 }
 
-function SelfResult({ game, player, qi, q, onNext }: { game: Game; player: Player; qi: number; q: PublicQuestion | null; onNext: () => void }) {
-  const r = player.lastResult
+function SelfResult({ game, player, qi, last, q, onNext }: { game: Game; player: Player; qi: number; last: boolean; q: PublicQuestion | null; onNext: () => void }) {
+  const r = player.lastResult?.questionIndex === qi ? player.lastResult : null
   const seed = useMemo(() => Math.random(), [])
   const fx = useRef(false)
   useEffect(() => {
@@ -174,7 +190,7 @@ function SelfResult({ game, player, qi, q, onNext }: { game: Game; player: Playe
       )}
       {rv?.explanation && <div className="glass w-full p-3 text-left text-sm leading-relaxed"><b className="text-orange-300">💡 {t.game.explanation}:</b> {rv.explanation}</div>}
       {r.timeMs != null && <span className="chip chip-dark"><Clock className="h-3.5 w-3.5" />{t.game.answerTime(`${(r.timeMs / 1000).toFixed(2)} s`)}</span>}
-      <button className="btn btn-primary btn-lg mt-auto w-full" onClick={onNext}>{qi + 1 >= game.totalQuestions ? <><PartyPopper />{t.game.gameOver}</> : <>{t.game.next}<ArrowRight /></>}</button>
+      <button className="btn btn-primary btn-lg mt-auto w-full" onClick={onNext}>{last ? <><PartyPopper />{t.game.gameOver}</> : <>{t.game.next}<ArrowRight /></>}</button>
     </div>
   )
 }

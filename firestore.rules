@@ -121,16 +121,22 @@ service cloud.firestore {
         allow delete: if isGameHost(gameId);
       }
 
-      match /starts/{startId} {        // öz tempində / tapşırıq: sualın başlama vaxtı (bir dəfə)
+      // öz tempində / tapşırıq: sualın başlama vaxtı (bir dəfə);
+      // canlı rejimdə: sualı gec görən iştirakçının qeydi (host sürət xalını ən çox 5 s güzəştlə hesablayır)
+      match /starts/{startId} {
         allow read: if isGameHost(gameId) || (signedIn() && resource.data.uid == request.auth.uid);
         allow create: if signedIn()
           && startId == request.auth.uid + '_' + string(request.resource.data.q)
           && request.resource.data.keys().hasOnly(['uid','q','startedAt'])
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.startedAt == request.time
-          && game(gameId).phase == 'self'
           && request.resource.data.q is int && request.resource.data.q >= 0 && request.resource.data.q < game(gameId).totalQuestions
-          && request.time <= game(gameId).selfEndsAt;
+          && (
+            (game(gameId).phase == 'self' && request.time <= game(gameId).selfEndsAt)
+            || (game(gameId).phase in ['countdown', 'question']
+                && request.resource.data.q == game(gameId).questionIndex
+                && isPlayer(gameId))
+          );
         allow update, delete: if false;
       }
 
@@ -145,9 +151,12 @@ service cloud.firestore {
           && exists(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid))
           && get(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid)).data.kicked == false
           && (
-            (game(gameId).phase == 'question'
+            // sual oxuma mərhələsində planlaşdırılır: başlama anından (2 s saat fərqi ehtiyatı ilə) bitmə + 2 s-ə qədər
+            (game(gameId).phase in ['countdown', 'question']
               && request.resource.data.questionIndex == game(gameId).questionIndex
               && game(gameId).questionEndsAt != null
+              && game(gameId).questionStartedAt != null
+              && request.time >= game(gameId).questionStartedAt - duration.value(2, 's')
               && request.time <= game(gameId).questionEndsAt + duration.value(2, 's'))
             || (game(gameId).phase == 'self'
               && request.time <= game(gameId).selfEndsAt + duration.value(5, 's')

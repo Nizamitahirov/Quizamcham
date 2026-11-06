@@ -12,12 +12,24 @@ export function waitForUser(): Promise<User | null> {
   })
 }
 
-/** Oyunçu üçün: mövcud sessiyanı saxla, yoxdursa anonim giriş. */
-export async function ensureAnonymous(): Promise<User> {
-  const u = await waitForUser()
-  if (u) return u
-  const cred = await signInAnonymously(auth)
-  return cred.user
+/**
+ * Oyunçu üçün: mövcud sessiyanı saxla, yoxdursa anonim giriş.
+ * Eyni anda bir neçə çağırış (məs. qoşulma səhifəsi + oyun ekranı) TƏK giriş paylaşır — əks halda hər biri ayrı
+ * anonim hesab yaradır, səhifə köhnə uid-i saxlayır və yazılar "icazə yoxdur" ilə rədd olunurdu ("Lobbi bağlıdır").
+ */
+let pendingAnon: Promise<User> | null = null
+export function ensureAnonymous(): Promise<User> {
+  if (auth.currentUser) return Promise.resolve(auth.currentUser)
+  if (!pendingAnon) {
+    pendingAnon = (async () => {
+      const u = await waitForUser()
+      if (u) return u
+      const cred = await signInAnonymously(auth)
+      await cred.user.getIdToken() // token hazır olsun ki, ilk Firestore sorğusu anonim (icazəsiz) getməsin
+      return cred.user
+    })().finally(() => { pendingAnon = null })
+  }
+  return pendingAnon
 }
 
 export type Role = 'owner' | 'trainer'
