@@ -1,7 +1,8 @@
 import { useEffect, useRef, type MutableRefObject } from 'react'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 import { db } from '../../firebase/config'
-import { deliverFirstSelfQ, fetchPlayers, finishGame, scoreSelfAnswer, selfAnswersQuery, updateLeaderboard } from '../../lib/gameEngine'
+import { doc as fdoc, updateDoc } from 'firebase/firestore'
+import { deliverFirstSelfQ, deliverNextSelfQ, fetchPlayers, finishGame, scoreSelfAnswer, selfAnswersQuery, toPhase, updateLeaderboard } from '../../lib/gameEngine'
 import { serverNow } from '../../lib/timeSync'
 import type { Answer, Game, Player, Question } from '../../types'
 
@@ -37,6 +38,9 @@ export function useSelfEngine({ game, questions, active, gameId, guard, once }: 
         const key = `sa-${c.doc.id}`
         if (guard.current.has(key)) return
         guard.current.add(key)
+        // Növbəti sualı dərhal göndər — qiymətləndirmə arxa planda gedir
+        const g0 = gameRef.current
+        if (g0) void deliverNextSelfQ(gameId, a.uid, a.questionIndex, questions, g0.settings).catch(() => {})
         const prev = chains.current.get(a.uid) ?? Promise.resolve()
         const job = prev.then(async () => {
           const ps = await getDoc(doc(db, 'games', gameId, 'players', a.uid))
@@ -62,17 +66,38 @@ export function useSelfEngine({ game, questions, active, gameId, guard, once }: 
     })
   }, [game, questions, active, gameId, guard])
 
-  // Öz tempində: vaxt bitdikdə və ya hamı bitirəndə avtomatik yekunlaşdır
+  // Öz tempində: bitirənlərin sayı (iştirakçılar "X/N bitirib" görür)
+  const doneCount = active.filter((p) => (p.history?.length ?? 0) >= (game?.totalQuestions ?? Infinity)).length
+  useEffect(() => {
+    if (!isSelf || (game?.selfDone ?? 0) === doneCount) return
+    const id = setTimeout(() => void updateDoc(fdoc(db, 'games', gameId), { selfDone: doneCount }).catch(() => {}), 800)
+    return () => clearTimeout(id)
+  }, [isSelf, doneCount, game?.selfDone, gameId])
+
+  // Öz tempində: vaxt bitdikdə və ya hamı bitirəndə — reytinq yenilənir və nəticələr podiumda açıqlanır
   useEffect(() => {
     if (!game || !questions || game.phase !== 'self') return
     const check = () => {
       const ends = game.selfEndsAt?.toMillis() ?? Infinity
       const allDone = active.length > 0 && active.every((p) => (p.history?.length ?? 0) >= game.totalQuestions)
-      if (serverNow() > ends + 6000 || allDone) void once('fin', () => finishGame(game, questions))
+      if (serverNow() > ends + 6000 || allDone) {
+        void once('self-end', async () => {
+          await Promise.all([...chains.current.values()]).catch(() => {}) // son cavablar qiymətləndirilsin
+          await updateLeaderboard(gameId, await fetchPlayers(gameId), game.leaderboard ?? [], game.settings.teams ?? 0)
+          await toPhase(gameId, 'podium')
+        })
+      }
     }
     const id = setInterval(check, 1000)
     return () => clearInterval(id)
-  }, [game, questions, active, once])
+  }, [game, questions, active, once, gameId])
+
+  // Öz tempində podium: host toxunmasa da 15 s sonra oyun yekunlaşır (nəzarətsiz proyektor)
+  useEffect(() => {
+    if (!game || !questions || game.phase !== 'podium' || game.settings.mode !== 'self') return
+    const id = setTimeout(() => void once('fin', () => finishGame(game, questions)), 15000)
+    return () => clearTimeout(id)
+  }, [game, questions, once])
 
   return gameRef
 }

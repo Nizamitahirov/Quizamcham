@@ -7,7 +7,7 @@ import type { Answer, AvatarData, Award, Fastest, Game, GameStats, HistoryItem, 
 import { POWER_START } from './defaults'
 import { evaluateAnswer, normalizeText, rankPlayers, SCORED_TYPES, basePoints, streakBonus } from './scoring'
 import { randomPin } from './pin'
-import { shuffle } from './shuffle'
+import { seededShuffle, shuffle } from './shuffle'
 import { serverNow } from './timeSync'
 import { shortName } from './nameFilter'
 import { track } from '../firebase/extras'
@@ -16,6 +16,8 @@ import { computeTeams, pickTeam } from './teams'
 export const MIN_READ_MS = 3000
 export const readMsFor = (settings: QuizSettings | undefined, q?: Question) => (q?.type === 'slide' ? 1500 : Math.max(MIN_READ_MS, (settings?.readTime ?? 4) * 1000))
 export const GRACE_MS = 1500
+/** Sual iştirakçının ekranına gec çatanda (zəif şəbəkə) sürət xalı üçün ən çox bu qədər güzəşt edilir. */
+export const MAX_LAG_MS = 5000
 export const ACTIVE_GAME_KEY = 'qz.activeGame'
 
 // ============ Oyunun yaradılması (bölmə 10.3) ============
@@ -109,22 +111,60 @@ export async function assignTeams(gameId: string, players: Player[], n: number) 
 
 export const kickPlayer = (gameId: string, uid: string) => updateDoc(doc(db, 'games', gameId, 'players', uid), { kicked: true })
 
-/** Növbəti sual: əvvəlcə yalnız mətn göstərilir (oxuma vaxtı), sonra cavablar açılır. */
-export const toCountdown = (gameId: string, index: number, q: Question, settings: QuizSettings, extra: Record<string, unknown> = {}) =>
-  updateDoc(gref(gameId), {
-    phase: 'countdown', questionIndex: index, currentQuestion: null, reveal: null,
+/**
+ * Növbəti sual: əvvəlcə yalnız mətn göstərilir (oxuma vaxtı), sonra cavablar açılır.
+ * Sualın ictimai hissəsi və başlama/bitmə vaxtı ELƏ BU MƏRHƏLƏDƏ yazılır — iştirakçının telefonu
+ * cavabları server saatı ilə özü açır və hostun ikinci yazısını gözləmir. Beləliklə şəbəkə gecikməsi
+ * oxuma vaxtının içində "əriyir" və heç kimin vaxtı texniki səbəbdən yanmır.
+ */
+export async function toCountdown(gameId: string, index: number, q: Question, settings: QuizSettings, extra: Record<string, unknown> = {}) {
+  await updateDoc(gref(gameId), {
+    phase: 'countdown', questionIndex: index, reveal: null,
+    currentQuestion: JSON.parse(JSON.stringify(toPublic(q, settings))),
     preview: JSON.parse(JSON.stringify({ index, text: q.text, type: q.type, imageUrl: q.imageUrl || undefined, points: q.points, readMs: readMsFor(settings, q) })),
-    questionStartedAt: null, questionEndsAt: null, pausedRemainingMs: null, answeredCount: 0, ...extra,
+    countdownAt: serverTimestamp(), questionStartedAt: null, questionEndsAt: null, pausedRemainingMs: null, answeredCount: 0, ...extra,
   })
+  await scheduleQuestion(gameId, index, q, settings).catch(() => { /* host ekranı təmir edəcək */ })
+}
 
-/** Sualı aç: əvvəl server vaxtı ilə başlanğıc, sonra bitmə vaxtı. */
-export async function toQuestion(gameId: string, q: Question, settings: QuizSettings) {
+/** Başlama = countdownAt (server) + oxuma vaxtı; bitmə = başlama + sualın vaxtı. Host saatından asılı deyil. */
+export async function scheduleQuestion(gameId: string, index: number, q: Question, settings: QuizSettings) {
+  let lastErr: unknown
+  for (let i = 0; i < 3; i++) {
+    try {
+      const snap = await getDocFromServer(gref(gameId))
+      if (snap.get('phase') !== 'countdown' || snap.get('questionIndex') !== index || snap.get('questionStartedAt')) return
+      const at = snap.get('countdownAt') as Timestamp | null
+      const start = (at ? at.toMillis() : serverNow()) + readMsFor(settings, q)
+      await updateDoc(gref(gameId), {
+        questionStartedAt: Timestamp.fromMillis(start),
+        questionEndsAt: q.type === 'slide' ? null : Timestamp.fromMillis(start + q.timeLimit * 1000),
+      })
+      return
+    } catch (e) { lastErr = e; await new Promise((r) => setTimeout(r, 400 * (i + 1))) }
+  }
+  throw lastErr
+}
+
+/** Host ekranı üçün fazanı "question"-a keçirir (iştirakçılar sualı artıq vaxtında görür). */
+export async function toQuestion(gameId: string, index: number, q: Question, settings: QuizSettings) {
+  const snap = await getDocFromServer(gref(gameId))
+  if (snap.get('phase') !== 'countdown' || snap.get('questionIndex') !== index) return
+  if (snap.get('questionStartedAt')) {
+    await updateDoc(gref(gameId), { phase: 'question', preview: null })
+    return
+  }
+  // Plan yazısı heç alınmayıbsa: köhnə üsulla indi başlat
   await updateDoc(gref(gameId), {
     phase: 'question', currentQuestion: JSON.parse(JSON.stringify(toPublic(q, settings))), preview: null, questionStartedAt: serverTimestamp(), questionEndsAt: null, pausedRemainingMs: null,
   })
   if (q.type === 'slide') return
   await setQuestionEnd(gameId, q.timeLimit)
 }
+
+/** İştirakçı sualı gec gördü (şəbəkə): server vaxtı ilə qeyd — sürət xalı bu andan hesablanır (ən çox MAX_LAG_MS). */
+export const markSeenLate = (gameId: string, uid: string, qi: number) =>
+  setDoc(doc(db, 'games', gameId, 'starts', `${uid}_${qi}`), { uid, q: qi, startedAt: serverTimestamp() })
 
 /**
  * Bitmə vaxtını server başlanğıc vaxtından hesablayıb yazır (3 cəhd).
@@ -181,6 +221,16 @@ export async function fetchAnswers(gameId: string, qIndex: number): Promise<Map<
   return m
 }
 
+/** Sualı gec görənlərin server vaxtları (uid → ms). */
+async function fetchSeen(gameId: string, qi: number): Promise<Map<string, number>> {
+  const m = new Map<string, number>()
+  try {
+    const snap = await getDocs(query(collection(db, 'games', gameId, 'starts'), where('q', '==', qi)))
+    snap.docs.forEach((d) => { const ts = d.get('startedAt') as Timestamp | null; if (ts) m.set(d.get('uid') as string, ts.toMillis()) })
+  } catch { /* güzəştsiz davam */ }
+  return m
+}
+
 export async function fetchPlayers(gameId: string): Promise<Player[]> {
   const snap = await getDocs(collection(db, 'games', gameId, 'players'))
   return snap.docs.map((d) => ({ ...(d.data() as Player), uid: d.id }))
@@ -203,8 +253,10 @@ export async function finishQuestion(game: Game, questions: Question[]) {
   // Təkrar hesablamaya qarşı (məs. iki host tabı): serverdəki faza artıq dəyişibsə, heç nə etmə
   const fresh = await getDocFromServer(gref(game.id))
   if (fresh.get('phase') !== 'question' || fresh.get('questionIndex') !== qi) return
-  const [players, answers] = await Promise.all([fetchPlayers(game.id), fetchAnswers(game.id, qi)])
-  const startedMs = game.questionStartedAt?.toMillis() ?? 0
+  const [players, answers, seen] = await Promise.all([fetchPlayers(game.id), fetchAnswers(game.id, qi), fetchSeen(game.id, qi)])
+  const startedMs = (fresh.get('questionStartedAt') as Timestamp | null)?.toMillis() ?? game.questionStartedAt?.toMillis() ?? 0
+  // Sual ekrana gec çatıbsa, sürət o andan sayılır (ən çox MAX_LAG_MS güzəşt)
+  const startFor = (uid: string) => { const s = seen.get(uid); return s && s > startedMs ? startedMs + Math.min(MAX_LAG_MS, s - startedMs) : startedMs }
   const settings = game.settings
   const prevRanked = rankPlayers(players.filter((p) => !p.kicked))
   const prevRank = new Map(qi > 0 ? prevRanked.map((p) => [p.uid, p.rank] as [string, number]) : [])
@@ -218,7 +270,7 @@ export async function finishQuestion(game: Game, questions: Question[]) {
     if (p.kicked || (p.history ?? []).some((h) => h.q === qi)) return { p, item: null as HistoryItem | null, bonus: 0, answered: false, ev: null, used: null as PowerType | null, shielded: false, timeMs: null as number | null }
     const a = answers.get(p.uid)
     const answered = !!a
-    const timeMs = a?.answeredAt ? Math.max(0, a.answeredAt.toMillis() - startedMs) : null
+    const timeMs = a?.answeredAt ? Math.max(0, a.answeredAt.toMillis() - startFor(p.uid)) : null
     const value = a?.value ?? null
     if (a) {
       if (Array.isArray(a.value)) a.value.forEach((v) => { if (v in distribution) distribution[v]++ })
@@ -363,17 +415,38 @@ export async function startSelf(game: Game, questions: Question[]) {
   const players = (await fetchPlayers(game.id)).filter((p) => !p.kicked && !p.selfQ)
   for (let i = 0; i < players.length; i += 400) {
     const b = writeBatch(db)
-    players.slice(i, i + 400).forEach((p) => b.update(doc(db, 'games', game.id, 'players', p.uid), { selfQ: selfQFor(questions, 0, game.settings) }))
+    players.slice(i, i + 400).forEach((p) => b.update(doc(db, 'games', game.id, 'players', p.uid), { selfQ: selfQFor(questions, 0, game.settings, game.id, p.uid) }))
     await b.commit()
   }
 }
 
-export const selfQFor = (questions: Question[], index: number, settings: QuizSettings) =>
-  index < questions.length ? JSON.parse(JSON.stringify({ index, q: toPublic(questions[index], settings) })) : { index, q: null }
+/**
+ * Öz tempində / tapşırıq: iştirakçının sual ardıcıllığı (addım → sual indeksi).
+ * "Hər iştirakçıya fərqli ardıcıllıq" açıqdırsa, uid ilə toxumlanmış qarışdırma — host və telefon eyni nəticəni hesablayır,
+ * ona görə ardıcıllığı saxlamağa ehtiyac yoxdur. Yanaşı oturanlar eyni anda fərqli suallar görür.
+ */
+export function selfOrder(gameId: string, uid: string, n: number, settings: Partial<QuizSettings> | undefined): number[] {
+  const base = Array.from({ length: n }, (_, i) => i)
+  return settings?.selfShuffle === false ? base : seededShuffle(base, `${gameId}:${uid}`)
+}
+
+/** Addım üçün sual (ictimai hissə). step ≥ n → sual qalmayıb. */
+export function selfQFor(questions: Question[], step: number, settings: QuizSettings, gameId: string, uid: string) {
+  if (step >= questions.length) return { index: questions.length, step, q: null }
+  const index = selfOrder(gameId, uid, questions.length, settings)[step]
+  return JSON.parse(JSON.stringify({ index, step, q: toPublic(questions[index], settings) }))
+}
 
 /** Gec qoşulan oyunçuya ilk sualı ver. */
 export const deliverFirstSelfQ = (gameId: string, uid: string, questions: Question[], settings: QuizSettings) =>
-  updateDoc(doc(db, 'games', gameId, 'players', uid), { selfQ: selfQFor(questions, 0, settings) })
+  updateDoc(doc(db, 'games', gameId, 'players', uid), { selfQ: selfQFor(questions, 0, settings, gameId, uid) })
+
+/** Cavab gələn kimi növbəti sualı dərhal göndər (qiymətləndirməni gözləmədən) — iştirakçı ləngimədən irəliləyir. */
+export function deliverNextSelfQ(gameId: string, uid: string, answeredQi: number, questions: Question[], settings: QuizSettings) {
+  const step = selfOrder(gameId, uid, questions.length, settings).indexOf(answeredQi)
+  if (step < 0) return Promise.resolve()
+  return updateDoc(doc(db, 'games', gameId, 'players', uid), { selfQ: selfQFor(questions, step + 1, settings, gameId, uid) })
+}
 
 export const startSelfQuestion = (gameId: string, uid: string, qi: number) =>
   setDoc(doc(db, 'games', gameId, 'starts', `${uid}_${qi}`), { uid, q: qi, startedAt: serverTimestamp() })
@@ -414,7 +487,8 @@ export async function scoreSelfAnswer(game: Game, questions: Question[], player:
   await updateDoc(doc(db, 'games', game.id, 'players', player.uid), {
     score: np.score ?? 0, correctCount: np.correctCount ?? 0, streak: np.streak ?? 0, bestStreak: np.bestStreak ?? 0,
     totalCorrectTimeMs: np.totalCorrectTimeMs ?? 0, history: np.history, ...(np.powerups ? { powerups: np.powerups } : {}),
-    selfQ: selfQFor(questions, qi + 1, settings),
+    // növbəti sual artıq göndərilib (deliverNextSelfQ); yalnız geri qaytarmadan ehtiyat üçün yazılır
+    ...(np.history.length > (player.selfQ?.step ?? -1) ? { selfQ: selfQFor(questions, np.history.length, settings, game.id, player.uid) } : {}),
     lastResult: JSON.parse(JSON.stringify({
       questionIndex: qi, correct: ev.correct, points: ev.points, streakBonus: bonus, rank: 0, prevRank: 0, answered: value !== null,
       poll: !ev.scored, streak: np.streak ?? 0, total: 0, timeMs, power: used ?? fifty, shielded,
@@ -506,20 +580,38 @@ export async function lookupPin(pin: string): Promise<{ gameId: string; active: 
   return { gameId: s.get('gameId') as string, active: s.get('active') !== false }
 }
 
+/**
+ * Qoşulma — bir şəbəkə gedişi (əvvəlcədən oxu yoxdur). Təkrara davamlıdır: əvvəlki cəhd serverə çatıb,
+ * amma cavabı itibsə (zəif şəbəkə), ikinci yazı "update" sayılıb rədd olunur — onda sənədin artıq
+ * mövcud olduğu yoxlanır və qoşulma uğurlu sayılır (əvvəl bu hal "Lobbi bağlıdır" kimi göstərilirdi).
+ */
 export async function joinGame(gameId: string, uid: string, firstName: string, lastName: string, avatar: AvatarData, team?: number) {
   const ref = doc(db, 'games', gameId, 'players', uid)
-  const existing = await getDoc(ref).catch(() => null)
-  if (existing?.exists()) {
-    await updateDoc(ref, { firstName, lastName, avatar, lastSeen: serverTimestamp() })
-    return
+  try {
+    await setDoc(ref, {
+      firstName, lastName, avatar, joinedAt: serverTimestamp(), lastSeen: serverTimestamp(), kicked: false,
+      score: 0, correctCount: 0, streak: 0, bestStreak: 0, totalCorrectTimeMs: 0, lastResult: null, history: [],
+      powerups: { ...POWER_START }, power: null, fiftyHide: null,
+      ...(team != null ? { team } : {}),
+    })
+    void track('player_joined')
+  } catch (e) {
+    if ((e as { code?: string }).code !== 'permission-denied') throw e
+    const mine = await getDocFromServer(ref).catch(() => null)
+    if (!mine?.exists()) throw e
+    if (mine.get('kicked')) throw Object.assign(new Error('kicked'), { code: 'kicked' })
+    // artıq qoşulub — profili (lobbidədirsə) yenilə, alınmasa da problem deyil
+    await updateDoc(ref, { firstName, lastName, avatar, lastSeen: serverTimestamp() }).catch(() => {})
   }
-  await setDoc(ref, {
-    firstName, lastName, avatar, joinedAt: serverTimestamp(), lastSeen: serverTimestamp(), kicked: false,
-    score: 0, correctCount: 0, streak: 0, bestStreak: 0, totalCorrectTimeMs: 0, lastResult: null, history: [],
-    powerups: { ...POWER_START }, power: null, fiftyHide: null,
-    ...(team != null ? { team } : {}),
-  })
-  void track('player_joined')
+}
+
+/** Qoşulmanın niyə mümkün olmadığını oyun vəziyyətindən izah edir (null → mane yoxdur). */
+export function joinBlockReason(g: Pick<Game, 'phase' | 'locked' | 'settings' | 'playerCount'>): 'finished' | 'locked' | 'started' | 'full' | null {
+  if (g.phase === 'finished') return 'finished'
+  if (g.locked) return 'locked'
+  if (g.phase !== 'lobby' && !g.settings?.lateJoin) return 'started'
+  if ((g.playerCount ?? 0) >= (g.settings?.maxPlayers ?? 200)) return 'full'
+  return null
 }
 
 export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value'] | null) =>

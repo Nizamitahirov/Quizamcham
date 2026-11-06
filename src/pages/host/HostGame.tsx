@@ -7,7 +7,7 @@ import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
   answersQuery, assignTeams, createGame, grantFifty, setQuestionEnd, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
-  pauseQuestion, resumeQuestion, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
+  pauseQuestion, resumeQuestion, scheduleQuestion, updateLeaderboard, fetchPlayers, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
 import { t } from '../../i18n/az'
@@ -133,7 +133,16 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
     if (!game || !questions || game.phase !== 'countdown') return
     const q = questions[game.questionIndex]
     if (!q) return
-    const id = setTimeout(() => void once(`q-${game.questionIndex}`, () => toQuestion(gameId, q, game.settings)), game.preview?.readMs ?? readMsFor(game.settings, q))
+    const qi = game.questionIndex
+    const startMs = game.questionStartedAt?.toMillis()
+    if (!startMs) {
+      // Başlama vaxtı yazılmayıb (şəbəkə): 2.5 s sonra təmir, alınmasa oxuma vaxtından sonra köhnə üsulla başlat
+      const readMs = game.preview?.readMs ?? readMsFor(game.settings, q)
+      const a = setTimeout(() => void once(`sch-${qi}`, () => scheduleQuestion(gameId, qi, q, game.settings)), 2500)
+      const b = setTimeout(() => void once(`q-${qi}`, () => toQuestion(gameId, qi, q, game.settings)), readMs + 4000)
+      return () => { clearTimeout(a); clearTimeout(b) }
+    }
+    const id = setTimeout(() => void once(`q-${qi}`, () => toQuestion(gameId, qi, q, game.settings)), Math.max(0, startMs - serverNow()))
     return () => clearTimeout(id)
   }, [game, questions, gameId, once])
 
@@ -197,7 +206,11 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
         else void once('start', () => toCountdown(gameId, 0, questions[0], game.settings, { startedAt: Timestamp.fromMillis(serverNow()) }))
         break
       case 'self':
-        void once('fin', () => finishGame(game, questions))
+        // nəticələr podiumda açıqlanır
+        void once('self-end', async () => {
+          await updateLeaderboard(gameId, await fetchPlayers(gameId), game.leaderboard ?? [], game.settings.teams ?? 0)
+          await toPhase(gameId, 'podium')
+        })
         break
       case 'question':
         if (game.currentQuestion?.type === 'slide') {

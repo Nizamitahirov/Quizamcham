@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowRight, Rocket } from 'lucide-react'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, getDocFromServer } from 'firebase/firestore'
 import { motion } from 'framer-motion'
 import { db } from '../../firebase/config'
 import { ensureAnonymous } from '../../firebase/auth'
 import { loadAppSettings } from '../../firebase/db'
-import { joinGame, lookupPin } from '../../lib/gameEngine'
+import { joinBlockReason, joinGame, lookupPin } from '../../lib/gameEngine'
 import { isValidPin } from '../../lib/pin'
 import { cleanName, isNameAllowed } from '../../lib/nameFilter'
 import { t } from '../../i18n/az'
@@ -32,6 +32,13 @@ export default function Join() {
   const [error, setError] = useState('')
   const [shakeKey, setShakeKey] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [slow, setSlow] = useState(false)
+  // Qoşulma 6 saniyədən uzun çəkirsə, iştirakçıya bunun normal olduğunu bildir (təkrar basıb pozmasın)
+  useEffect(() => {
+    if (!busy) { setSlow(false); return }
+    const id = setTimeout(() => setSlow(true), 6000)
+    return () => clearTimeout(id)
+  }, [busy])
   const [first, setFirst] = useState('')
   const [last, setLast] = useState('')
   const [avatar, setAvatar] = useState<AvatarData>(() => randomAvatar())
@@ -67,24 +74,29 @@ export default function Join() {
       const found = await lookupPin(p)
       if (!found) return fail(t.join.notFound)
       const gid = found.gameId
-      // Əvvəlcə öz iştirakçı sənədi: bu oyunun iştirakçısıdırsa, oyun bitmiş olsa belə nəticəyə keçir
-      const mine = await getDoc(doc(db, 'games', gid, 'players', u)).catch(() => null)
+      // Öz iştirakçı sənədi və oyun paralel oxunur (bir gediş az)
+      let [mineRes, gameRes] = await Promise.allSettled([getDoc(doc(db, 'games', gid, 'players', u)), getDoc(doc(db, 'games', gid))])
+      // öz sənədini oxumaq rədd olunursa, giriş tokeni hələ çatmayıb — qısa fasilədən sonra təkrar
+      if (mineRes.status === 'rejected') {
+        await new Promise((r) => setTimeout(r, 800));
+        [mineRes, gameRes] = await Promise.allSettled([getDoc(doc(db, 'games', gid, 'players', u)), getDoc(doc(db, 'games', gid))])
+      }
+      const mine = mineRes.status === 'fulfilled' ? mineRes.value : null
+      // bu oyunun iştirakçısıdırsa, oyun bitmiş olsa belə nəticəyə keçir
       if (mine?.exists()) {
         if (mine.get('kicked')) return fail(t.join.kicked)
         setGame(gid); nav(`/g/${gid}`); return
       }
       if (!found.active) return fail(t.join.finished)
-      let gs
-      try { gs = await getDoc(doc(db, 'games', gid)) } catch (e) {
+      if (gameRes.status === 'rejected') {
         // bitmiş oyun kənar şəxslərə bağlıdır
-        return fail((e as { code?: string }).code === 'permission-denied' ? t.join.finished : t.app.error)
+        return fail((gameRes.reason as { code?: string }).code === 'permission-denied' ? t.join.finished : t.join.retry)
       }
+      const gs = gameRes.value
       if (!gs.exists()) return fail(t.join.notFound)
       const g = gs.data() as Game
-      if (g.phase === 'finished') return fail(t.join.finished)
-      if (g.locked) return fail(t.join.locked)
-      if (g.phase !== 'lobby' && !g.settings?.lateJoin) return fail(t.join.started)
-      if ((g.playerCount ?? 0) >= (g.settings?.maxPlayers ?? 200)) return fail(t.join.full)
+      const why = joinBlockReason(g)
+      if (why) return fail(t.join[why])
       setNameFilterOn(g.settings?.nameFilter !== false)
       setGameId(gid)
       setStep('profile')
@@ -103,14 +115,24 @@ export default function Join() {
     audio.unlock()
     setBusy(true)
     try {
-      await joinGame(gameId, uid, f, l, avatar)
+      // Qoşulma ilk dəfə "icazə yoxdur" ilə qayıdarsa (giriş tokeni hələ çatmayıb / keçici), bir dəfə yenidən cəhd
+      await joinGame(gameId, uid, f, l, avatar).catch(async (e) => {
+        if ((e as { code?: string }).code !== 'permission-denied') throw e
+        await new Promise((r) => setTimeout(r, 1200))
+        await joinGame(gameId, uid, f, l, avatar)
+      })
       try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ firstName: f, lastName: l, avatar })) } catch { /* noop */ }
       audio.pop()
       setGame(gameId)
       nav(`/g/${gameId}`)
     } catch (e) {
       const code = (e as { code?: string }).code
-      fail(code === 'permission-denied' ? t.join.locked : t.app.error)
+      if (code === 'kicked') return fail(t.join.kicked)
+      if (code !== 'permission-denied') return fail(t.join.retry)
+      // Səbəbi oyunun hazırkı vəziyyətindən dəqiq müəyyən et (hər rədd "Lobbi bağlıdır" deyil)
+      const gs = await getDocFromServer(doc(db, 'games', gameId)).catch(() => null)
+      const why = gs?.exists() ? joinBlockReason(gs.data() as Game) : 'finished'
+      fail(why ? t.join[why] : nameFilterOn ? t.join.badName : t.join.retry)
     }
   }
 
@@ -147,6 +169,7 @@ export default function Join() {
               onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
             />
             {error && <p className="rounded-xl bg-red-500/15 px-3 py-2 text-center text-sm font-bold text-red-300" role="alert">{error}</p>}
+            {slow && <p className="rounded-xl bg-amber-400/15 px-3 py-2 text-center text-sm font-semibold text-amber-200" role="status">{t.join.slow}</p>}
             <button className="btn btn-primary btn-lg" disabled={busy || pin.length !== 6}>{busy ? t.app.loading : <>{t.join.continue}<ArrowRight /></>}</button>
           </motion.form>
         ) : (
@@ -171,6 +194,7 @@ export default function Join() {
               <AvatarPicker value={avatar} onChange={(a) => { setAvatar(a); audio.unlock(); audio.click() }} />
             </div>
             {error && <p key={shakeKey} className="shake rounded-xl bg-red-500/15 py-2 text-center text-sm font-bold text-red-300" role="alert">{error}</p>}
+            {slow && <p className="rounded-xl bg-amber-400/15 px-3 py-2 text-center text-sm font-semibold text-amber-200" role="status">{t.join.slow}</p>}
             <p className="text-center text-xs leading-relaxed text-white/50">{t.privacy.short} <Link to="/privacy" className="underline">{t.privacy.more}</Link></p>
             <button className="btn btn-primary btn-lg sticky bottom-4 text-xl" disabled={busy || first.trim().length < 2 || last.trim().length < 2}>
               {busy ? t.join.joining : <><Rocket />{t.join.go}</>}

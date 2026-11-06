@@ -23,6 +23,8 @@ export const DEFAULT_SETTINGS: QuizSettings = {
   feedback: true,
   teams: 0,
   readTime: 4,
+  selfShuffle: true,
+  selfFeedback: true,
 }
 
 export const READ_TIMES = [0, 3, 4, 5, 8]

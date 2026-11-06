@@ -26,7 +26,7 @@ export const en: Dict = {
     title: 'Join a game', pin: 'Game PIN', pinPlaceholder: '123456', continue: 'Continue',
     notFound: 'No game found with this PIN', started: 'The game has already started', locked: 'The lobby is locked', finished: 'This game has ended', full: 'The game is full',
     profileTitle: 'Introduce yourself', firstName: 'First name', lastName: 'Last name', nameHint: '2–20 characters', badName: 'Please choose another name',
-    chooseAvatar: 'Choose an avatar', random: 'Random', accessory: 'Sticker', noAccessory: 'None', go: 'Join', joining: 'Joining…', rejoin: 'Back to the game',
+    chooseAvatar: 'Choose an avatar', random: 'Random', accessory: 'Sticker', noAccessory: 'None', go: 'Join', joining: 'Joining…', slow: 'Slow connection — still joining, please keep this page open…', retry: 'Could not connect. Please try again.', rejoin: 'Back to the game',
     kicked: 'You were removed from the game by the host', noActive: 'There is no active game right now. Ask the trainer for the PIN.', step1: 'PIN', step2: 'Profile', step3: 'Lobby', hello: 'Hi there! 👋',
   },
   power: {
@@ -50,7 +50,7 @@ export const en: Dict = {
     waitingResult: 'Calculating results…', lateJoin: 'You’ll join from the next question', sliderValue: 'Your choice', yourAnswer: 'Your answer', noAnswer: 'No answer',
     gameOver: 'Game over!', fastest: (n: string, s: string) => `⚡ Fastest: ${n} · ${s}`, youFastest: '⚡ You were the fastest!', answerTime: (s: string) => `Answer time: ${s}`,
     rank: 'Rank', getReadyQ: 'Heads up! Question incoming', hostStalled: 'Waiting for the host… The game will continue.', hostStalledSelf: 'The host screen is not responding. Your answer is saved — the result will appear as soon as the host is back.', next: 'Next question',
-    selfDone: 'You’ve answered every question! 🎉', selfDoneSub: 'Wait for the others to finish — results soon', totalLeft: 'Time left',
+    selfDone: 'You’ve answered every question! 🎉', selfDoneSub: 'Wait for the others to finish — results soon', selfDoneEnd: 'Your answers are in. Results will be revealed once everyone has finished.', finishedCount: 'Finished', revealAtEnd: 'Results are revealed on screen when everyone finishes or time runs out.', totalLeft: 'Time left',
     correctOf: (a: number, b: number) => `${a} / ${b} correct`, hostEnded: 'The game has ended',
   },
   results: {
@@ -123,6 +123,8 @@ export const en: Dict = {
     },
     assignDays: 'Deadline (assignment)', days: (n: number) => `${n} day${n === 1 ? '' : 's'}`,
     autoDelay: 'Screen duration (automatic)', selfMinutes: 'Total time (self-paced)', minutes: (n: number) => `${n} min`,
+    selfShuffle: 'Different question order for each player', selfShuffleHint: 'Neighbours see different questions at the same time — harder to pass answers',
+    selfFeedback: 'Show the result after each question', selfFeedbackHint: 'When off: players answer straight to the end; results are revealed on the podium once everyone finishes',
     tabs: { general: 'General', gameplay: 'Gameplay', music: 'Music', players: 'Participants' },
     generalSub: 'Game mode, scoring and time', gameplaySub: 'Shuffling, leaderboard, power-ups', musicSub: 'Background music and volume', playersSub: 'Joining rules',
     preview: 'Listen', stop: 'Stop', scoring: 'Scoring', scoringSpeed: 'Speed + accuracy', scoringAccuracy: 'Accuracy only', defaultTime: 'Default time',

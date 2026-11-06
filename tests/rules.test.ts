@@ -102,24 +102,41 @@ describe('oyunçu qoşulması', () => {
 describe('cavablar', () => {
   const ans = (uid: string, qi: number, value: unknown) => setDoc(doc(as(uid), 'games', 'g1', 'answers', `${uid}_${qi}`), { uid, questionIndex: qi, value, answeredAt: serverTimestamp() })
   it('sual fazasında vaxtında cavab qəbul olunur, təkrar cavab olmur', async () => {
-    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
+    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionStartedAt: Timestamp.fromMillis(Date.now() - 1000), questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
     await assertSucceeds(ans(P2, 0, ['a']))
     await assertFails(ans(P2, 0, ['b']))
   })
   it('vaxt bitəndən sonra cavab rədd edilir', async () => {
-    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionEndsAt: Timestamp.fromMillis(Date.now() - 10000) })
+    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionStartedAt: Timestamp.fromMillis(Date.now() - 40000), questionEndsAt: Timestamp.fromMillis(Date.now() - 10000) })
     await assertFails(ans(P2, 0, ['a']))
   })
   it('başqa sualın indeksi ilə cavab olmur', async () => {
-    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
+    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionStartedAt: Timestamp.fromMillis(Date.now() - 1000), questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
     await assertFails(ans(P2, 1, ['a']))
   })
   it('çox uzun cavab rədd edilir', async () => {
-    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
+    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionStartedAt: Timestamp.fromMillis(Date.now() - 1000), questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
     await assertFails(ans(P2, 0, 'x'.repeat(500)))
   })
   it('oyunçu cavabları oxuya bilmir', async () => {
     await assertFails(getDoc(doc(as(P2), 'games', 'g1', 'answers', `${P2}_0`)))
+  })
+  it('oxuma mərhələsində planlaşdırılmış sual: başlamadan əvvəl rədd, başlayandan sonra qəbul (host fazanı hələ dəyişməsə də)', async () => {
+    await env.clearFirestore(); await seed({ phase: 'countdown', questionIndex: 0, questionStartedAt: Timestamp.fromMillis(Date.now() + 10000), questionEndsAt: Timestamp.fromMillis(Date.now() + 40000) })
+    await assertFails(ans(P2, 0, ['a']))
+    await env.clearFirestore(); await seed({ phase: 'countdown', questionIndex: 0, questionStartedAt: Timestamp.fromMillis(Date.now() - 500), questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
+    await assertSucceeds(ans(P2, 0, ['a']))
+  })
+  it('başlama vaxtı yazılmayıbsa cavab olmur', async () => {
+    await env.clearFirestore(); await seed({ phase: 'countdown', questionIndex: 0, questionStartedAt: null, questionEndsAt: null })
+    await assertFails(ans(P2, 0, ['a']))
+  })
+  it('canlı rejimdə sualı gec görən iştirakçı qeyd yaza bilir, kənar şəxs və başqa sual üçün yox', async () => {
+    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 1, questionStartedAt: Timestamp.fromMillis(Date.now() - 3000), questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
+    await assertFails(setDoc(doc(as(P1), 'games', 'g1', 'starts', `${P1}_1`), { uid: P1, q: 1, startedAt: serverTimestamp() }))
+    await assertFails(setDoc(doc(as(P2), 'games', 'g1', 'starts', `${P2}_2`), { uid: P2, q: 2, startedAt: serverTimestamp() }))
+    await assertSucceeds(setDoc(doc(as(P2), 'games', 'g1', 'starts', `${P2}_1`), { uid: P2, q: 1, startedAt: serverTimestamp() }))
+    await assertFails(setDoc(doc(as(P2), 'games', 'g1', 'starts', `${P2}_1`), { uid: P2, q: 1, startedAt: serverTimestamp() }))
   })
   it('öz tempində rejimdə başlama sənədi olmadan cavab olmur', async () => {
     await env.clearFirestore(); await seed({ phase: 'self', selfEndsAt: Timestamp.fromMillis(Date.now() + 600000) })

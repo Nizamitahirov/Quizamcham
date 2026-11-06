@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
+import { initializeFirestore, memoryLocalCache, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
 
 // Firebase web konfiqurasiyası gizli deyil (brauzerə onsuz da göndərilir; təhlükəsizliyi Security Rules təmin edir).
 // Env dəyişənləri təyin olunubsa, onlar üstünlük alır; yoxdursa, aşağıdakı standart dəyərlər işlənir.
@@ -29,9 +29,12 @@ export const firebaseConfigured = !!firebaseConfig.apiKey && !!firebaseConfig.pr
 export const app = initializeApp(firebaseConfigured ? firebaseConfig : { apiKey: 'missing', projectId: 'missing', appId: 'missing' })
 export const auth = getAuth(app)
 
+// İştirakçı telefonları üçün yaddaşda keş: IndexedDB + çox-tab koordinasiyası zəif telefonlarda ilk oxu/yazını
+// bir neçə saniyə ləngidə bilir (qoşulma "gec" olur). Davamlı keş yalnız admin və host ekranlarında lazımdır.
+const staffRoute = typeof window !== 'undefined' && /^\/(admin|host)(\/|$)/.test(window.location.pathname)
 let cache
 try {
-  cache = persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  cache = staffRoute ? persistentLocalCache({ tabManager: persistentMultipleTabManager() }) : memoryLocalCache()
 } catch {
   cache = undefined
 }
