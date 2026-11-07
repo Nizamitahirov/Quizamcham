@@ -5,10 +5,11 @@
 import { readFileSync } from 'node:fs'
 import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest'
 import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing'
-import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc, deleteDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, Timestamp, updateDoc, deleteDoc, where } from 'firebase/firestore'
 
 let env: RulesTestEnvironment
 const OWNER = 'owner1', TRAINER = 'trainer1', TRAINER2 = 'trainer2', P1 = 'player1', P2 = 'player2'
+const SUPER = 'ii98moHX58SDPcn9lA4SYHWanou1', ADMIN = 'admin1', BANNED = 'trainer3'
 
 const player = (extra = {}) => ({
   firstName: 'Aysel', lastName: 'Məmmədova', avatar: { style: 'fun-emoji', seed: 'x' }, joinedAt: serverTimestamp(), lastSeen: serverTimestamp(),
@@ -21,6 +22,13 @@ async function seed(gameExtra: Record<string, unknown> = {}) {
     await setDoc(doc(db, 'admins', OWNER), { email: 'o@x.az', role: 'owner' })
     await setDoc(doc(db, 'admins', TRAINER), { email: 't@x.az', role: 'trainer' })
     await setDoc(doc(db, 'admins', TRAINER2), { email: 't2@x.az', role: 'trainer' })
+    await setDoc(doc(db, 'admins', SUPER), { email: 'nt.nizamitahir@gmail.com', role: 'super' })
+    await setDoc(doc(db, 'admins', ADMIN), { email: 'a@x.az', role: 'admin' })
+    await setDoc(doc(db, 'admins', BANNED), { email: 'b@x.az', role: 'trainer', disabled: true })
+    await setDoc(doc(db, 'quizzes', 'q2'), { title: 'Paylaşılan', ownerUid: TRAINER2, shared: true })
+    await setDoc(doc(db, 'quizzes', 'q2', 'questions', 'a'), { text: 'S', correct: ['a'] })
+    await setDoc(doc(db, 'quizzes', 'q3'), { title: 'Şəxsi', ownerUid: TRAINER2 })
+    await setDoc(doc(db, 'audit', 'x1'), { actor: ADMIN, action: 'login', at: serverTimestamp() })
     await setDoc(doc(db, 'quizzes', 'q1'), { title: 'T', ownerUid: TRAINER })
     await setDoc(doc(db, 'quizzes', 'q1', 'questions', 'a'), { text: 'S', correct: ['a'] })
     await setDoc(doc(db, 'games', 'g1'), {
@@ -180,7 +188,7 @@ describe('məxfilik (audit düzəlişləri)', () => {
     await assertFails(getDocs(collection(as(P1), 'games')))
     await assertFails(getDocs(collection(as(P1), 'pins')))
     await assertSucceeds(getDoc(doc(as(P1), 'pins', '123456')))
-    await assertSucceeds(getDocs(collection(as(TRAINER), 'games')))
+    await assertSucceeds(getDocs(query(collection(as(TRAINER), 'games'), where('hostUid', '==', TRAINER))))
   })
   it('aktiv oyunu hər kəs, bitmiş oyunu yalnız iştirakçı oxuyur', async () => {
     await assertSucceeds(getDoc(doc(as(P1), 'games', 'g1')))
@@ -193,9 +201,11 @@ describe('məxfilik (audit düzəlişləri)', () => {
     await assertSucceeds(getDoc(doc(as(P2), 'games', 'g1', 'results', 'review')))
     await assertSucceeds(getDoc(doc(as(TRAINER), 'games', 'g1', 'results', 'review')))
   })
-  it('profillər (e-poçt) yalnız adminlərə', async () => {
+  it('profillər (e-poçt): özü və admin oxuyur, başqa təlimçi yox', async () => {
     await assertFails(getDoc(doc(as(P1), 'profiles', OWNER)))
-    await assertSucceeds(getDoc(doc(as(TRAINER), 'profiles', OWNER)))
+    await assertFails(getDoc(doc(as(TRAINER), 'profiles', OWNER)))
+    await assertSucceeds(getDoc(doc(as(OWNER), 'profiles', OWNER)))
+    await assertSucceeds(getDoc(doc(as(ADMIN), 'profiles', OWNER)))
   })
   it('qlobal ayarları və səsləri yalnız sahib dəyişir; təlimçi öz daimi QR-ını', async () => {
     await assertFails(setDoc(doc(as(TRAINER), 'settings', 'app'), { bannedWords: [] }))
@@ -223,5 +233,76 @@ describe('məxfilik (audit düzəlişləri)', () => {
     await assertFails(setDoc(doc(as(P1), 'games', 'g1', 'players', P1), player({ firstName: 'Pisad' })))
     await env.clearFirestore(); await seed({ settings: { lateJoin: true, maxPlayers: 100, nameFilter: false } })
     await assertSucceeds(setDoc(doc(as(P1), 'games', 'g1', 'players', P1), player({ firstName: 'Pisad' })))
+  })
+})
+
+describe('giriş idarəetməsi (super admin / admin / təlimçi)', () => {
+  it('heç kim super admini silə, məhdudlaşdıra və rolunu dəyişə bilməz', async () => {
+    await assertFails(deleteDoc(doc(as(ADMIN), 'admins', SUPER)))
+    await assertFails(updateDoc(doc(as(ADMIN), 'admins', SUPER), { disabled: true }))
+    await assertFails(updateDoc(doc(as(OWNER), 'admins', SUPER), { role: 'trainer' }))
+    await assertFails(updateDoc(doc(as(SUPER), 'admins', SUPER), { disabled: true }))
+    await assertSucceeds(updateDoc(doc(as(SUPER), 'admins', SUPER), { name: 'Nizami' }))
+  })
+  it('super rolunu heç kim başqasına verə bilməz', async () => {
+    await assertFails(setDoc(doc(as(SUPER), 'admins', 'new2'), { email: 'n@x.az', role: 'super' }))
+    await assertFails(updateDoc(doc(as(SUPER), 'admins', TRAINER), { role: 'super' }))
+  })
+  it('admin yalnız təlimçi əlavə edir; admini isə yalnız super admin', async () => {
+    await assertSucceeds(setDoc(doc(as(ADMIN), 'admins', 'new3'), { email: 'n@x.az', role: 'trainer', mustChangePassword: true }))
+    await assertFails(setDoc(doc(as(ADMIN), 'admins', 'new4'), { email: 'n@x.az', role: 'admin' }))
+    await assertSucceeds(setDoc(doc(as(SUPER), 'admins', 'new5'), { email: 'n@x.az', role: 'admin' }))
+  })
+  it('admin təlimçini məhdudlaşdırır/silir, amma başqa admini yox; özünü yüksəldə bilməz', async () => {
+    await assertSucceeds(updateDoc(doc(as(ADMIN), 'admins', TRAINER), { disabled: true }))
+    await assertFails(updateDoc(doc(as(ADMIN), 'admins', TRAINER2), { role: 'admin' }))
+    await assertFails(updateDoc(doc(as(ADMIN), 'admins', OWNER), { disabled: true }))
+    await assertFails(deleteDoc(doc(as(ADMIN), 'admins', OWNER)))
+    await assertFails(updateDoc(doc(as(ADMIN), 'admins', ADMIN), { role: 'super' }))
+    await assertSucceeds(deleteDoc(doc(as(ADMIN), 'admins', TRAINER2)))
+    await assertSucceeds(updateDoc(doc(as(SUPER), 'admins', OWNER), { role: 'admin', disabled: true }))
+  })
+  it('təlimçi komanda siyahısını görə bilmir, yalnız öz sənədini', async () => {
+    await assertFails(getDocs(collection(as(TRAINER), 'admins')))
+    await assertFails(getDoc(doc(as(TRAINER), 'admins', TRAINER2)))
+    await assertSucceeds(getDoc(doc(as(TRAINER), 'admins', TRAINER)))
+    await assertSucceeds(getDocs(collection(as(ADMIN), 'admins')))
+  })
+  it('ilk girişdə yalnız "şifrə dəyişdi" bayrağını özü sıfırlaya bilir', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', TRAINER), { mustChangePassword: true }) })
+    await assertSucceeds(updateDoc(doc(as(TRAINER), 'admins', TRAINER), { mustChangePassword: false, passwordChangedAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(as(TRAINER), 'admins', TRAINER), { mustChangePassword: false, disabled: false }))
+    await assertFails(updateDoc(doc(as(TRAINER), 'admins', TRAINER), { mustChangePassword: true }))
+  })
+  it('məhdudlaşdırılmış hesab heç nə edə bilmir', async () => {
+    await assertFails(setDoc(doc(as(BANNED), 'quizzes', 'qb'), { title: 'X', ownerUid: BANNED }))
+    await assertFails(getDoc(doc(as(BANNED), 'quizzes', 'q2')))
+    await assertFails(getDocs(query(collection(as(BANNED), 'games'), where('hostUid', '==', BANNED))))
+  })
+  it('təlimçi yalnız öz və kitabxanaya paylaşılan quizləri görür', async () => {
+    await assertSucceeds(getDoc(doc(as(TRAINER), 'quizzes', 'q1')))
+    await assertSucceeds(getDoc(doc(as(TRAINER), 'quizzes', 'q2')))
+    await assertSucceeds(getDoc(doc(as(TRAINER), 'quizzes', 'q2', 'questions', 'a')))
+    await assertFails(getDoc(doc(as(TRAINER), 'quizzes', 'q3')))
+    await assertFails(getDocs(collection(as(TRAINER), 'quizzes')))
+    await assertSucceeds(getDocs(query(collection(as(TRAINER), 'quizzes'), where('ownerUid', '==', TRAINER))))
+    await assertSucceeds(getDocs(query(collection(as(TRAINER), 'quizzes'), where('shared', '==', true))))
+    await assertSucceeds(getDocs(collection(as(ADMIN), 'quizzes')))
+  })
+  it('təlimçi başqasının oyunlarını siyahılaya bilmir', async () => {
+    await assertFails(getDocs(collection(as(TRAINER2), 'games')))
+    await assertSucceeds(getDocs(query(collection(as(TRAINER2), 'games'), where('hostUid', '==', TRAINER2))))
+    await assertSucceeds(getDocs(collection(as(ADMIN), 'games')))
+  })
+  it('loglar (audit + xəta) yalnız super admin üçün; audit dəyişdirilə bilməz', async () => {
+    await assertFails(getDocs(collection(as(ADMIN), 'audit')))
+    await assertFails(getDocs(collection(as(ADMIN), 'errors')))
+    await assertSucceeds(getDocs(collection(as(SUPER), 'audit')))
+    await assertSucceeds(getDocs(collection(as(SUPER), 'errors')))
+    await assertSucceeds(setDoc(doc(as(TRAINER), 'audit', 'y1'), { actor: TRAINER, action: 'login', at: serverTimestamp() }))
+    await assertFails(setDoc(doc(as(TRAINER), 'audit', 'y2'), { actor: ADMIN, action: 'login', at: serverTimestamp() }))
+    await assertFails(updateDoc(doc(as(SUPER), 'audit', 'x1'), { action: 'x' }))
+    await assertFails(deleteDoc(doc(as(SUPER), 'audit', 'x1')))
+    await assertFails(setDoc(doc(as(P1), 'audit', 'y3'), { actor: P1, action: 'login', at: serverTimestamp() }))
   })
 })

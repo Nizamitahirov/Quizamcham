@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fmtDateTime } from '../../lib/format'
 import { useOutletContext } from 'react-router-dom'
-import { visibleGames } from '../../lib/access'
+import { scopeUid, visibleGames } from '../../lib/access'
+import { logAudit } from '../../lib/audit'
 import type { AdminState } from '../../firebase/auth'
 import { Link } from 'react-router-dom'
 import type { Timestamp } from 'firebase/firestore'
@@ -17,7 +18,7 @@ export default function Games() {
   const admin = useOutletContext<AdminState>()
   const [rows, setRows] = useState<Row[] | null>(null)
   const [msg, setMsg] = useState('')
-  const reload = useCallback(() => { void listGames().then((r) => setRows(visibleGames(admin, r as Row[]))).catch(() => setRows([])) }, [admin])
+  const reload = useCallback(() => { void listGames(100, scopeUid(admin)).then((r) => setRows(visibleGames(admin, r as Row[]))).catch(() => setRows([])) }, [admin])
   useEffect(reload, [reload])
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">
@@ -40,7 +41,7 @@ export default function Games() {
                   <td className="flex flex-wrap justify-end gap-2 p-3">
                     {g.phase !== 'finished' && <Link className="btn btn-soft btn-sm" to={`/host/${g.id}`}><MonitorPlay />{t.games.host}</Link>}
                     <Link className="btn btn-secondary btn-sm" to={`/admin/games/${g.id}`}><BarChart3 />{t.games.open}</Link>
-                    <button className="btn btn-ghost-dark btn-sm btn-icon text-red-600" onClick={async () => { if (confirm(`${t.games.delete}?`)) { try { await deleteGame(g.id, g.pin) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
+                    <button className="btn btn-ghost-dark btn-sm btn-icon text-red-600" onClick={async () => { if (confirm(`${t.games.delete}?`)) { try { await deleteGame(g.id, g.pin); void logAudit('game_deleted', { target: g.id, details: { pin: g.pin } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
                   </td>
                 </tr>
               ))}

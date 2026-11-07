@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { fmtDateTime } from '../../lib/format'
-import { Bug, Database, Download, Save, ShieldCheck, SlidersHorizontal, Trash2 } from 'lucide-react'
-import { cleanupGames, clearErrors, exportAll, listErrors, oldGames } from '../../lib/dataAdmin'
+import { logAudit } from '../../lib/audit'
+import { Database, Download, Save, ShieldCheck, SlidersHorizontal, Trash2 } from 'lucide-react'
+import { cleanupGames, exportAll, oldGames } from '../../lib/dataAdmin'
 import { download } from '../../lib/csv'
 import { loadAppSettings, saveAppSettings } from '../../firebase/db'
 import { TIME_OPTIONS } from '../../lib/defaults'
@@ -19,7 +19,7 @@ export default function Settings() {
   const S = t.settings
   const save = async () => {
     const next = { ...s, bannedWords: words.split(',').map((w) => w.trim()).filter(Boolean) }
-    try { await saveAppSettings(next); setS(next); setMsg(S.saved) } catch { setMsg(t.app.error) }
+    try { await saveAppSettings(next); setS(next); setMsg(S.saved); void logAudit('settings_saved') } catch { setMsg(t.app.error) }
   }
   return (
     <div className="mx-auto max-w-4xl p-4 sm:p-8">
@@ -39,7 +39,6 @@ export default function Settings() {
           <Field label={S.bannedWords}><textarea className="input" rows={3} value={words} onChange={(e) => setWords(e.target.value)} /></Field>
         </Section>
         <DataSection />
-        <ErrorLog />
         <p className="text-xs leading-relaxed text-muted">{t.admin.credits}</p>
       </div>
     </div>
@@ -57,12 +56,13 @@ function DataSection() {
       const list = await oldGames(days)
       if (!list.length) { setMsg(D.none); return }
       if (!confirm(D.cleanupConfirm(list.length))) return
-      setMsg(D.cleaned(await cleanupGames(days)))
+      const n = await cleanupGames(days)
+      setMsg(D.cleaned(n)); void logAudit('data_cleanup', { details: { days, games: n } })
     } catch { setMsg(t.app.error) } finally { setBusy(false) }
   }
   const exp = async () => {
     setBusy(true); setMsg(D.exporting)
-    try { download(`jabr-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(await exportAll(), null, 2), 'application/json'); setMsg('') } catch { setMsg(t.app.error) } finally { setBusy(false) }
+    try { download(`jabr-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(await exportAll(), null, 2), 'application/json'); setMsg(''); void logAudit('data_export') } catch { setMsg(t.app.error) } finally { setBusy(false) }
   }
   return (
     <Section icon={Database} title={D.title} sub={D.sub}>
@@ -76,27 +76,6 @@ function DataSection() {
         <div><button className="btn btn-secondary" disabled={busy} onClick={() => void exp()}><Download />{D.exportAll}</button></div>
         {msg && <p className="text-sm font-semibold text-muted">{msg}</p>}
       </div>
-    </Section>
-  )
-}
-
-function ErrorLog() {
-  const D = t.data
-  const [rows, setRows] = useState<Awaited<ReturnType<typeof listErrors>> | null>(null)
-  const load = () => { void listErrors().then(setRows).catch(() => setRows([])) }
-  useEffect(load, [])
-  return (
-    <Section icon={Bug} title={D.errors} actions={rows?.length ? <button className="btn btn-ghost-dark btn-sm" onClick={async () => { await clearErrors(); load() }}><Trash2 />{D.clearErrors}</button> : undefined}>
-      {!rows ? <Spinner /> : rows.length === 0 ? <p className="text-sm text-muted">{D.noErrors}</p> : (
-        <ul className="scrollbar-thin flex max-h-80 flex-col gap-2 overflow-auto">
-          {rows.map((r) => (
-            <li key={r.id} className="rounded-xl bg-surface p-3 text-xs">
-              <div className="font-bold text-red-700">{r.message}</div>
-              <div className="mt-1 text-muted">{(r.at ? fmtDateTime(r.at.toDate()) : '')} · {r.url} · {r.context}</div>
-            </li>
-          ))}
-        </ul>
-      )}
     </Section>
   )
 }

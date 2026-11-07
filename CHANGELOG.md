@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.0 — 2026-11-07 (giriş idarəetməsi)
+- **Rollar:** Super admin (nt.nizamitahir@gmail.com — hesab ID-si ilə Rules-da sabitlənib, silinə/məhdudlaşdırıla/rolu dəyişdirilə bilməz) → Admin → Təlimçi. Köhnə "owner" rolu admin sayılır.
+- **Təlimçi** yalnız öz quizlərini, kitabxanaya paylaşılan quizləri (baxış + surət), öz oyunlarını və analitikasını görür; komanda, ayarlar, səslər və loglar bağlıdır. Server tərəfində (Firestore Rules) tətbiq olunur.
+- **Admin** təlimçiləri idarə edir (əlavə, şifrə sıfırlama linki, məhdudlaşdırma, silmə), bütün məzmunu görür; adminləri yalnız super admin idarə edir.
+- **İlk giriş:** yeni üzv müvəqqəti şifrə ilə daxil olur və bağlana bilməyən pəncərədə öz şifrəsini təyin edir (≥10 simvol, böyük/kiçik hərf, rəqəm). Yeni şifrəni heç kim görmür; admin yalnız sıfırlama linki göndərə bilər.
+- **Məhdudlaşdırma:** hesab silinmir, açıq sessiya dərhal "məhdudlaşdırılıb" ekranına keçir.
+- **Loglar (yalnız super admin):** audit jurnalı (giriş, şifrə dəyişmə/sıfırlama, üzv əməliyyatları, quiz/oyun silmə, paylaşma, ayarlar, səslər, ixrac/təmizləmə) — dəyişdirilə və silinə bilməz; xəta jurnalı Ayarlardan bura köçdü.
+- **Kitabxana:** quiz redaktorunda "Kitabxanaya paylaş".
+
 ## 0.6.0 — 2026-11-06 (performans və ədalət)
 **Qoşulma**
 - Yeni telefonda eyni anda iki anonim giriş yaranırdı; səhifə köhnə uid ilə yazırdı və qoşulma "Lobbi bağlıdır" ilə rədd olunurdu. İndi bütün çağırışlar tək girişi paylaşır.

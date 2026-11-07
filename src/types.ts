@@ -67,6 +67,7 @@ export interface Quiz {
   settings: QuizSettings
   questionOrder: string[]
   ownerUid: string
+  shared?: boolean // kitabxanaya paylaşılıb: bütün təlimçilər görür və surətini çıxara bilir
   tags?: string[]
   createdAt?: Timestamp
   updatedAt?: Timestamp

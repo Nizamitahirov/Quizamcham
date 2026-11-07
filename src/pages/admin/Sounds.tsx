@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Frown, Music2, PartyPopper, Play, Save, Trash2, Upload } from 'lucide-react'
 import { loadSounds, saveSoundClip, setSoundsEnabled } from '../../firebase/db'
+import { logAudit } from '../../lib/audit'
 import { cutClip, decodeFile, MAX_CLIP_SEC, peaks } from '../../lib/soundClip'
 import { audio } from '../../audio/AudioEngine'
 import { t } from '../../i18n/az'
@@ -57,6 +58,7 @@ function ClipEditor({ kind, clip, onSaved }: { kind: 'correct' | 'wrong'; clip: 
       const data = await cutClip(buf, start, dur)
       const c: SoundClip = { data, name, start, duration: dur }
       await saveSoundClip(kind, c)
+      void logAudit('sounds_saved', { details: { kind } })
       onSaved(c); setBuf(null); setMsg(S.saved)
     } catch { setMsg(t.app.error) } finally { setBusy(false) }
   }
@@ -68,7 +70,7 @@ function ClipEditor({ kind, clip, onSaved }: { kind: 'correct' | 'wrong'; clip: 
         {clip ? (
           <>
             <button className="btn btn-secondary btn-sm" onClick={() => playData(clip.data)}><Play />{S.listen}</button>
-            <button className="btn btn-ghost-dark btn-sm text-red-600" onClick={async () => { await saveSoundClip(kind, null); onSaved(null) }}><Trash2 />{S.remove}</button>
+            <button className="btn btn-ghost-dark btn-sm text-red-600" onClick={async () => { await saveSoundClip(kind, null); void logAudit('sounds_saved', { details: { kind, removed: true } }); onSaved(null) }}><Trash2 />{S.remove}</button>
           </>
         ) : <button className="btn btn-secondary btn-sm" onClick={builtin}><Play />{S.builtin}</button>}
         <button className="btn btn-soft btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}><Upload />{S.upload}</button>

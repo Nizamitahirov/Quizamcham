@@ -1,5 +1,5 @@
 import {
-  collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch, limit as qLimit,
+  collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, where, writeBatch, limit as qLimit,
 } from 'firebase/firestore'
 import { db } from './config'
 import type { AppSettings, Question, Quiz, SoundClip, SoundSettings, TrainerProfile } from '../types'
@@ -7,12 +7,25 @@ import { DEFAULT_APP_SETTINGS, convertType, uid6, withDefaults } from '../lib/de
 
 // ---------------- Quizlər ----------------
 
-export async function listQuizzes(): Promise<(Quiz & { count: number })[]> {
-  const snap = await getDocs(query(collection(db, 'quizzes'), orderBy('updatedAt', 'desc')))
-  return snap.docs.map((d) => {
-    const data = d.data() as Omit<Quiz, 'id'>
-    return { ...normalizeQuiz({ ...data, id: d.id }), count: (data.questionOrder ?? []).length }
-  })
+/**
+ * Quizlər. ownerScope verilibsə (təlimçi): yalnız öz quizləri + kitabxanaya paylaşılanlar
+ * (Rules təlimçiyə süzgəcsiz siyahını qadağan edir). Admin/super: hamısı.
+ */
+export async function listQuizzes(ownerScope?: string): Promise<(Quiz & { count: number })[]> {
+  const docs = ownerScope
+    ? (await Promise.all([
+      getDocs(query(collection(db, 'quizzes'), where('ownerUid', '==', ownerScope))),
+      getDocs(query(collection(db, 'quizzes'), where('shared', '==', true))),
+    ])).flatMap((s) => s.docs)
+    : (await getDocs(query(collection(db, 'quizzes'), orderBy('updatedAt', 'desc')))).docs
+  const seen = new Set<string>()
+  return docs
+    .filter((d) => (seen.has(d.id) ? false : (seen.add(d.id), true)))
+    .map((d) => {
+      const data = d.data() as Omit<Quiz, 'id'>
+      return { ...normalizeQuiz({ ...data, id: d.id }), count: (data.questionOrder ?? []).length }
+    })
+    .sort((a, b) => (b.updatedAt?.toMillis?.() ?? 0) - (a.updatedAt?.toMillis?.() ?? 0))
 }
 
 export function normalizeQuiz(q: Partial<Quiz> & { id: string }): Quiz {
@@ -25,6 +38,7 @@ export function normalizeQuiz(q: Partial<Quiz> & { id: string }): Quiz {
     settings: withDefaults(q.settings),
     questionOrder: q.questionOrder ?? [],
     ownerUid: q.ownerUid ?? '',
+    shared: q.shared === true,
     tags: q.tags ?? [],
     createdAt: q.createdAt,
     updatedAt: q.updatedAt,
@@ -42,6 +56,9 @@ export async function loadQuiz(quizId: string): Promise<{ quiz: Quiz; questions:
   map.forEach((q, id) => { if (!quiz.questionOrder.includes(id)) ordered.push(q) })
   return { quiz, questions: ordered }
 }
+
+/** Kitabxanaya paylaşma (ayrıca yazı — avtomatik yadda saxlama və surətlər bu sahəyə toxunmur). */
+export const setQuizShared = (quizId: string, shared: boolean) => updateDoc(doc(db, 'quizzes', quizId), { shared })
 
 const quizMeta = (quiz: Quiz, questions: Question[]) => ({
   title: quiz.title,
@@ -221,8 +238,11 @@ export const saveProfile = (uid: string, p: TrainerProfile) => setDoc(doc(db, 'p
 
 // ---------------- Oyunlar (admin) ----------------
 
-export async function listGames(max = 100) {
-  const snap = await getDocs(query(collection(db, 'games'), orderBy('createdAt', 'desc'), qLimit(max)))
+/** Oyunlar. hostScope verilibsə (təlimçi) — yalnız onun oyunları (Rules bunu tələb edir). */
+export async function listGames(max = 100, hostScope?: string) {
+  const snap = await getDocs(hostScope
+    ? query(collection(db, 'games'), where('hostUid', '==', hostScope), orderBy('createdAt', 'desc'), qLimit(max))
+    : query(collection(db, 'games'), orderBy('createdAt', 'desc'), qLimit(max)))
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }))
 }
 
