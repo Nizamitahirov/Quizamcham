@@ -25,21 +25,21 @@ export function canManageMember(me: Role | null, myUid: string | undefined, targ
 }
 
 // ---------------- Tənzimlənən icazələr (Rules ilə eyni açarlar və standartlar) ----------------
-export const PERM_KEYS = ['createQuiz', 'runGames', 'library', 'share', 'allContent', 'trainers', 'settings', 'logs'] as const
+export const PERM_KEYS = ['createQuiz', 'runGames', 'library', 'share', 'publish', 'allContent', 'trainers', 'settings', 'console', 'logs'] as const
 export type PermKey = (typeof PERM_KEYS)[number]
 export type PermMap = Partial<Record<PermKey, boolean>>
 export type Perms = Record<PermKey, boolean>
 export interface AccessConfig { admin: PermMap; trainer: PermMap }
 
 export const DEFAULT_ACCESS: { admin: Perms; trainer: Perms } = {
-  admin: { createQuiz: true, runGames: true, library: true, share: true, allContent: true, trainers: true, settings: true, logs: false },
-  trainer: { createQuiz: true, runGames: true, library: true, share: true, allContent: false, trainers: false, settings: false, logs: false },
+  admin: { createQuiz: true, runGames: true, library: true, share: true, publish: true, allContent: true, trainers: true, settings: true, console: false, logs: false },
+  trainer: { createQuiz: true, runGames: true, library: true, share: true, publish: false, allContent: false, trainers: false, settings: false, console: false, logs: false },
 }
 
 /** Qruplar (UI üçün) */
 export const PERM_GROUPS: { key: 'content' | 'manage'; perms: PermKey[] }[] = [
-  { key: 'content', perms: ['createQuiz', 'runGames', 'library', 'share'] },
-  { key: 'manage', perms: ['allContent', 'trainers', 'settings', 'logs'] },
+  { key: 'content', perms: ['createQuiz', 'runGames', 'library', 'share', 'publish'] },
+  { key: 'manage', perms: ['allContent', 'trainers', 'settings', 'console', 'logs'] },
 ]
 
 /** Rolun standartı: settings/access → yoxdursa daxili standart. */
@@ -50,4 +50,23 @@ export function effectivePerms(role: Role | null, cfg: AccessConfig | null, over
   const out = {} as Perms
   for (const p of PERM_KEYS) out[p] = role === 'super' ? true : !role ? false : (overrides?.[p] ?? roleDefault(role, cfg, p))
   return out
+}
+
+// ---------------- Plan (özü qeydiyyatdan keçən təlimçilər) ----------------
+export const TRIAL_DAYS = 3
+/** Plan tələb edən icazələr — sınaq/lisenziya bitəndə bağlanır (Rules-dakı planOk ilə eyni). */
+export const PLAN_PERMS: PermKey[] = ['createQuiz', 'runGames', 'share', 'publish']
+
+export interface PlanInfo {
+  selfServe: boolean // Google ilə özü qeydiyyatdan keçib
+  licensed: boolean
+  endsAt: Date | null // sınaq və ya lisenziya bitmə vaxtı
+  active: boolean
+}
+
+type TsLike = { toMillis(): number } | null | undefined
+export function planInfo(d: { source?: unknown; createdAt?: TsLike; trialEndsAt?: TsLike; licenseUntil?: TsLike } | null, now = Date.now()): PlanInfo {
+  if (!d || d.source !== 'signup') return { selfServe: false, licensed: false, endsAt: null, active: true }
+  const end = d.licenseUntil?.toMillis() ?? d.trialEndsAt?.toMillis() ?? (d.createdAt ? d.createdAt.toMillis() + TRIAL_DAYS * 86_400_000 : 0)
+  return { selfServe: true, licensed: !!d.licenseUntil, endsAt: end ? new Date(end) : null, active: now < end }
 }

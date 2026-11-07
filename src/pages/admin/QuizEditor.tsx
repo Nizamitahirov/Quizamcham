@@ -6,6 +6,7 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities'
 import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull, setQuizShared } from '../../firebase/db'
 import { logAudit } from '../../lib/audit'
+import { isPublished, publishToCatalog, unpublish } from '../../lib/account'
 import { compressImage } from '../../lib/image'
 import { canManage, scopeUid } from '../../lib/access'
 import { launchQuiz, toPublic } from '../../lib/gameEngine'
@@ -14,7 +15,7 @@ import { download } from '../../lib/csv'
 import { ALL_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
 import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
-import { ListChecks, Library } from 'lucide-react'
+import { ListChecks, Library, BookOpenCheck } from 'lucide-react'
 import { Lock, FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
@@ -187,6 +188,7 @@ export default function QuizEditor() {
         <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-600' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
           {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' && savedAt ? <CheckCircle2 className="h-4 w-4" /> : state === 'error' ? <AlertTriangle className="h-4 w-4" /> : null}{status}
         </span>
+        {admin.perms.publish && <PublishButton quizId={quiz.id} author={admin.user?.displayName || admin.user?.email?.split('@')[0] || ''} />}
         {!readOnly && admin.perms.share && (
           <button className={`btn ${quiz.shared ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={t.admin.shareHint} aria-pressed={!!quiz.shared}
             onClick={async () => {
@@ -486,5 +488,28 @@ function PhonePreview({ q, shuffle }: { q: Question; shuffle: boolean }) {
         )}
       </div>
     </div>
+  )
+}
+
+/** Kataloqda dərc et / yenilə / çıxar (tələbələr üçün limitsiz məşq). */
+function PublishButton({ quizId, author }: { quizId: string; author: string }) {
+  const [on, setOn] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  useEffect(() => { void isPublished(quizId).then(setOn) }, [quizId])
+  if (on === null) return null
+  const pub = async () => {
+    setBusy(true); setErr('')
+    try { await publishToCatalog(quizId, author); setOn(true) } catch (e) { setErr((e as Error).message === 'no-scored' ? t.acct.noScored : t.app.error) } finally { setBusy(false) }
+  }
+  return (
+    <span className="flex items-center gap-1">
+      <button className={`btn ${on ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={err || t.acct.publishHint} disabled={busy} onClick={() => void pub()}>
+        <BookOpenCheck />{on ? t.acct.update : t.acct.publish}
+      </button>
+      {on && <button className="btn btn-ghost-dark btn-icon text-red-600" title={t.acct.unpublish} aria-label={t.acct.unpublish} disabled={busy}
+        onClick={() => { if (confirm(`${t.acct.unpublish}?`)) { setBusy(true); void unpublish(quizId).then(() => setOn(false)).finally(() => setBusy(false)) } }}><X /></button>}
+      {err && <span className="text-xs font-semibold text-red-600" role="alert">{err}</span>}
+    </span>
   )
 }

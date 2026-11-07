@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.0 — 2026-11-07 (açıq qeydiyyat və monetizasiya)
+- **Silmə xətası düzəldi:** oyun silinəndə cavablar/başlama qeydləri/reaksiyalar/rəylər Rules tərəfindən bloklanırdı — indi host bütün alt kolleksiyaları silə bilir.
+- **Google ilə qeydiyyat (/start):** hər kəs qeydiyyatdan keçə bilir; komanda üzvləri e-poçtla girişi saxlayır. Prod domeni Firebase-də icazəli domenlərə əlavə olundu.
+- **Məlumat toplama (/onboarding):** tip (tələbə / təlimçi / müəssisə), ad, telefon, ölkə, şəhər; təlimçi — sektor, vəzifə, təşkilat, məqsəd; müəssisə — növ, ad, vəzifə, ölçü, təlimçi sayı; tələbə — səviyyə, müəssisə, ixtisas, kurs; maraqlar, mənbə, marketinq razılığı, məxfilik razılığı.
+- **3 günlük sınaq:** özü qeydiyyatdan keçən təlimçi/müəssisə dərhal sınaq alır (server vaxtı + 3 gün, Rules-da). Bitəndə quiz yaratmaq/oyun keçirmək bağlanır, məlumatlar qalır; panel zolağında qalan vaxt və "Lisenziya al".
+- **Qiymətlər və müraciət (/pricing):** 3 plan, konsoldan dəyişən qiymətlər, lisenziya müraciəti formu (qeydiyyat məlumatı ilə doldurulur), zəng/WhatsApp/e-poçt: +994 99 777 70 09, nt.nizamitahir@gmail.com.
+- **Tələbə portalı (/learn):** ictimai kataloq, axtarış və teqlər, limitsiz məşq, hər sualdan sonra düzgün cavab və izah, nəticə tarixçəsi.
+- **Kataloqda dərc:** quiz redaktorunda yeni icazə ("Kataloqda dərc etmək").
+- **Konsol (/admin/console):** qeydiyyat göstəriciləri, 30 günlük qrafik, təlimçi hunisi, istifadəçi cədvəli (bütün sahələr, CSV), lisenziya ver/ləğv et, sınağı uzat, məhdudlaşdır; müraciət pipeline-ı (yeni → əlaqə → satıldı/itirildi, qeydlər); kataloq statistikası; qiymət redaktoru. Yeni icazə: "Biznes konsolu".
+
 ## 0.8.0 — 2026-11-07 (icazələrin idarə edilməsi)
 - **Tənzimlənən icazələr:** super admin Komanda səhifəsində hər rol (Admin, Təlimçi) üçün 8 icazəni açıb-bağlayır: quiz yaratmaq, oyun keçirmək, kitabxananı görmək, kitabxanaya paylaşmaq, bütün məzmun, təlimçiləri idarə etmək, ayarlar və səslər, loglar. "Adminləri idarə etmək" yalnız super admindədir və verilə bilməz.
 - **Fərdi icazələr:** hər üzv üçün "Rol üzrə / Ver / Alma" — rol standartından üstündür; sətirdə "N fərdi icazə" nişanı.

@@ -1,13 +1,13 @@
-import { NavLink, Navigate, Outlet } from 'react-router-dom'
-import { Ban, BarChart3, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
+import { Link, NavLink, Navigate, Outlet } from 'react-router-dom'
+import { Ban, BarChart3, Gauge, Sparkles, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
 import { ForcePasswordChange } from '../../components/ForcePasswordChange'
 import type { PermKey } from '../../lib/roles'
 import { useEffect, useState } from 'react'
 import { loadProfile } from '../../firebase/db'
 import { Avatar } from '../../components/Avatar'
 import type { TrainerProfile } from '../../types'
-import { logout, useAdmin } from '../../firebase/auth'
-import { t } from '../../i18n/az'
+import { logout, useAdmin, type AdminState } from '../../firebase/auth'
+import { LOCALE, t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { Logo } from '../../components/Brand'
 import { LangSwitch } from '../../components/LangSwitch'
@@ -21,6 +21,7 @@ const NAV: { to: string; end?: boolean; icon: typeof Settings; label: string; pe
   { to: '/admin/profile', icon: UserRound, label: t.admin.nav.profile },
   { to: '/admin/team', icon: Users, label: t.admin.nav.team, perm: 'trainers' },
   { to: '/admin/settings', icon: Settings, label: t.admin.nav.settings, perm: 'settings' },
+  { to: '/admin/console', icon: Gauge, label: t.admin.nav.console, perm: 'console' },
   { to: '/admin/logs', icon: ScrollText, label: t.admin.nav.logs, perm: 'logs' },
 ]
 const MOBILE = NAV.filter((n) => ['/admin', '/admin/quizzes', '/admin/games', '/admin/profile'].includes(n.to))
@@ -76,6 +77,7 @@ export default function AdminLayout() {
       </header>
 
       <div className="pb-24 lg:pb-0 lg:pl-64">
+        {admin.plan.selfServe && <PlanBanner plan={admin.plan} />}
         <Outlet context={admin} />
         {admin.mustChangePassword && admin.user && <ForcePasswordChange user={admin.user} />}
       </div>
@@ -87,6 +89,24 @@ export default function AdminLayout() {
           </NavLink>
         ))}
       </nav>
+    </div>
+  )
+}
+
+/** Özü qeydiyyatdan keçən təlimçi üçün sınaq / lisenziya zolağı. */
+function PlanBanner({ plan }: { plan: AdminState['plan'] }) {
+  const [, tick] = useState(0)
+  useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 60_000); return () => clearInterval(id) }, [])
+  const left = plan.endsAt ? plan.endsAt.getTime() - Date.now() : 0
+  const A = t.acct
+  if (plan.licensed && plan.active && left > 7 * 86_400_000) return null
+  const ended = !plan.active || left <= 0
+  const text = ended ? (plan.licensed ? A.licenseEnded : A.trialEnded)
+    : plan.licensed ? A.licensedUntil(plan.endsAt!.toLocaleDateString(LOCALE)) : A.trialLeft(Math.floor(left / 86_400_000), Math.floor((left % 86_400_000) / 3_600_000))
+  return (
+    <div className={`flex flex-wrap items-center gap-3 border-b px-4 py-2.5 text-sm font-semibold sm:px-8 ${ended ? 'border-red-200 bg-red-50 text-red-800' : 'border-amber-200 bg-amber-50 text-amber-900'}`} role="status">
+      <Sparkles className="h-4 w-4 shrink-0" /><span className="flex-1">{text}</span>
+      <Link to="/pricing#request" className="btn btn-primary btn-sm">{A.getLicense}</Link>
     </div>
   )
 }

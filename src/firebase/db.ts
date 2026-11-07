@@ -247,7 +247,8 @@ export async function listGames(max = 100, hostScope?: string) {
 }
 
 export async function deleteGame(gameId: string, pin?: string) {
-  for (const sub of ['players', 'answers', 'reactions', 'secret']) {
+  // bütün alt kolleksiyalar (əks halda yarımçıq silinmə qalır)
+  for (const sub of ['players', 'answers', 'starts', 'reactions', 'qa', 'feedback', 'results', 'secret']) {
     const snap = await getDocs(collection(db, 'games', gameId, sub))
     for (let i = 0; i < snap.docs.length; i += 400) {
       const b = writeBatch(db)

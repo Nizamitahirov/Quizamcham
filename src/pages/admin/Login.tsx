@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { routeAfterLogin, signInWithGoogle, touchLogin } from '../../lib/account'
+import { GoogleIcon } from '../account/Start'
 import { motion } from 'framer-motion'
 import { Bot, CheckCircle2, Eye, EyeOff, Lock, LogIn, Mail, Radio, BarChart3 } from 'lucide-react'
 import { adminLogin, useAdmin } from '../../firebase/auth'
@@ -21,6 +23,13 @@ export default function Login() {
   const [busy, setBusy] = useState(false)
   if (admin.loading) return <div className="flex min-h-dvh items-center justify-center bg-surface text-ink"><Spinner /></div>
   if (admin.isAdmin) return <Navigate to="/admin" replace />
+  const google = async () => {
+    setBusy(true); setErr('')
+    try { const u = await signInWithGoogle(); void touchLogin(u.uid); nav(await routeAfterLogin(u.uid)) } catch (ex) {
+      const code = (ex as { code?: string }).code ?? ''
+      setErr(code.includes('popup-closed') || code.includes('cancelled') ? t.acct.popupClosed : t.admin.badCreds)
+    } finally { setBusy(false) }
+  }
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
@@ -75,6 +84,9 @@ export default function Login() {
             </div>
             {err && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700" role="alert">{err}</p>}
             <button className="btn btn-primary w-full" disabled={busy}>{busy ? t.admin.signingIn : <><LogIn />{t.admin.signIn}</>}</button>
+            <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-muted"><span className="h-px flex-1 bg-line" />{t.admin.or}<span className="h-px flex-1 bg-line" /></div>
+            <button type="button" className="btn btn-secondary w-full" disabled={busy} onClick={() => void google()}><GoogleIcon />{t.acct.google}</button>
+            <p className="text-center text-sm text-muted">{t.admin.noAccount} <Link to="/start" className="font-bold text-red-700 hover:underline">{t.acct.signUp} · {t.acct.freeTrial}</Link></p>
           </div>
           <p className="mt-6 flex items-center gap-2 text-xs text-muted"><CheckCircle2 className="h-4 w-4 text-ok" />Firebase Auth</p>
         </motion.form>
