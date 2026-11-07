@@ -7,6 +7,7 @@ import { Avatar } from '../../components/Avatar'
 import { AnimatedNumber } from '../../components/AnimatedNumber'
 import { burst, celebrate } from '../../components/Confetti'
 import { shortName } from '../../lib/nameFilter'
+import { recordPlay } from '../../lib/account'
 import { renderCertificate, renderShareCard } from '../../lib/shareCard'
 import { FeedbackForm } from '../../components/FeedbackForm'
 import { useDocSnap } from '../../lib/hooks'
@@ -37,6 +38,11 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
   const scored = game.scoredCount ?? player.history.length
   const accuracy = scored ? Math.round((player.correctCount / scored) * 100) : 0
   const myAwards = (game.awards ?? []).filter((a) => a.uid === player.uid)
+  // Qeydiyyatlı istifadəçi: nəticə hesabındakı "Canlı oyunlarım" tarixçəsinə düşür (bir dəfə)
+  useEffect(() => {
+    if (!rank) return
+    void recordPlay({ gameId: game.id, title: game.title, rank, total, score: player.score, correct: player.correctCount, questions: scored })
+  }, [game.id, game.title, rank, total, player.score, player.correctCount, scored])
   const avgTime = useMemo(() => {
     const ts = player.history.filter((h) => h.timeMs != null && h.answer != null).map((h) => h.timeMs as number)
     return ts.length ? ts.reduce((a, b) => a + b, 0) / ts.length / 1000 : 0

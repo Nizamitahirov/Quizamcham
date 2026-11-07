@@ -6,7 +6,7 @@ import { MusicPicker } from './MusicPicker'
 import type { QuizSettings } from '../types'
 
 /** Quiz ayarları — redaktorda və təlimçi profilində (standart ayarlar) istifadə olunur. */
-export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: Partial<QuizSettings>) => void }) {
+export function SettingsForm({ s, onChange, maxPlayersCap }: { s: QuizSettings; onChange: (p: Partial<QuizSettings>) => void; maxPlayersCap?: number }) {
   const S = t.settings
   const modes: OptionDef<QuizSettings['mode']>[] = [
     { value: 'host', icon: Presentation, title: S.modes.host.title, desc: S.modes.host.desc },
@@ -80,10 +80,18 @@ export function SettingsForm({ s, onChange }: { s: QuizSettings; onChange: (p: P
             <Segmented value={s.teams ?? 0} options={[{ value: 0, label: S.teamsOff }, ...([2, 3, 4] as const).map((n) => ({ value: n, label: S.teamsN(n) }))]} onChange={(v) => onChange({ teams: v as QuizSettings['teams'] })} />
           </Field>
           <Field label={S.maxPlayers}>
-            <div className="flex min-h-11 items-center gap-3">
-              <input type="range" min={10} max={200} step={10} value={s.maxPlayers} className="flex-1 accent-[#E8202A]" onChange={(e) => onChange({ maxPlayers: Number(e.target.value) })} aria-label={S.maxPlayers} />
-              <span className="w-12 text-right text-lg font-black tabular-nums">{s.maxPlayers}</span>
-            </div>
+            {maxPlayersCap ? (
+              <div className="flex min-h-11 flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <span className="font-display text-lg font-black tabular-nums">{maxPlayersCap}</span>
+                <span className="flex-1">{t.acct.freeCapHint}</span>
+                <a href="/pricing#request" className="btn btn-primary btn-sm">{t.acct.getLicense}</a>
+              </div>
+            ) : (
+              <div className="flex min-h-11 items-center gap-3">
+                <input type="range" min={10} max={200} step={10} value={s.maxPlayers} className="flex-1 accent-[#E8202A]" onChange={(e) => onChange({ maxPlayers: Number(e.target.value) })} aria-label={S.maxPlayers} />
+                <span className="w-12 text-right text-lg font-black tabular-nums">{s.maxPlayers}</span>
+              </div>
+            )}
           </Field>
         </div>
       </Section>

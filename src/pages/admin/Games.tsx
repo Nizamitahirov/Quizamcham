@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fmtDateTime } from '../../lib/format'
 import { useOutletContext } from 'react-router-dom'
-import { scopeUid, visibleGames } from '../../lib/access'
+import { orgGamesScope, scopeUid, visibleGames } from '../../lib/access'
 import { logAudit } from '../../lib/audit'
 import type { AdminState } from '../../firebase/auth'
 import { Link } from 'react-router-dom'
@@ -18,7 +18,7 @@ export default function Games() {
   const admin = useOutletContext<AdminState>()
   const [rows, setRows] = useState<Row[] | null>(null)
   const [msg, setMsg] = useState('')
-  const reload = useCallback(() => { void listGames(100, scopeUid(admin)).then((r) => setRows(visibleGames(admin, r as Row[]))).catch(() => setRows([])) }, [admin])
+  const reload = useCallback(() => { void listGames(100, scopeUid(admin), orgGamesScope(admin)).then((r) => setRows(visibleGames(admin, r as Row[]))).catch(() => setRows([])) }, [admin])
   useEffect(reload, [reload])
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">

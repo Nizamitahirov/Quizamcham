@@ -1,6 +1,6 @@
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
 import { doc, getDoc, onSnapshot, type DocumentSnapshot } from 'firebase/firestore'
-import { effectivePerms, normalizeRole, PLAN_PERMS, planInfo, SUPER_UID, type AccessConfig, type PermMap, type PlanInfo, type Perms, type Role } from '../lib/roles'
+import { effectivePerms, normalizeRole, orgInfo, SELF_SERVE_BLOCKED, planInfo, type OrgInfo, SUPER_UID, type AccessConfig, type PermMap, type PlanInfo, type Perms, type Role } from '../lib/roles'
 import { logAudit } from '../lib/audit'
 import { useEffect, useState } from 'react'
 import { auth, db } from './config'
@@ -73,38 +73,50 @@ export type AdminState = {
   /** Effektiv icazələr (rol standartı + fərdi istisnalar + plan). Əsl yoxlama Rules-dadır. */
   perms: Perms
   plan: PlanInfo
+  org: OrgInfo
 }
 
 const NONE: Perms = effectivePerms(null, null, undefined)
-const NO_PLAN: PlanInfo = { selfServe: false, licensed: false, endsAt: null, active: true }
+const NO_PLAN: PlanInfo = { selfServe: false, licensed: false, endsAt: null, active: true, free: false }
+const NO_ORG: OrgInfo = { role: null, id: '', seats: 0 }
 
 /**
  * Admin sessiyası. Öz komanda sənədi və rol icazələri (settings/access) CANLI dinlənilir:
  * məhdudlaşdırma, rol və ya icazə dəyişikliyi açıq sessiyada dərhal qüvvəyə minir.
  */
 export function useAdmin(): AdminState {
-  const [state, setState] = useState<AdminState>({ loading: true, user: null, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE, plan: NO_PLAN })
+  const [state, setState] = useState<AdminState>({ loading: true, user: null, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE, plan: NO_PLAN, org: NO_ORG })
   useEffect(() => {
     let unsubs: (() => void)[] = []
     const stop = () => { unsubs.forEach((u) => u()); unsubs = [] }
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       stop()
-      if (!u || u.isAnonymous) return setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE, plan: NO_PLAN })
+      if (!u || u.isAnonymous) return setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE, plan: NO_PLAN, org: NO_ORG })
       let me: DocumentSnapshot | null = null
       let cfg: AccessConfig | null = null
       let cfgLoaded = false
+      let owner: DocumentSnapshot | null = null
+      let ownerUnsub: (() => void) | null = null
       const emit = () => {
         if (!me || !cfgLoaded) return
         const isSuper = u.uid === SUPER_UID
-        if (!me.exists() && !isSuper) return setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE, plan: NO_PLAN })
+        if (!me.exists() && !isSuper) return setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE, plan: NO_PLAN, org: NO_ORG })
         const disabled = !isSuper && me.get('disabled') === true
         const role = normalizeRole(me.get('role'), u.uid)
-        const plan = isSuper ? NO_PLAN : planInfo(me.data() ?? null)
+        const data = me.data() ?? null
+        // müəssisə təlimçisi: lisenziya sahibin sənədindən gəlir (canlı)
+        if (data?.source === 'org' && typeof data.orgId === 'string' && !ownerUnsub) {
+          ownerUnsub = onSnapshot(doc(db, 'admins', data.orgId), (s) => { owner = s; emit() }, () => { owner = null; emit() })
+          unsubs.push(() => ownerUnsub?.())
+          return
+        }
+        const plan = isSuper ? NO_PLAN : planInfo(data, Date.now(), owner?.data() ?? null)
+        const org = isSuper ? NO_ORG : orgInfo(u.uid, data)
         const perms = disabled ? NONE : effectivePerms(role, cfg, me.get('perms') as PermMap | undefined)
-        if (!plan.active) PLAN_PERMS.forEach((p) => { perms[p] = false })
-        setState({ loading: false, user: u, isAdmin: !disabled, role, disabled, mustChangePassword: me.get('mustChangePassword') === true, perms, plan })
+        if (plan.selfServe) SELF_SERVE_BLOCKED.forEach((p) => { perms[p] = false })
+        setState({ loading: false, user: u, isAdmin: !disabled, role, disabled, mustChangePassword: me.get('mustChangePassword') === true, perms, plan, org })
       }
-      const fail = () => setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE, plan: NO_PLAN })
+      const fail = () => setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE, plan: NO_PLAN, org: NO_ORG })
       unsubs.push(onSnapshot(doc(db, 'admins', u.uid), (s) => { me = s; emit() }, fail))
       unsubs.push(onSnapshot(doc(db, 'settings', 'access'), (s) => { cfg = s.exists() ? (s.data() as AccessConfig) : null; cfgLoaded = true; emit() }, () => { cfgLoaded = true; emit() }))
     })

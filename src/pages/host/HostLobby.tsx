@@ -55,6 +55,12 @@ export function HostLobby({ game, players, onKick }: HostCtx & { onKick: (p: Pla
           </motion.div>
         </div>
         {game.locked && <div className="chip mb-4 self-start bg-amber-400 text-black">🔒 {t.join.locked}</div>}
+        {game.plan === 'free' && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 self-start rounded-2xl bg-white/10 px-4 py-2 text-sm font-semibold">
+            <span>{t.acct.freeLobby(players.length, game.settings.maxPlayers)}</span>
+            <a href="/pricing#request" target="_blank" rel="noreferrer" className="btn btn-primary btn-sm">{t.acct.getLicense}</a>
+          </div>
+        )}
         {players.length === 0 ? (
           <div className="m-auto flex flex-col items-center gap-5 text-3xl text-white/60">
             <motion.span animate={{ y: [0, -14, 0] }} transition={{ repeat: Infinity, duration: 1.6 }}><Smartphone className="h-24 w-24 text-orange-400" /></motion.span>

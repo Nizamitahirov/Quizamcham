@@ -1,5 +1,5 @@
 import { Link, NavLink, Navigate, Outlet } from 'react-router-dom'
-import { Ban, BarChart3, Gauge, Sparkles, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
+import { Ban, BarChart3, Building2, Gauge, Sparkles, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
 import { ForcePasswordChange } from '../../components/ForcePasswordChange'
 import type { PermKey } from '../../lib/roles'
 import { useEffect, useState } from 'react'
@@ -49,7 +49,7 @@ export default function AdminLayout() {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-white p-4 lg:flex">
         <div className="px-2 py-3"><Logo size={36} dark={false} sub="Live quiz" /></div>
         <nav className="mt-6 flex flex-col gap-1">
-          {NAV.filter((n) => !n.perm || admin.perms[n.perm]).map((n) => (
+          {[...NAV, ...(admin.org.role === 'owner' ? [{ to: '/admin/org', icon: Building2, label: t.acct.org.nav }] : []), ...(admin.plan.selfServe && admin.org.role !== 'member' ? [{ to: '/account', icon: UserRound, label: t.acct.myAccount }] : [])].filter((n) => !('perm' in n) || !n.perm || admin.perms[n.perm as PermKey]).map((n) => (
             <NavLink key={n.to} end={n.end} to={n.to}
               className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${isActive ? 'text-white shadow-[var(--glow)]' : 'text-[#4A4E69] hover:bg-surface'}`}
               style={({ isActive }) => (isActive ? { background: 'var(--grad)' } : undefined)}>

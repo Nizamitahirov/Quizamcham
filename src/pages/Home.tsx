@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowRight, Radio, Shield, Trophy, Zap, QrCode } from 'lucide-react'
+import { ArrowRight, Radio, Shield, Trophy, Zap, QrCode, Presentation, GraduationCap, Building2 } from 'lucide-react'
 import { t } from '../i18n/az'
 import { Logo } from '../components/Brand'
+import { CONTACT } from '../lib/account'
 import { LangSwitch } from '../components/LangSwitch'
 import { FuturisticBg } from '../components/FuturisticBg'
 import { TILE_HEX, Shape } from '../components/AnswerTile'
@@ -73,6 +74,63 @@ export default function Home() {
           </form>
         </motion.section>
       </main>
+
+      <Landing />
+    </div>
+  )
+}
+
+/** Ana səhifənin ikinci hissəsi: kimlər üçün, necə işləyir, qiymətlər və hüquqi keçidlər. */
+function Landing() {
+  const L = t.landing
+  const cards = [
+    { icon: Presentation, ...L.who[0], to: '/start', cta: L.ctaTrainer },
+    { icon: GraduationCap, ...L.who[1], to: '/start?next=/learn', cta: L.ctaStudent },
+    { icon: Building2, ...L.who[2], to: '/pricing#request', cta: L.ctaOrg },
+  ]
+  return (
+    <div className="relative z-10 border-t border-white/10 bg-night/60 backdrop-blur">
+      <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6" aria-labelledby="who">
+        <h2 id="who" className="text-center text-3xl font-black sm:text-4xl">{L.whoTitle}</h2>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {cards.map((c) => (
+            <div key={c.title} className="glass flex flex-col gap-3 p-6">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl" style={{ background: 'var(--grad)' }}><c.icon className="h-6 w-6" /></span>
+              <h3 className="text-xl font-black">{c.title}</h3>
+              <p className="flex-1 text-sm leading-relaxed text-white/65">{c.desc}</p>
+              <Link to={c.to} className="btn btn-ghost mt-2 self-start">{c.cta}<ArrowRight /></Link>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="how">
+        <h2 id="how" className="text-center text-3xl font-black sm:text-4xl">{L.howTitle}</h2>
+        <ol className="mt-10 grid gap-4 md:grid-cols-3">
+          {L.how.map((s, i) => (
+            <li key={s.title} className="glass p-6">
+              <span className="font-display text-grad text-5xl font-black">{i + 1}</span>
+              <h3 className="mt-2 text-lg font-black">{s.title}</h3>
+              <p className="mt-1 text-sm text-white/65">{s.desc}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="glass-strong gradient-border mt-10 flex flex-col items-center gap-4 p-8 text-center md:flex-row md:text-left">
+          <div className="flex-1"><h3 className="text-2xl font-black">{L.ctaTitle}</h3><p className="mt-1 text-white/65">{L.ctaSub}</p></div>
+          <div className="flex flex-wrap justify-center gap-2"><Link to="/start" className="btn btn-primary btn-lg">{t.acct.signUp} · {t.acct.freeTrial}</Link><Link to="/pricing" className="btn btn-ghost btn-lg">{t.acct.pricingTitle}</Link></div>
+        </div>
+      </section>
+      <footer className="border-t border-white/10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-white/55 sm:px-6 md:flex-row md:items-center">
+          <Logo size={26} />
+          <nav className="flex flex-wrap gap-x-5 gap-y-2 md:ml-6" aria-label={t.legal.docs}>
+            <Link to="/privacy" className="hover:text-white">{t.legal.privacy}</Link>
+            <Link to="/terms" className="hover:text-white">{t.legal.terms}</Link>
+            <Link to="/consent" className="hover:text-white">{t.legal.consent}</Link>
+            <Link to="/pricing" className="hover:text-white">{t.acct.pricingTitle}</Link>
+          </nav>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 md:ml-auto"><a href={`tel:${CONTACT.phone}`} className="hover:text-white">{CONTACT.phoneLabel}</a><a href={`mailto:${CONTACT.email}`} className="hover:text-white">{CONTACT.email}</a></div>
+        </div>
+      </footer>
     </div>
   )
 }

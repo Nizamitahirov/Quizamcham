@@ -54,19 +54,35 @@ export function effectivePerms(role: Role | null, cfg: AccessConfig | null, over
 
 // ---------------- Plan (özü qeydiyyatdan keçən təlimçilər) ----------------
 export const TRIAL_DAYS = 3
-/** Plan tələb edən icazələr — sınaq/lisenziya bitəndə bağlanır (Rules-dakı planOk ilə eyni). */
-export const PLAN_PERMS: PermKey[] = ['createQuiz', 'runGames', 'share', 'publish']
+export const FREE_MAX_PLAYERS = 10
+/** Özü qeydiyyatdan keçən müştəri platforma üzrə ortaq məkanlara məzmun çıxara bilməz (Rules-dakı selfServe ilə eyni). */
+export const SELF_SERVE_BLOCKED: PermKey[] = ['share', 'publish']
 
 export interface PlanInfo {
   selfServe: boolean // Google ilə özü qeydiyyatdan keçib
   licensed: boolean
   endsAt: Date | null // sınaq və ya lisenziya bitmə vaxtı
   active: boolean
+  free: boolean // sınaq/lisenziya bitib → pulsuz plan (oyunda maks. 10 iştirakçı)
 }
 
 type TsLike = { toMillis(): number } | null | undefined
-export function planInfo(d: { source?: unknown; createdAt?: TsLike; trialEndsAt?: TsLike; licenseUntil?: TsLike } | null, now = Date.now()): PlanInfo {
-  if (!d || d.source !== 'signup') return { selfServe: false, licensed: false, endsAt: null, active: true }
+type PlanDoc = { source?: unknown; createdAt?: TsLike; trialEndsAt?: TsLike; licenseUntil?: TsLike; plan?: unknown }
+/** owner: müəssisə təlimçisi üçün sahibin sənədi (lisenziya oradan gəlir). */
+export function planInfo(d: PlanDoc | null, now = Date.now(), owner?: PlanDoc | null): PlanInfo {
+  if (d?.source === 'org') {
+    const end = owner?.plan === 'institution' ? owner.licenseUntil?.toMillis() ?? 0 : 0
+    return { selfServe: true, licensed: !!end, endsAt: end ? new Date(end) : null, active: now < end, free: now >= end }
+  }
+  if (!d || d.source !== 'signup') return { selfServe: false, licensed: false, endsAt: null, active: true, free: false }
   const end = d.licenseUntil?.toMillis() ?? d.trialEndsAt?.toMillis() ?? (d.createdAt ? d.createdAt.toMillis() + TRIAL_DAYS * 86_400_000 : 0)
-  return { selfServe: true, licensed: !!d.licenseUntil, endsAt: end ? new Date(end) : null, active: now < end }
+  return { selfServe: true, licensed: !!d.licenseUntil, endsAt: end ? new Date(end) : null, active: now < end, free: now >= end }
+}
+
+/** Təşkilat: müəssisə sahibi (lisenziya planı "institution") və ya onun təlimçisi. */
+export interface OrgInfo { role: 'owner' | 'member' | null; id: string; seats: number }
+export function orgInfo(uid: string, d: { source?: unknown; plan?: unknown; orgId?: unknown; seats?: unknown } | null): OrgInfo {
+  if (d?.source === 'org' && typeof d.orgId === 'string') return { role: 'member', id: d.orgId, seats: 0 }
+  if (d?.source === 'signup' && d.plan === 'institution') return { role: 'owner', id: uid, seats: Number(d.seats) || 1 }
+  return { role: null, id: '', seats: 0 }
 }
