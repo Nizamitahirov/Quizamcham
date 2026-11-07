@@ -22,6 +22,7 @@ const Settings = lazy(() => import('./pages/admin/Settings'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 const Team = lazy(() => import('./pages/admin/Team'))
+const Logs = lazy(() => import('./pages/admin/Logs'))
 const Analytics = lazy(() => import('./pages/admin/Analytics'))
 
 const S = (el: ReactNode) => <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>}>{el}</Suspense>
@@ -48,6 +49,7 @@ export const router = createBrowserRouter([
           { path: 'games', element: S(<Games />), errorElement: <RouteError /> },
           { path: 'games/:gameId', element: S(<GameReport />), errorElement: <RouteError /> },
           { path: 'settings', element: S(<OwnerOnly><Settings /></OwnerOnly>), errorElement: <RouteError /> },
+          { path: 'logs', element: S(<OwnerOnly level="super"><Logs /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'profile', element: S(<Profile />), errorElement: <RouteError /> },
           { path: 'sounds', element: S(<OwnerOnly><Sounds /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'team', element: S(<Team />), errorElement: <RouteError /> },

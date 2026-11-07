@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fmtDateTime } from '../../lib/format'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Eye, Lock, Bot, Copy, FileJson, FileSpreadsheet, LayoutTemplate, Pencil, Play, Plus, Search, Sparkles, Trash2 } from 'lucide-react'
+import { Eye, Lock, Bot, Copy, FileJson, FileSpreadsheet, LayoutTemplate, Pencil, Play, Plus, Search, Sparkles, Trash2, Library } from 'lucide-react'
 import { createQuiz, deleteQuiz, duplicateQuiz, listQuizzes, loadQuiz, parseQuizJson } from '../../firebase/db'
 import { launchQuiz } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
@@ -11,7 +11,8 @@ import { PageHeader, Spinner } from '../../components/ui'
 import { AiImport } from '../../components/AiImport'
 import { CsvImport, TemplateGallery } from '../../components/ImportModals'
 import type { AdminState } from '../../firebase/auth'
-import { canManage } from '../../lib/access'
+import { canManage, scopeUid } from '../../lib/access'
+import { logAudit } from '../../lib/audit'
 import type { Quiz } from '../../types'
 import seed from '../../../seed/ai-pretest.json'
 
@@ -29,7 +30,7 @@ export default function QuizList() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const reload = useCallback(() => { void listQuizzes().then(setItems).catch(() => setItems([])) }, [])
+  const reload = useCallback(() => { void listQuizzes(scopeUid(admin)).then(setItems).catch(() => setItems([])) }, [admin])
   useEffect(reload, [reload])
   const filtered = useMemo(() => (items ?? []).filter((x) => `${x.title} ${x.description} ${(x.tags ?? []).join(' ')}`.toLocaleLowerCase('az-AZ').includes(q.toLocaleLowerCase('az-AZ')) && (!tag || (x.tags ?? []).includes(tag))), [items, q, tag])
   const allTags = useMemo(() => [...new Set((items ?? []).flatMap((x) => x.tags ?? []))].sort(), [items])
@@ -102,11 +103,12 @@ export default function QuizList() {
                 {(x.tags ?? []).length > 0 && <div className="flex flex-wrap gap-1">{x.tags!.map((tg) => <span key={tg} className="chip chip-brand">{tg}</span>)}</div>}
                 <p className="text-xs text-muted">{t.admin.lastEdit}: {fmt(x)}</p>
                 {!canManage(admin, x.ownerUid) && <span className="chip self-start bg-surface text-[#4A4E69]"><Lock className="h-3 w-3" />{t.admin.locked}</span>}
+                {x.shared && <span className="chip self-start bg-green-50 text-green-800" title={t.admin.shareHint}><Library className="h-3 w-3" />{t.admin.shared}</span>}
                 <div className="mt-auto flex items-center gap-1 pt-2">
                   <button className="btn btn-primary btn-sm flex-1" disabled={busyId === x.id || x.count === 0} onClick={() => void launch(x.id)}><Play className="fill-current" />{busyId === x.id ? t.admin.launching : t.admin.launch}</button>
                   <button className="btn btn-ghost-dark btn-sm btn-icon" title={canManage(admin, x.ownerUid) ? t.admin.edit : t.admin.view} onClick={() => nav(`/admin/quiz/${x.id}`)}>{canManage(admin, x.ownerUid) ? <Pencil /> : <Eye />}</button>
                   <button className="btn btn-ghost-dark btn-sm btn-icon" title={t.admin.duplicate} onClick={async () => { await duplicateQuiz(x.id, user!.uid, t.admin.copySuffix); reload() }}><Copy /></button>
-                  {canManage(admin, x.ownerUid) && <button className="btn btn-ghost-dark btn-sm btn-icon text-red-600" title={t.app.delete} onClick={async () => { if (confirm(t.admin.deleteConfirm(x.title))) { try { await deleteQuiz(x.id) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>}
+                  {canManage(admin, x.ownerUid) && <button className="btn btn-ghost-dark btn-sm btn-icon text-red-600" title={t.app.delete} onClick={async () => { if (confirm(t.admin.deleteConfirm(x.title))) { try { await deleteQuiz(x.id); void logAudit('quiz_deleted', { target: x.id, details: { title: x.title } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>}
                 </div>
               </div>
             </motion.div>

@@ -4,16 +4,17 @@ import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom
 import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull } from '../../firebase/db'
+import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull, setQuizShared } from '../../firebase/db'
+import { logAudit } from '../../lib/audit'
 import { compressImage } from '../../lib/image'
-import { canManage } from '../../lib/access'
+import { canManage, scopeUid } from '../../lib/access'
 import { launchQuiz, toPublic } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { download } from '../../lib/csv'
 import { ALL_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
 import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
-import { ListChecks } from 'lucide-react'
+import { ListChecks, Library } from 'lucide-react'
 import { Lock, FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
@@ -186,6 +187,13 @@ export default function QuizEditor() {
         <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-600' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
           {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' && savedAt ? <CheckCircle2 className="h-4 w-4" /> : state === 'error' ? <AlertTriangle className="h-4 w-4" /> : null}{status}
         </span>
+        {!readOnly && (
+          <button className={`btn ${quiz.shared ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={t.admin.shareHint} aria-pressed={!!quiz.shared}
+            onClick={async () => {
+              const next = !quiz.shared
+              try { await setQuizShared(quiz.id, next); setQuiz((q) => (q ? { ...q, shared: next } : q)); void logAudit(next ? 'quiz_shared' : 'quiz_unshared', { target: quiz.id, details: { title: quiz.title } }) } catch { /* icazə yoxdur */ }
+            }}><Library />{quiz.shared ? t.admin.shared : t.admin.share}</button>
+        )}
         <button className="btn btn-secondary" disabled={readOnly} onClick={() => void save()}><Save />{t.app.save}</button>
         <button className="btn btn-primary" disabled={launching || errCount > 0 || !questions.length} title={errCount ? t.admin.cannotLaunch : undefined} onClick={() => void launch()}>
           <Play className="fill-current" />{launching ? t.admin.launching : t.admin.launch}
@@ -444,9 +452,11 @@ function QuestionSettings({ q, onChange }: { q: Question; onChange: (q: Question
 }
 
 function CopyQuestionModal({ q, currentQuizId, onClose }: { q: Question | null; currentQuizId: string; onClose: () => void }) {
+  const admin = useOutletContext<AdminState>()
   const [list, setList] = useState<{ id: string; title: string; coverEmoji: string }[] | null>(null)
   const [msg, setMsg] = useState('')
-  useEffect(() => { if (q) { setMsg(''); void listQuizzes().then((l) => setList(l.filter((x) => x.id !== currentQuizId))) } }, [q, currentQuizId])
+  // yalnız redaktə hüququ olan quizlərə köçürmək olar
+  useEffect(() => { if (q) { setMsg(''); void listQuizzes(scopeUid(admin)).then((l) => setList(l.filter((x) => x.id !== currentQuizId && canManage(admin, x.ownerUid)))) } }, [q, currentQuizId, admin])
   return (
     <Modal open={!!q} onClose={onClose} title={t.copyQ.title}>
       <p className="mb-3 text-sm text-muted">{t.copyQ.pick}</p>

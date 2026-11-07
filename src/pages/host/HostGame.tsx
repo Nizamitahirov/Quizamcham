@@ -1,5 +1,6 @@
+import { isManagerRole } from '../../lib/roles'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { collection, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore'
 import { AnimatePresence, motion } from 'framer-motion'
 import { db } from '../../firebase/config'
@@ -45,7 +46,9 @@ export default function HostGame() {
       </div>
     )
   }
-  return <HostConsole gameId={gameId!} uid={admin.user!.uid} isOwner={admin.role === 'owner'} />
+  // ilk girişdə şifrə dəyişdirilməyibsə, əvvəlcə admin panelində yeni şifrə təyin olunmalıdır
+  if (admin.mustChangePassword) return <Navigate to="/admin" replace />
+  return <HostConsole gameId={gameId!} uid={admin.user!.uid} isOwner={isManagerRole(admin.role)} />
 }
 
 function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; isOwner: boolean }) {

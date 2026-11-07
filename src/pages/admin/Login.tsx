@@ -29,7 +29,7 @@ export default function Login() {
       await adminLogin(email, pw)
       nav('/admin')
     } catch (ex) {
-      setErr((ex as Error).message === 'not-admin' ? t.admin.notAdmin : t.admin.badCreds)
+      setErr((ex as Error).message === 'not-admin' ? t.admin.notAdmin : (ex as Error).message === 'disabled' ? t.admin.disabled : t.admin.badCreds)
     } finally {
       setBusy(false)
     }

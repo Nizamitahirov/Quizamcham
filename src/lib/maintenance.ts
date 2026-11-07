@@ -12,7 +12,7 @@ const STALE_MS = 12 * 3600_000
  * Yalnız təlimçinin özünün keçirdiyi oyunlara toxunur.
  */
 export async function runMaintenance(uid: string): Promise<number> {
-  const games = (await listGames(300)) as unknown as (Game & { createdAt?: Timestamp })[]
+  const games = (await listGames(300, uid)) as unknown as (Game & { createdAt?: Timestamp })[]
   const now = Date.now()
   let n = 0
   for (const g of games) {
