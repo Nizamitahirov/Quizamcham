@@ -1,6 +1,6 @@
 import { onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
-import { doc, getDoc, onSnapshot } from 'firebase/firestore'
-import { normalizeRole, SUPER_UID, type Role } from '../lib/roles'
+import { doc, getDoc, onSnapshot, type DocumentSnapshot } from 'firebase/firestore'
+import { effectivePerms, normalizeRole, SUPER_UID, type AccessConfig, type PermMap, type Perms, type Role } from '../lib/roles'
 import { logAudit } from '../lib/audit'
 import { useEffect, useState } from 'react'
 import { auth, db } from './config'
@@ -70,30 +70,43 @@ export const logout = () => signOut(auth)
 export type AdminState = {
   loading: boolean; user: User | null; isAdmin: boolean; role: Role | null
   disabled: boolean; mustChangePassword: boolean
+  /** Effektiv icazələr (rol standartı + fərdi istisnalar). Əsl yoxlama Rules-dadır. */
+  perms: Perms
 }
 
+const NONE: Perms = effectivePerms(null, null, undefined)
+
 /**
- * Admin sessiyası. Öz komanda sənədi CANLI dinlənilir: məhdudlaşdırma və ya rol dəyişikliyi
- * açıq sessiyada dərhal qüvvəyə minir (Rules-da da eyni anda bağlanır).
+ * Admin sessiyası. Öz komanda sənədi və rol icazələri (settings/access) CANLI dinlənilir:
+ * məhdudlaşdırma, rol və ya icazə dəyişikliyi açıq sessiyada dərhal qüvvəyə minir.
  */
 export function useAdmin(): AdminState {
-  const [state, setState] = useState<AdminState>({ loading: true, user: null, isAdmin: false, role: null, disabled: false, mustChangePassword: false })
+  const [state, setState] = useState<AdminState>({ loading: true, user: null, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE })
   useEffect(() => {
-    let unsubDoc: (() => void) | null = null
+    let unsubs: (() => void)[] = []
+    const stop = () => { unsubs.forEach((u) => u()); unsubs = [] }
     const unsubAuth = onAuthStateChanged(auth, (u) => {
-      unsubDoc?.(); unsubDoc = null
-      if (!u || u.isAnonymous) return setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false })
-      unsubDoc = onSnapshot(doc(db, 'admins', u.uid), (snap) => {
+      stop()
+      if (!u || u.isAnonymous) return setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE })
+      let me: DocumentSnapshot | null = null
+      let cfg: AccessConfig | null = null
+      let cfgLoaded = false
+      const emit = () => {
+        if (!me || !cfgLoaded) return
         const isSuper = u.uid === SUPER_UID
-        if (!snap.exists() && !isSuper) return setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false })
-        const disabled = !isSuper && snap.get('disabled') === true
+        if (!me.exists() && !isSuper) return setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE })
+        const disabled = !isSuper && me.get('disabled') === true
+        const role = normalizeRole(me.get('role'), u.uid)
         setState({
-          loading: false, user: u, isAdmin: !disabled, role: normalizeRole(snap.get('role'), u.uid),
-          disabled, mustChangePassword: snap.get('mustChangePassword') === true,
+          loading: false, user: u, isAdmin: !disabled, role, disabled, mustChangePassword: me.get('mustChangePassword') === true,
+          perms: disabled ? NONE : effectivePerms(role, cfg, me.get('perms') as PermMap | undefined),
         })
-      }, () => setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false }))
+      }
+      const fail = () => setState({ loading: false, user: u, isAdmin: false, role: null, disabled: false, mustChangePassword: false, perms: NONE })
+      unsubs.push(onSnapshot(doc(db, 'admins', u.uid), (s) => { me = s; emit() }, fail))
+      unsubs.push(onSnapshot(doc(db, 'settings', 'access'), (s) => { cfg = s.exists() ? (s.data() as AccessConfig) : null; cfgLoaded = true; emit() }, () => { cfgLoaded = true; emit() }))
     })
-    return () => { unsubAuth(); unsubDoc?.() }
+    return () => { unsubAuth(); stop() }
   }, [])
   return state
 }

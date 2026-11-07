@@ -6,7 +6,7 @@ export type AuditAction =
   | 'login' | 'password_changed' | 'password_reset_sent'
   | 'member_created' | 'member_role' | 'member_restricted' | 'member_unrestricted' | 'member_removed'
   | 'quiz_deleted' | 'quiz_shared' | 'quiz_unshared' | 'game_deleted' | 'settings_saved' | 'sounds_saved'
-  | 'data_export' | 'data_cleanup' | 'logs_cleared'
+  | 'data_export' | 'data_cleanup' | 'logs_cleared' | 'access_changed' | 'member_perms'
 
 export interface AuditRow {
   id: string; actor: string; actorEmail?: string; action: AuditAction

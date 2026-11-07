@@ -1,11 +1,11 @@
 import { deleteApp, initializeApp } from 'firebase/app'
 import { createUserWithEmailAndPassword, getAuth, inMemoryPersistence, sendPasswordResetEmail, setPersistence, signOut } from 'firebase/auth'
-import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { app, auth, db } from '../firebase/config'
-import { normalizeRole, type Role } from './roles'
+import { normalizeRole, PERM_KEYS, type AccessConfig, type PermMap, type Role } from './roles'
 import { logAudit } from './audit'
 
-export interface AdminRow { uid: string; email: string; role: Role; name?: string; disabled: boolean; mustChangePassword: boolean }
+export interface AdminRow { uid: string; email: string; role: Role; name?: string; disabled: boolean; mustChangePassword: boolean; perms: PermMap }
 
 const ORDER: Record<Role, number> = { super: 0, admin: 1, trainer: 2 }
 
@@ -14,7 +14,7 @@ export async function listAdmins(): Promise<AdminRow[]> {
   return s.docs
     .map((d) => ({
       uid: d.id, email: d.get('email') ?? '', role: normalizeRole(d.get('role'), d.id), name: d.get('name') ?? '',
-      disabled: d.get('disabled') === true, mustChangePassword: d.get('mustChangePassword') === true,
+      disabled: d.get('disabled') === true, mustChangePassword: d.get('mustChangePassword') === true, perms: (d.get('perms') as PermMap) ?? {},
     }))
     .sort((a, b) => ORDER[a.role] - ORDER[b.role] || a.email.localeCompare(b.email))
 }
@@ -70,4 +70,31 @@ export async function sendReset(row: AdminRow) {
 export async function removeMember(row: AdminRow) {
   await deleteDoc(doc(db, 'admins', row.uid))
   void logAudit('member_removed', { target: row.uid, targetEmail: row.email, details: { role: row.role } })
+}
+
+// ---------------- İcazələr (yalnız super admin) ----------------
+
+const clean = (m: PermMap): PermMap => Object.fromEntries(PERM_KEYS.filter((k) => typeof m[k] === 'boolean').map((k) => [k, m[k]]))
+
+export async function loadAccess(): Promise<AccessConfig | null> {
+  const s = await getDoc(doc(db, 'settings', 'access')).catch(() => null)
+  return s?.exists() ? (s.data() as AccessConfig) : null
+}
+
+/** Rol standartlarını yazır (settings/access). */
+export async function saveAccess(cfg: AccessConfig, before: AccessConfig | null) {
+  await setDoc(doc(db, 'settings', 'access'), { admin: clean(cfg.admin), trainer: clean(cfg.trainer), updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid ?? '' })
+  const changes: Record<string, string> = {}
+  for (const r of ['admin', 'trainer'] as const) for (const k of PERM_KEYS) {
+    const a = before?.[r]?.[k], b = cfg[r][k]
+    if (b !== undefined && a !== b) changes[`${r}.${k}`] = b ? 'on' : 'off'
+  }
+  void logAudit('access_changed', { details: changes })
+}
+
+/** Şəxsə xüsusi icazələr; boş xəritə → istisnalar silinir (rol standartı işləyir). */
+export async function setMemberPerms(row: AdminRow, perms: PermMap) {
+  const p = clean(perms)
+  await updateDoc(doc(db, 'admins', row.uid), { perms: Object.keys(p).length ? p : deleteField(), ...stamp() })
+  void logAudit('member_perms', { target: row.uid, targetEmail: row.email, details: Object.fromEntries(Object.entries(p).map(([k, v]) => [k, v ? 'allow' : 'deny'])) })
 }

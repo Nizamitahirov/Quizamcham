@@ -11,11 +11,11 @@ import { DEFAULT_APP_SETTINGS, convertType, uid6, withDefaults } from '../lib/de
  * Quizlər. ownerScope verilibsə (təlimçi): yalnız öz quizləri + kitabxanaya paylaşılanlar
  * (Rules təlimçiyə süzgəcsiz siyahını qadağan edir). Admin/super: hamısı.
  */
-export async function listQuizzes(ownerScope?: string): Promise<(Quiz & { count: number })[]> {
+export async function listQuizzes(ownerScope?: string, withLibrary = true): Promise<(Quiz & { count: number })[]> {
   const docs = ownerScope
     ? (await Promise.all([
       getDocs(query(collection(db, 'quizzes'), where('ownerUid', '==', ownerScope))),
-      getDocs(query(collection(db, 'quizzes'), where('shared', '==', true))),
+      ...(withLibrary ? [getDocs(query(collection(db, 'quizzes'), where('shared', '==', true)))] : []),
     ])).flatMap((s) => s.docs)
     : (await getDocs(query(collection(db, 'quizzes'), orderBy('updatedAt', 'desc')))).docs
   const seen = new Set<string>()
