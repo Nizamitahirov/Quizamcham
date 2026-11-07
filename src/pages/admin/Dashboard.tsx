@@ -27,7 +27,7 @@ export default function Dashboard() {
   const [maint, setMaint] = useState('')
   const [tpl, setTpl] = useState(false)
   useEffect(() => {
-    void listQuizzes(scopeUid(admin)).then((q) => setQuizCount(q.length)).catch(() => setQuizCount(0))
+    void listQuizzes(scopeUid(admin), admin.perms.library).then((q) => setQuizCount(q.length)).catch(() => setQuizCount(0))
     const load = () => void listGames(200, scopeUid(admin)).then((g) => setGames(visibleGames(admin, g as G[]))).catch(() => setGames([]))
     load()
     // baxım: sessiyada bir dəfə
@@ -65,10 +65,12 @@ export default function Dashboard() {
             <h1 className="text-2xl font-black sm:text-3xl">{t.admin.welcome(name)}</h1>
             <p className="mt-1 text-white/65">{t.admin.welcomeSub}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button className="btn btn-primary" onClick={async () => nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`)}><Plus />{t.admin.newQuiz}</button>
-            <button className="btn btn-ghost" onClick={() => setAi(true)}><Bot />AI</button>
-          </div>
+          {admin.perms.createQuiz && (
+            <div className="flex flex-wrap gap-2">
+              <button className="btn btn-primary" onClick={async () => nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`)}><Plus />{t.admin.newQuiz}</button>
+              <button className="btn btn-ghost" onClick={() => setAi(true)}><Bot />AI</button>
+            </div>
+          )}
         </div>
       </motion.section>
 
@@ -112,8 +114,8 @@ export default function Dashboard() {
           <div className="card p-5">
             <h2 className="mb-4 text-lg font-bold">{t.admin.quickActions}</h2>
             <div className="flex flex-col gap-2">
-              <button className="btn btn-secondary justify-start" onClick={() => setAi(true)}><Bot className="text-brand" />{t.admin.aiTitle}</button>
-              <button className="btn btn-secondary justify-start" onClick={() => setTpl(true)}><Sparkles className="text-brand" />{t.templates.title}</button>
+              {admin.perms.createQuiz && <button className="btn btn-secondary justify-start" onClick={() => setAi(true)}><Bot className="text-brand" />{t.admin.aiTitle}</button>}
+              {admin.perms.createQuiz && <button className="btn btn-secondary justify-start" onClick={() => setTpl(true)}><Sparkles className="text-brand" />{t.templates.title}</button>}
               <Link className="btn btn-secondary justify-start" to="/admin/quizzes"><ListChecks className="text-brand" />{t.admin.quizzes}</Link>
             </div>
           </div>

@@ -306,3 +306,54 @@ describe('giriş idarəetməsi (super admin / admin / təlimçi)', () => {
     await assertFails(setDoc(doc(as(P1), 'audit', 'y3'), { actor: P1, action: 'login', at: serverTimestamp() }))
   })
 })
+
+describe('tənzimlənən icazələr (rol standartları + fərdi istisnalar)', () => {
+  const setAccess = (data: Record<string, unknown>) => env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'settings', 'access'), data) })
+  const setPerms = (uid: string, perms: Record<string, boolean>) => env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', uid), { perms }) })
+  it('rol icazələrini yalnız super admin dəyişir', async () => {
+    await assertFails(setDoc(doc(as(ADMIN), 'settings', 'access'), { admin: {}, trainer: { allContent: true } }))
+    await assertFails(setDoc(doc(as(TRAINER), 'settings', 'access'), { admin: {}, trainer: { allContent: true } }))
+    await assertSucceeds(setDoc(doc(as(SUPER), 'settings', 'access'), { admin: { logs: true }, trainer: { allContent: false } }))
+    await assertFails(setDoc(doc(as(SUPER), 'settings', 'access'), { admin: { superPower: true }, trainer: {} }))
+  })
+  it('təlimçi roluna "bütün məzmun" verilsə, bütün quizləri görür', async () => {
+    await assertFails(getDoc(doc(as(TRAINER), 'quizzes', 'q3')))
+    await setAccess({ admin: {}, trainer: { allContent: true } })
+    await assertSucceeds(getDoc(doc(as(TRAINER), 'quizzes', 'q3')))
+    await assertSucceeds(getDocs(collection(as(TRAINER), 'quizzes')))
+  })
+  it('admin roluna "loglar" verilsə, audit jurnalını oxuyur', async () => {
+    await assertFails(getDocs(collection(as(ADMIN), 'audit')))
+    await setAccess({ admin: { logs: true }, trainer: {} })
+    await assertSucceeds(getDocs(collection(as(ADMIN), 'audit')))
+  })
+  it('təlimçidən "quiz yaratmaq" və "kitabxana" alınarsa', async () => {
+    await setAccess({ admin: {}, trainer: { createQuiz: false, library: false } })
+    await assertFails(setDoc(doc(as(TRAINER), 'quizzes', 'qn'), { title: 'X', ownerUid: TRAINER }))
+    await assertFails(getDoc(doc(as(TRAINER), 'quizzes', 'q2')))
+    await assertSucceeds(getDoc(doc(as(TRAINER), 'quizzes', 'q1')))
+  })
+  it('fərdi istisna rol standartından üstündür', async () => {
+    await setPerms(ADMIN, { settings: false })
+    await assertFails(setDoc(doc(as(ADMIN), 'settings', 'app'), { bannedWords: [] }))
+    await setPerms(TRAINER, { logs: true })
+    await assertSucceeds(getDocs(collection(as(TRAINER), 'errors')))
+    await assertFails(getDocs(collection(as(TRAINER2), 'errors')))
+  })
+  it('fərdi icazələri yalnız super admin təyin edir; admin təlimçiyə icazə verə bilməz', async () => {
+    await assertFails(updateDoc(doc(as(ADMIN), 'admins', TRAINER), { perms: { allContent: true } }))
+    await assertSucceeds(updateDoc(doc(as(SUPER), 'admins', TRAINER), { perms: { allContent: true } }))
+    await assertFails(updateDoc(doc(as(SUPER), 'admins', TRAINER), { perms: { manageAdmins: true } }))
+    await assertFails(setDoc(doc(as(ADMIN), 'admins', 'new9'), { email: 'n@x.az', role: 'trainer', perms: { logs: true } }))
+  })
+  it('"təlimçiləri idarə et" alınmış admin komandaya toxuna bilmir', async () => {
+    await setPerms(ADMIN, { trainers: false })
+    await assertFails(getDocs(collection(as(ADMIN), 'admins')))
+    await assertFails(updateDoc(doc(as(ADMIN), 'admins', TRAINER), { disabled: true }))
+  })
+  it('"kitabxanaya paylaşmaq" olmadan quizi paylaşmaq olmur', async () => {
+    await setAccess({ admin: {}, trainer: { share: false } })
+    await assertFails(updateDoc(doc(as(TRAINER), 'quizzes', 'q1'), { shared: true }))
+    await assertSucceeds(updateDoc(doc(as(TRAINER), 'quizzes', 'q1'), { title: 'Yeni ad' }))
+  })
+})

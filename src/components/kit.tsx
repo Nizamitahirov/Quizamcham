@@ -4,18 +4,18 @@ import { Check } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 /** Bölmə kartı: ikon + başlıq + alt başlıq + məzmun. Bütün admin səhifələrində vahid görünüş. */
-export function Section({ icon: Icon, title, sub, children, actions, className = '' }: { icon?: LucideIcon; title: string; sub?: string; children: ReactNode; actions?: ReactNode; className?: string }) {
+export function Section({ icon: Icon, title, sub, children, actions, className = '', bodyClassName = 'p-5' }: { icon?: LucideIcon; title: string; sub?: string; children: ReactNode; actions?: ReactNode; className?: string; bodyClassName?: string }) {
   return (
     <section className={`card overflow-hidden ${className}`}>
-      <header className="flex items-center gap-3 border-b border-line px-5 py-4">
+      <header className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
         {Icon && <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-brand" style={{ background: 'var(--grad-soft)' }}><Icon className="h-5 w-5" /></span>}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-[12rem] flex-1">
           <h2 className="text-base font-bold leading-tight">{title}</h2>
           {sub && <p className="mt-0.5 text-xs text-muted">{sub}</p>}
         </div>
         {actions}
       </header>
-      <div className="p-5">{children}</div>
+      <div className={bodyClassName}>{children}</div>
     </section>
   )
 }

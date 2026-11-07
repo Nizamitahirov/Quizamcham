@@ -187,7 +187,7 @@ export default function QuizEditor() {
         <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-600' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
           {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' && savedAt ? <CheckCircle2 className="h-4 w-4" /> : state === 'error' ? <AlertTriangle className="h-4 w-4" /> : null}{status}
         </span>
-        {!readOnly && (
+        {!readOnly && admin.perms.share && (
           <button className={`btn ${quiz.shared ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={t.admin.shareHint} aria-pressed={!!quiz.shared}
             onClick={async () => {
               const next = !quiz.shared
@@ -195,7 +195,7 @@ export default function QuizEditor() {
             }}><Library />{quiz.shared ? t.admin.shared : t.admin.share}</button>
         )}
         <button className="btn btn-secondary" disabled={readOnly} onClick={() => void save()}><Save />{t.app.save}</button>
-        <button className="btn btn-primary" disabled={launching || errCount > 0 || !questions.length} title={errCount ? t.admin.cannotLaunch : undefined} onClick={() => void launch()}>
+        <button className="btn btn-primary" disabled={launching || errCount > 0 || !questions.length || !admin.perms.runGames} title={errCount ? t.admin.cannotLaunch : undefined} onClick={() => void launch()}>
           <Play className="fill-current" />{launching ? t.admin.launching : t.admin.launch}
         </button>
       </div>
@@ -456,7 +456,7 @@ function CopyQuestionModal({ q, currentQuizId, onClose }: { q: Question | null; 
   const [list, setList] = useState<{ id: string; title: string; coverEmoji: string }[] | null>(null)
   const [msg, setMsg] = useState('')
   // yalnız redaktə hüququ olan quizlərə köçürmək olar
-  useEffect(() => { if (q) { setMsg(''); void listQuizzes(scopeUid(admin)).then((l) => setList(l.filter((x) => x.id !== currentQuizId && canManage(admin, x.ownerUid)))) } }, [q, currentQuizId, admin])
+  useEffect(() => { if (q) { setMsg(''); void listQuizzes(scopeUid(admin), admin.perms.library).then((l) => setList(l.filter((x) => x.id !== currentQuizId && canManage(admin, x.ownerUid)))) } }, [q, currentQuizId, admin])
   return (
     <Modal open={!!q} onClose={onClose} title={t.copyQ.title}>
       <p className="mb-3 text-sm text-muted">{t.copyQ.pick}</p>

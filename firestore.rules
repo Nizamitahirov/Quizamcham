@@ -14,8 +14,17 @@ service cloud.firestore {
     function me() { return get(adminDoc()).data; }
     function isSuper() { return signedIn() && request.auth.uid == SUPER(); }
     function isAdmin() { return isSuper() || (signedIn() && exists(adminDoc()) && me().get('disabled', false) != true); }
-    function isManager() { return isSuper() || (isAdmin() && me().get('role', 'trainer') in ['admin', 'owner']); }
-    function isOwner() { return isManager(); }
+    // ---------- İcazələr: rol üzrə standartlar (settings/access — super admin dəyişir) + şəxsə xüsusi istisnalar (admins/{uid}.perms) ----------
+    function roleKey() { return me().get('role', 'trainer') in ['admin', 'owner'] ? 'admin' : 'trainer'; }
+    function defaultPerm(r, p) {
+      return r == 'admin'
+        ? p in ['createQuiz', 'runGames', 'library', 'share', 'allContent', 'trainers', 'settings']
+        : p in ['createQuiz', 'runGames', 'library', 'share'];
+    }
+    function accessDoc() { return /databases/$(db)/documents/settings/access; }
+    function rolePerm(p) { return exists(accessDoc()) ? get(accessDoc()).data.get(roleKey(), {}).get(p, defaultPerm(roleKey(), p)) : defaultPerm(roleKey(), p); }
+    function can(p) { return isSuper() || (isAdmin() && me().get('perms', {}).get(p, rolePerm(p)) == true); }
+    function isOwner() { return can('allContent'); }
     function game(gameId) { return get(/databases/$(db)/documents/games/$(gameId)).data; }
     function isGameHost(gameId) { return isAdmin() && (game(gameId).hostUid == request.auth.uid || isOwner()); }
     function nameOk(v) { return v is string && v.size() >= 2 && v.size() <= 20; }
@@ -34,19 +43,22 @@ service cloud.firestore {
     match /admins/{uid} {
       function newRole() { return request.resource.data.get('role', 'trainer'); }
       function keysOk() {
-        return request.resource.data.keys().hasOnly(['email','role','name','createdAt','createdBy','disabled','mustChangePassword','passwordChangedAt','updatedAt','updatedBy']);
+        return request.resource.data.keys().hasOnly(['email','role','name','createdAt','createdBy','disabled','mustChangePassword','passwordChangedAt','updatedAt','updatedBy','perms'])
+          && request.resource.data.get('perms', {}).keys().hasOnly(['createQuiz','runGames','library','share','allContent','trainers','settings','logs']);
       }
-      allow get: if signedIn() && (request.auth.uid == uid || isManager());
-      allow list: if isManager();
+      function permsUnchanged() { return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['perms']); }
+      allow get: if signedIn() && (request.auth.uid == uid || can('trainers'));
+      allow list: if can('trainers');
       allow create: if keysOk() && uid != SUPER()
-        && ((isSuper() && newRole() in ['admin', 'trainer']) || (isManager() && newRole() == 'trainer'));
+        && ((isSuper() && newRole() in ['admin', 'trainer'])
+            || (can('trainers') && newRole() == 'trainer' && !('perms' in request.resource.data)));
       allow update: if keysOk() && (
         // super admin öz sənədi: rol dəyişmir, özünü məhdudlaşdıra bilməz
         (uid == SUPER() && isSuper() && newRole() == 'super' && request.resource.data.get('disabled', false) == false)
-        // super admin başqalarını (admin/təlimçi) idarə edir
+        // super admin başqalarını (admin/təlimçi) və onların fərdi icazələrini idarə edir
         || (uid != SUPER() && isSuper() && newRole() in ['admin', 'trainer'])
-        // admin yalnız təlimçiləri (rolunu yüksəldə bilməz, özünə toxuna bilməz)
-        || (uid != SUPER() && uid != request.auth.uid && isManager()
+        // "təlimçiləri idarə et" icazəsi olan: yalnız təlimçiləri; rolu yüksəldə, fərdi icazə dəyişə, özünə toxuna bilməz
+        || (uid != SUPER() && uid != request.auth.uid && can('trainers') && permsUnchanged()
             && resource.data.get('role', 'trainer') == 'trainer' && newRole() == 'trainer')
         // hər kəs ilk girişdə öz şifrəsini dəyişdiyini qeyd edə bilər (yalnız bu iki sahə)
         || (request.auth.uid == uid
@@ -54,12 +66,12 @@ service cloud.firestore {
             && request.resource.data.mustChangePassword == false)
       );
       allow delete: if uid != SUPER() && uid != request.auth.uid
-        && (isSuper() || (isManager() && resource.data.get('role', 'trainer') == 'trainer'));
+        && (isSuper() || (can('trainers') && resource.data.get('role', 'trainer') == 'trainer'));
     }
 
     // ---------- Audit jurnalı: kim, nə vaxt, nə etdi (yalnız super admin oxuyur; dəyişdirilə/silinə bilməz) ----------
     match /audit/{id} {
-      allow read: if isSuper();
+      allow read: if can('logs');
       allow create: if isAdmin()
         && request.resource.data.keys().hasOnly(['actor','actorEmail','action','target','targetEmail','details','at'])
         && request.resource.data.actor == request.auth.uid
@@ -71,46 +83,53 @@ service cloud.firestore {
 
     // ---------- Quizlər: təlimçi öz quizlərini və kitabxanaya paylaşılanları görür; admin hamısını ----------
     match /quizzes/{quizId} {
-      allow read: if isManager() || (isAdmin() && (resource.data.ownerUid == request.auth.uid || resource.data.get('shared', false) == true));
-      allow create: if isAdmin() && request.resource.data.ownerUid == request.auth.uid;
+      allow read: if can('allContent') || (isAdmin() && (resource.data.ownerUid == request.auth.uid || (resource.data.get('shared', false) == true && can('library'))));
+      allow create: if can('createQuiz') && request.resource.data.ownerUid == request.auth.uid
+        && (request.resource.data.get('shared', false) == false || can('share'));
       allow update: if isAdmin() && (resource.data.ownerUid == request.auth.uid || isOwner())
-        && request.resource.data.ownerUid == resource.data.ownerUid;
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && (request.resource.data.get('shared', false) == resource.data.get('shared', false) || can('share'));
       allow delete: if isAdmin() && (resource.data.ownerUid == request.auth.uid || isOwner());
       match /questions/{qid} {
         function quizOwner() { return get(/databases/$(db)/documents/quizzes/$(quizId)).data.ownerUid; }
         function quizShared() { return get(/databases/$(db)/documents/quizzes/$(quizId)).data.get('shared', false) == true; }
-        allow read: if isManager() || (isAdmin() && (quizOwner() == request.auth.uid || quizShared()));
+        allow read: if can('allContent') || (isAdmin() && (quizOwner() == request.auth.uid || (quizShared() && can('library'))));
         allow write: if isAdmin() && (!exists(/databases/$(db)/documents/quizzes/$(quizId)) || quizOwner() == request.auth.uid || isOwner());
       }
     }
 
     match /pins/{pin} {
       allow get: if signedIn();          // konkret PIN yoxlanır, siyahılamaq olmur
-      allow list: if isManager();
+      allow list: if can('allContent');
       allow write: if isAdmin();
     }
 
     // settings/app → ümumi ayarlar (yalnız sahib), settings/current → daimi QR (istənilən təlimçi),
     // settings/play_{uid} → həmin təlimçinin şəxsi daimi QR-ı
+    // settings/access → rol icazələri (yalnız super admin dəyişir)
     match /settings/{doc} {
       allow get: if signedIn();
-      allow list: if isManager();
-      allow write: if isOwner() || (isAdmin() && (doc == 'current' || doc == 'play_' + request.auth.uid));
+      allow list: if can('settings');
+      allow write: if (doc == 'access' && isSuper()
+            && request.resource.data.keys().hasOnly(['admin', 'trainer', 'updatedAt', 'updatedBy'])
+            && request.resource.data.admin.keys().hasOnly(['createQuiz','runGames','library','share','allContent','trainers','settings','logs'])
+            && request.resource.data.trainer.keys().hasOnly(['createQuiz','runGames','library','share','allContent','trainers','settings','logs']))
+        || (doc != 'access' && (can('settings') || (isAdmin() && (doc == 'current' || doc == 'play_' + request.auth.uid))));
     }
 
     match /sounds/{doc} {            // düz/səhv cavab səs parçaları (yalnız sahib dəyişir)
       allow get: if signedIn();
       allow list: if isAdmin();
-      allow write: if isOwner();
+      allow write: if can('settings');
     }
 
     match /profiles/{uid} {          // təlimçi profili (e-poçt daxil) — özü və admin oxuyur
-      allow read: if isManager() || (signedIn() && request.auth.uid == uid);
+      allow read: if can('trainers') || can('allContent') || (signedIn() && request.auth.uid == uid);
       allow write: if isAdmin() && request.auth.uid == uid;
     }
 
     match /errors/{id} {             // klient xəta jurnalı (yalnız yazılır, super admin oxuyur)
-      allow read, delete: if isSuper();
+      allow read, delete: if can('logs');
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['message','stack','url','ua','uid','at','context'])
         && request.resource.data.message is string && request.resource.data.message.size() <= 500
@@ -123,9 +142,9 @@ service cloud.firestore {
       // Siyahını yalnız adminlər görür. Konkret oyun: aktivdirsə hər kəs (qoşulmaq üçün),
       // bitibsə yalnız onun iştirakçıları — adlar və nəticələr kənar şəxslərə açılmır.
       // Siyahı: admin hamısını, təlimçi yalnız özünün (sorğu hostUid ilə süzülməlidir)
-      allow list: if isManager() || (isAdmin() && resource.data.hostUid == request.auth.uid);
-      allow get: if isManager() || (isAdmin() && resource.data.hostUid == request.auth.uid) || isPlayer(gameId) || (signedIn() && resource.data.phase != 'finished');
-      allow create: if isAdmin() && request.resource.data.hostUid == request.auth.uid;
+      allow list: if can('allContent') || (isAdmin() && resource.data.hostUid == request.auth.uid);
+      allow get: if can('allContent') || (isAdmin() && resource.data.hostUid == request.auth.uid) || isPlayer(gameId) || (signedIn() && resource.data.phase != 'finished');
+      allow create: if can('runGames') && request.resource.data.hostUid == request.auth.uid;
       allow update, delete: if isAdmin() && (resource.data.hostUid == request.auth.uid || isOwner());
 
       match /secret/{doc} { allow read, write: if isGameHost(gameId); }

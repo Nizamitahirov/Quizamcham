@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 — 2026-11-07 (icazələrin idarə edilməsi)
+- **Tənzimlənən icazələr:** super admin Komanda səhifəsində hər rol (Admin, Təlimçi) üçün 8 icazəni açıb-bağlayır: quiz yaratmaq, oyun keçirmək, kitabxananı görmək, kitabxanaya paylaşmaq, bütün məzmun, təlimçiləri idarə etmək, ayarlar və səslər, loglar. "Adminləri idarə etmək" yalnız super admindədir və verilə bilməz.
+- **Fərdi icazələr:** hər üzv üçün "Rol üzrə / Ver / Alma" — rol standartından üstündür; sətirdə "N fərdi icazə" nişanı.
+- Hər ikisi serverdə (Firestore Rules) tətbiq olunur və açıq sessiyalara dərhal təsir edir; dəyişikliklər audit jurnalına yazılır.
+- **Komanda səhifəsi:** göstərici kartları (üzvlər, adminlər, təlimçilər, diqqət tələb edənlər), bərabər hündürlüklü kartlar, boş komanda üçün yönləndirici blok, genişləndirilmiş en; telefonda icazələr kart şəklində.
+
 ## 0.7.0 — 2026-11-07 (giriş idarəetməsi)
 - **Rollar:** Super admin (nt.nizamitahir@gmail.com — hesab ID-si ilə Rules-da sabitlənib, silinə/məhdudlaşdırıla/rolu dəyişdirilə bilməz) → Admin → Təlimçi. Köhnə "owner" rolu admin sayılır.
 - **Təlimçi** yalnız öz quizlərini, kitabxanaya paylaşılan quizləri (baxış + surət), öz oyunlarını və analitikasını görür; komanda, ayarlar, səslər və loglar bağlıdır. Server tərəfində (Firestore Rules) tətbiq olunur.
