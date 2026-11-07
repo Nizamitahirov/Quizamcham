@@ -23,7 +23,11 @@ export default function Home() {
       <FuturisticBg />
       <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <Logo size={38} />
-        <div className="flex items-center gap-2"><LangSwitch /><Link to="/admin" className="btn btn-ghost btn-sm hidden sm:inline-flex">{t.home.organizer}<ArrowRight /></Link></div>
+        <div className="flex items-center gap-2">
+          <LangSwitch />
+          <Link to="/pricing" className="btn btn-ghost btn-sm hidden md:inline-flex">{t.acct.pricingTitle}</Link>
+          <Link to="/start" className="btn btn-primary btn-sm">{t.acct.signIn} / {t.acct.signUp}<ArrowRight /></Link>
+        </div>
       </header>
 
       <main className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 pb-10 sm:px-6 lg:grid-cols-[1.1fr_.9fr]">

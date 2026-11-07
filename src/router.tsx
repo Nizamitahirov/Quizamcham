@@ -23,6 +23,12 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 const Privacy = lazy(() => import('./pages/Privacy'))
 const Team = lazy(() => import('./pages/admin/Team'))
 const Logs = lazy(() => import('./pages/admin/Logs'))
+const Console = lazy(() => import('./pages/admin/Console'))
+const Start = lazy(() => import('./pages/account/Start'))
+const Onboarding = lazy(() => import('./pages/account/Onboarding'))
+const Learn = lazy(() => import('./pages/account/Learn'))
+const Practice = lazy(() => import('./pages/account/Practice'))
+const Pricing = lazy(() => import('./pages/account/Pricing'))
 const Analytics = lazy(() => import('./pages/admin/Analytics'))
 
 const S = (el: ReactNode) => <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>}>{el}</Suspense>
@@ -39,6 +45,11 @@ export const router = createBrowserRouter([
       { path: '/g/:gameId', element: S(<PlayerGame />) },
       { path: '/host/:gameId', element: S(<HostGame />) },
       { path: '/admin/login', element: S(<Login />) },
+      { path: '/start', element: S(<Start />) },
+      { path: '/onboarding', element: S(<Onboarding />) },
+      { path: '/learn', element: S(<Learn />) },
+      { path: '/learn/:quizId', element: S(<Practice />) },
+      { path: '/pricing', element: S(<Pricing />) },
       {
         path: '/admin',
         element: S(<AdminLayout />),
@@ -50,6 +61,7 @@ export const router = createBrowserRouter([
           { path: 'games/:gameId', element: S(<GameReport />), errorElement: <RouteError /> },
           { path: 'settings', element: S(<OwnerOnly><Settings /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'logs', element: S(<OwnerOnly perm="logs"><Logs /></OwnerOnly>), errorElement: <RouteError /> },
+          { path: 'console', element: S(<OwnerOnly perm="console"><Console /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'profile', element: S(<Profile />), errorElement: <RouteError /> },
           { path: 'sounds', element: S(<OwnerOnly><Sounds /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'team', element: S(<Team />), errorElement: <RouteError /> },

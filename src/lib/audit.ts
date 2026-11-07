@@ -7,6 +7,7 @@ export type AuditAction =
   | 'member_created' | 'member_role' | 'member_restricted' | 'member_unrestricted' | 'member_removed'
   | 'quiz_deleted' | 'quiz_shared' | 'quiz_unshared' | 'game_deleted' | 'settings_saved' | 'sounds_saved'
   | 'data_export' | 'data_cleanup' | 'logs_cleared' | 'access_changed' | 'member_perms'
+  | 'quiz_published' | 'quiz_unpublished' | 'pricing_saved' | 'license_granted' | 'license_revoked' | 'trial_extended'
 
 export interface AuditRow {
   id: string; actor: string; actorEmail?: string; action: AuditAction

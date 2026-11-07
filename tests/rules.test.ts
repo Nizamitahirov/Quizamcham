@@ -357,3 +357,108 @@ describe('tənzimlənən icazələr (rol standartları + fərdi istisnalar)', ()
     await assertSucceeds(updateDoc(doc(as(TRAINER), 'quizzes', 'q1'), { title: 'Yeni ad' }))
   })
 })
+
+describe('silmə', () => {
+  it('host oyunu bütün alt kolleksiyaları ilə silə bilir; başqası yox', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await setDoc(doc(db, 'games', 'g1', 'answers', `${P2}_0`), { uid: P2, questionIndex: 0, value: 'a' })
+      await setDoc(doc(db, 'games', 'g1', 'starts', `${P2}_0`), { uid: P2, q: 0 })
+      await setDoc(doc(db, 'games', 'g1', 'reactions', `${P2}_1`), { uid: P2, emoji: '🔥' })
+      await setDoc(doc(db, 'games', 'g1', 'feedback', P2), { rating: 5 })
+    })
+    for (const sub of [`answers/${P2}_0`, `starts/${P2}_0`, `reactions/${P2}_1`, `feedback/${P2}`]) {
+      await assertFails(deleteDoc(doc(as(P2), `games/g1/${sub}`)))
+      await assertFails(deleteDoc(doc(as(TRAINER2), `games/g1/${sub}`)))
+      await assertSucceeds(deleteDoc(doc(as(TRAINER), `games/g1/${sub}`)))
+    }
+    await assertSucceeds(deleteDoc(doc(as(TRAINER), 'games', 'g1', 'players', P2)))
+    await assertSucceeds(deleteDoc(doc(as(TRAINER), 'games', 'g1')))
+  })
+  it('quiz sahibi quizi sualları ilə silə bilir', async () => {
+    await assertSucceeds(deleteDoc(doc(as(TRAINER), 'quizzes', 'q1', 'questions', 'a')))
+    await assertSucceeds(deleteDoc(doc(as(TRAINER), 'quizzes', 'q1')))
+    await assertFails(deleteDoc(doc(as(TRAINER), 'quizzes', 'q3')))
+  })
+})
+
+describe('qeydiyyat, sınaq, kataloq, lisenziya', () => {
+  const G = 'guser1', S = 'student1'
+  const google = (uid: string, email = `${uid}@gmail.com`) => env.authenticatedContext(uid, { email, firebase: { sign_in_provider: 'google.com' } }).firestore()
+  const anon = (uid: string) => env.authenticatedContext(uid, { firebase: { sign_in_provider: 'anonymous' } }).firestore()
+  const profile = (type: string, email: string, extra = {}) => ({ email, type, firstName: 'Aysel', lastName: 'Məmmədova', phone: '+994501112233', onboarded: true, createdAt: serverTimestamp(), ...extra })
+  const trial = (email: string) => ({ email, name: 'A', role: 'trainer', source: 'signup', createdAt: serverTimestamp(), disabled: false, mustChangePassword: false })
+
+  it('Google istifadəçisi öz profilini yaradır; anonim və başqasının adına yox', async () => {
+    await assertSucceeds(setDoc(doc(google(G), 'users', G), profile('trainer', `${G}@gmail.com`)))
+    await assertFails(setDoc(doc(anon('a1'), 'users', 'a1'), profile('student', 'a1@x.az')))
+    await assertFails(setDoc(doc(google('g2'), 'users', G), profile('student', 'g2@gmail.com')))
+    await assertFails(setDoc(doc(google('g3'), 'users', 'g3'), profile('student', 'fake@x.az')))
+  })
+  it('tip sonradan dəyişdirilə bilməz', async () => {
+    await setDoc(doc(google(S), 'users', S), profile('student', `${S}@gmail.com`))
+    await assertSucceeds(updateDoc(doc(google(S), 'users', S), { city: 'Bakı' }))
+    await assertFails(updateDoc(doc(google(S), 'users', S), { type: 'trainer' }))
+  })
+  it('sınaq yalnız düz 3 gün, profildən sonra və yalnız Google ilə', async () => {
+    await assertFails(setDoc(doc(google(G), 'admins', G), trial(`${G}@gmail.com`)))           // profil yoxdur
+    await setDoc(doc(google(G), 'users', G), profile('trainer', `${G}@gmail.com`))
+    await assertFails(setDoc(doc(google(G), 'admins', G), { ...trial(`${G}@gmail.com`), trialEndsAt: Timestamp.fromMillis(Date.now() + 30 * 86400000) }))  // özü uzada bilməz
+    await assertFails(setDoc(doc(google(G), 'admins', G), { ...trial(`${G}@gmail.com`), role: 'admin' }))
+    await assertFails(setDoc(doc(google(G), 'admins', G), { ...trial(`${G}@gmail.com`), licenseUntil: Timestamp.fromMillis(Date.now() + 9e10) }))
+    await assertFails(setDoc(doc(google(G), 'admins', G), { ...trial(`${G}@gmail.com`), createdAt: Timestamp.fromMillis(Date.now() + 9e10) }))
+    await assertFails(setDoc(doc(env.authenticatedContext(G, { email: `${G}@gmail.com`, firebase: { sign_in_provider: 'password' } }).firestore(), 'admins', G), trial(`${G}@gmail.com`)))
+    await assertSucceeds(setDoc(doc(google(G), 'admins', G), trial(`${G}@gmail.com`)))
+    await assertSucceeds(setDoc(doc(google(G), 'quizzes', 'qt'), { title: 'Sınaq', ownerUid: G }))  // sınaq aktivdir
+    await setDoc(doc(google(S), 'users', S), profile('student', `${S}@gmail.com`))
+    await assertFails(setDoc(doc(google(S), 'admins', S), trial(`${S}@gmail.com`)))
+  })
+  it('sınağı bitmiş təlimçi quiz yarada / oyun başlada bilmir, lisenziya ilə bilir', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'admins', G), { ...trial(`${G}@gmail.com`), createdAt: Timestamp.fromMillis(Date.now() - 4 * 86400000) })
+    })
+    await assertFails(setDoc(doc(google(G), 'quizzes', 'qg'), { title: 'X', ownerUid: G }))
+    await assertFails(setDoc(doc(google(G), 'games', 'gg'), { hostUid: G, phase: 'lobby' }))
+    await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', G), { licenseUntil: Timestamp.fromMillis(Date.now() + 86400000) }) })
+    await assertSucceeds(setDoc(doc(google(G), 'quizzes', 'qg'), { title: 'X', ownerUid: G }))
+  })
+  it('aktiv sınaqdakı təlimçi quiz yaradır; lisenziya sahələrini yalnız super dəyişir', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', G), trial(`${G}@gmail.com`)) })
+    await assertSucceeds(setDoc(doc(google(G), 'quizzes', 'qg2'), { title: 'X', ownerUid: G }))
+    await assertFails(updateDoc(doc(as(ADMIN), 'admins', G), { licenseUntil: Timestamp.fromMillis(Date.now() + 9e10) }))
+    await assertFails(updateDoc(doc(google(G), 'admins', G), { trialEndsAt: Timestamp.fromMillis(Date.now() + 9e10) }))
+    await assertSucceeds(updateDoc(doc(as(SUPER), 'admins', G), { licenseUntil: Timestamp.fromMillis(Date.now() + 9e10), plan: 'pro' }))
+  })
+  it('kataloq: qeydiyyatlı oxuyur, anonim yox; dərc etmək icazə tələb edir', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'catalog', 'c1'), { title: 'K', questions: [] }) })
+    await assertSucceeds(getDoc(doc(google(S), 'catalog', 'c1')))
+    await assertFails(getDoc(doc(anon('a2'), 'catalog', 'c1')))
+    await assertFails(setDoc(doc(as(TRAINER), 'catalog', 'c2'), { title: 'K', publishedBy: TRAINER }))
+    await assertSucceeds(setDoc(doc(as(ADMIN), 'catalog', 'c2'), { title: 'K', publishedBy: ADMIN }))
+  })
+  it('məşq nəticəsi: öz adına, ağlabatan rəqəmlərlə; başqası oxuya bilmir', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'catalog', 'c1'), { title: 'K' }) })
+    const att = (uid: string, extra = {}) => ({ uid, quizId: 'c1', quizTitle: 'K', correct: 3, total: 5, score: 3000, durationMs: 40000, at: serverTimestamp(), ...extra })
+    await assertSucceeds(setDoc(doc(google(S), 'attempts', 'a1'), att(S)))
+    await assertFails(setDoc(doc(google(S), 'attempts', 'a2'), att(S, { correct: 9 })))
+    await assertFails(setDoc(doc(google(S), 'attempts', 'a3'), att(G)))
+    await assertSucceeds(getDoc(doc(google(S), 'attempts', 'a1')))
+    await assertFails(getDoc(doc(google(G), 'attempts', 'a1')))
+    await assertSucceeds(getDocs(collection(as(SUPER), 'attempts')))
+  })
+  it('lisenziya müraciəti: qeydiyyatlı yazır, yalnız konsol oxuyur', async () => {
+    const req = { uid: G, email: `${G}@gmail.com`, name: 'Aysel', phone: '+994501112233', plan: 'trainer', status: 'new', createdAt: serverTimestamp() }
+    await assertSucceeds(setDoc(doc(google(G), 'licenseRequests', 'r1'), req))
+    await assertFails(setDoc(doc(google(G), 'licenseRequests', 'r2'), { ...req, status: 'won' }))
+    await assertFails(setDoc(doc(anon('a3'), 'licenseRequests', 'r3'), { ...req, uid: 'a3' }))
+    await assertFails(getDocs(collection(as(ADMIN), 'licenseRequests')))
+    await assertSucceeds(getDocs(collection(as(SUPER), 'licenseRequests')))
+    await assertSucceeds(updateDoc(doc(as(SUPER), 'licenseRequests', 'r1'), { status: 'contacted', note: 'zəng edildi' }))
+  })
+  it('istifadəçi siyahısı və qiymətlər yalnız konsol icazəsi ilə', async () => {
+    await assertFails(getDocs(collection(as(ADMIN), 'users')))
+    await assertSucceeds(getDocs(collection(as(SUPER), 'users')))
+    await assertFails(setDoc(doc(as(ADMIN), 'settings', 'pricing'), { plans: [] }))
+    await assertSucceeds(setDoc(doc(as(SUPER), 'settings', 'pricing'), { plans: [] }))
+  })
+})
