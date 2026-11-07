@@ -4,7 +4,7 @@ import type { Timestamp } from 'firebase/firestore'
 import { BarChart3, Brain, Gamepad2, Target, Trophy, Users } from 'lucide-react'
 import { listGames } from '../../firebase/db'
 import { useOutletContext } from 'react-router-dom'
-import { scopeUid, visibleGames } from '../../lib/access'
+import { orgGamesScope, scopeUid, visibleGames } from '../../lib/access'
 import type { AdminState } from '../../firebase/auth'
 import { LOCALE, t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
@@ -18,7 +18,7 @@ const WEEK = 7 * 86_400_000
 export default function Analytics() {
   const admin = useOutletContext<AdminState>()
   const [games, setGames] = useState<G[] | null>(null)
-  useEffect(() => { void listGames(500, scopeUid(admin)).then((g) => setGames(visibleGames(admin, g as G[]).filter((x) => x.phase === 'finished'))).catch(() => setGames([])) }, [admin])
+  useEffect(() => { void listGames(500, scopeUid(admin), orgGamesScope(admin)).then((g) => setGames(visibleGames(admin, g as G[]).filter((x) => x.phase === 'finished'))).catch(() => setGames([])) }, [admin])
 
   const data = useMemo(() => {
     const gs = games ?? []

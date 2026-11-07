@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0 — 2026-11-07 (hüquqi uyğunluq, pulsuz plan, müəssisələr)
+- **Hüquqi sənədlər** (AZ/EN, versiyalı): Məxfilik siyasəti, İstifadə şərtləri, Fərdi məlumatların emalına razılıq, Marketinq razılığı — "Fərdi məlumatlar haqqında" Qanun və GDPR prinsipləri əsasında (/privacy, /terms, /consent, /marketing-consent). Operatorun hüquqi adı/VÖEN-i `src/content/legal.ts`-də əlavə olunmalıdır.
+- **3 ayrı razılıq** qeydiyyatda: məlumat emalı (məcburi), məxfilik + şərtlər (məcburi), marketinq (isteğe bağlı, standart söndürülü). Hər razılıq versiya və server vaxtı ilə dəyişdirilə bilməyən jurnala yazılır.
+- **Pulsuz plan:** 3 günlük Pro sınaqdan sonra quiz yaratmaq və oyun keçirmək davam edir, oyunda maksimum 10 iştirakçı (Rules-da). Sınaqda başlamış oyun pozulmur.
+- **Hesabım (/account):** məlumatları redaktə, marketinq razılığını açıb-söndürmək, bütün məlumatları JSON yükləmək, hesabı tam silmək; tələbə özünü təlimçiyə çevirə bilir.
+- **Müəssisə (təşkilat):** "Müəssisə" lisenziyalı sahib yerlər sayı qədər təlimçi əlavə edir ("Komandam"), təlimçilər lisenziyanı sahibdən alır, quizlər təşkilat daxilində ortaqdır, sahib təlimçilərin oyun və analitikasını görür; təşkilatlar bir-birindən təcrid olunub.
+- **Konsol:** görünən "Lisenziya" paneli (plan, yer sayı, istənilən bitmə tarixi, məbləğ, qeyd), lisenziya tarixçəsi, gəlir göstəriciləri, komanda üzvləri siyahıda, tələbəni təlimçiyə çevirmək, "Bu gün əlaqə saxlanmalı" siyahısı (hazır WhatsApp/e-poçt mətni ilə), təşkilatın yer istifadəsi.
+- **Tələbə:** canlı oyun tarixçəsi qeydiyyatlı hesaba bağlanır, kataloqda kateqoriya və çətinlik süzgəci, ≥70% nəticədə sertifikat.
+- **Təhlükəsizlik:** müştərilər platformanın ümumi QR-ını, kitabxanasını və kataloqunu dəyişə bilmir (multi-tenant təcrid).
+- **Analitika hadisələri:** sign_up, login, onboarding_start, pricing_view, license_request, practice_complete, quiz_published, plan_limit_hit, marketing_consent, upgrade_to_trainer, account_deleted.
+- **Ana səhifə:** "Kimlər üçün", "Necə işləyir", çağırış bloku və hüquqi keçidlərlə footer.
+
 ## 0.9.0 — 2026-11-07 (açıq qeydiyyat və monetizasiya)
 - **Silmə xətası düzəldi:** oyun silinəndə cavablar/başlama qeydləri/reaksiyalar/rəylər Rules tərəfindən bloklanırdı — indi host bütün alt kolleksiyaları silə bilir.
 - **Google ilə qeydiyyat (/start):** hər kəs qeydiyyatdan keçə bilir; komanda üzvləri e-poçtla girişi saxlayır. Prod domeni Firebase-də icazəli domenlərə əlavə olundu.

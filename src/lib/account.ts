@@ -8,6 +8,8 @@ import { loadQuiz, saveProfile } from '../firebase/db'
 import { SCORED_TYPES } from './scoring'
 import { logAudit } from './audit'
 import type { Question } from '../types'
+import { LEGAL_VERSION } from '../content/legal'
+import { track } from '../firebase/extras'
 
 // ======================= Qeydiyyat =======================
 
@@ -23,6 +25,7 @@ export interface UserProfile {
   institution?: string; field?: string; level?: string; year?: string
   interests?: string[]; source?: string; marketing?: boolean
   onboarded: boolean; createdAt?: Timestamp; lastLoginAt?: Timestamp; termsAt?: Timestamp; lang?: string
+  dataConsentAt?: Timestamp; marketingAt?: Timestamp; consentVersion?: string
 }
 
 export async function signInWithGoogle(): Promise<User> {
@@ -50,8 +53,14 @@ export async function completeOnboarding(user: User, p: Omit<UserProfile, 'email
   const clean = JSON.parse(JSON.stringify(p)) as Record<string, unknown>
   await setDoc(doc(db, 'users', user.uid), {
     ...clean, email: user.email ?? '', displayName: user.displayName ?? '', photoURL: user.photoURL ?? '',
-    onboarded: true, createdAt: serverTimestamp(), termsAt: serverTimestamp(), lastLoginAt: serverTimestamp(),
+    onboarded: true, createdAt: serverTimestamp(), termsAt: serverTimestamp(), dataConsentAt: serverTimestamp(),
+    marketingAt: serverTimestamp(), consentVersion: LEGAL_VERSION, lastLoginAt: serverTimestamp(),
   })
+  // razılıq jurnalı (sübut): hər razılıq ayrıca, versiya və server vaxtı ilə
+  await Promise.all([
+    logConsent('data', true), logConsent('terms', true), logConsent('marketing', !!p.marketing),
+  ]).catch(() => {})
+  void track('sign_up', { method: 'google', type: p.type })
   if (p.type !== 'student') {
     const name = `${p.firstName} ${p.lastName}`.trim()
     await setDoc(doc(db, 'admins', user.uid), {
@@ -62,7 +71,11 @@ export async function completeOnboarding(user: User, p: Omit<UserProfile, 'email
   }
 }
 
-export const touchLogin = (uid: string) => updateDoc(doc(db, 'users', uid), { lastLoginAt: serverTimestamp() }).catch(() => {})
+export type ConsentType = 'data' | 'terms' | 'marketing'
+export const logConsent = (type: ConsentType, granted: boolean) =>
+  addDoc(collection(db, 'consents'), { uid: auth.currentUser?.uid ?? '', type, granted, version: LEGAL_VERSION, at: serverTimestamp() })
+
+export const touchLogin = (uid: string) => { void track('login', { method: 'google' }); return updateDoc(doc(db, 'users', uid), { lastLoginAt: serverTimestamp() }).catch(() => {}) }
 
 /** Hazırkı hesab: Firebase istifadəçisi + qeydiyyat profili (canlı). */
 export function useAccount() {
@@ -94,10 +107,11 @@ export async function routeAfterLogin(uid: string): Promise<string> {
 export interface CatalogItem {
   id: string; title: string; description?: string; coverEmoji?: string; coverColor?: string; tags?: string[]
   questions: Question[]; questionCount: number; publishedBy: string; publishedAt?: Timestamp; author?: string
+  category?: string; level?: 'easy' | 'medium' | 'hard'
 }
 
 /** Quizi kataloqa dərc edir (yalnız qiymətləndirilən suallar + slaydlar; tələbə limitsiz məşq edə bilir). */
-export async function publishToCatalog(quizId: string, author: string) {
+export async function publishToCatalog(quizId: string, author: string, meta: { category?: string; level?: 'easy' | 'medium' | 'hard' } = {}) {
   const data = await loadQuiz(quizId)
   if (!data) throw new Error('quiz-not-found')
   const questions = data.questions.filter((q) => SCORED_TYPES.has(q.type) || q.type === 'slide')
@@ -105,10 +119,11 @@ export async function publishToCatalog(quizId: string, author: string) {
   await setDoc(doc(db, 'catalog', quizId), JSON.parse(JSON.stringify({
     title: data.quiz.title, description: data.quiz.description ?? '', coverEmoji: data.quiz.coverEmoji, coverColor: data.quiz.coverColor,
     tags: data.quiz.tags ?? [], questions, questionCount: questions.filter((q) => SCORED_TYPES.has(q.type)).length,
-    publishedBy: auth.currentUser?.uid ?? '', author,
+    publishedBy: auth.currentUser?.uid ?? '', author, category: meta.category ?? '', level: meta.level ?? 'medium',
   })) as Record<string, unknown>)
   await updateDoc(doc(db, 'catalog', quizId), { publishedAt: serverTimestamp() })
   void logAudit('quiz_published', { target: quizId, details: { title: data.quiz.title } })
+  void track('quiz_published')
 }
 export async function unpublish(quizId: string) {
   await deleteDoc(doc(db, 'catalog', quizId))
@@ -116,6 +131,10 @@ export async function unpublish(quizId: string) {
 }
 export async function isPublished(quizId: string) {
   return (await getDoc(doc(db, 'catalog', quizId)).catch(() => null))?.exists() ?? false
+}
+export async function catalogMeta(quizId: string): Promise<{ category?: string; level?: 'easy' | 'medium' | 'hard' } | null> {
+  const s = await getDoc(doc(db, 'catalog', quizId)).catch(() => null)
+  return s?.exists() ? { category: s.get('category'), level: s.get('level') } : null
 }
 export async function listCatalog(): Promise<CatalogItem[]> {
   const s = await getDocs(collection(db, 'catalog'))
@@ -131,8 +150,10 @@ export async function loadCatalogItem(id: string): Promise<CatalogItem | null> {
 
 export interface Attempt { id: string; uid: string; quizId: string; quizTitle: string; correct: number; total: number; score: number; durationMs: number; at?: Timestamp }
 
-export const saveAttempt = (a: Omit<Attempt, 'id' | 'at' | 'uid'>) =>
-  addDoc(collection(db, 'attempts'), { ...a, uid: auth.currentUser?.uid ?? '', at: serverTimestamp() })
+export const saveAttempt = (a: Omit<Attempt, 'id' | 'at' | 'uid'>) => {
+  void track('practice_complete', { quiz: a.quizId, pct: a.total ? Math.round((a.correct / a.total) * 100) : 0 })
+  return addDoc(collection(db, 'attempts'), { ...a, uid: auth.currentUser?.uid ?? '', at: serverTimestamp() })
+}
 
 export async function myAttempts(uid: string): Promise<Attempt[]> {
   const s = await getDocs(query(collection(db, 'attempts'), where('uid', '==', uid)))
@@ -150,6 +171,7 @@ export interface LicenseRequest {
 }
 
 export async function requestLicense(r: Omit<LicenseRequest, 'id' | 'uid' | 'status' | 'createdAt' | 'note'>) {
+  void track('license_request', { plan: r.plan })
   await addDoc(collection(db, 'licenseRequests'), {
     ...JSON.parse(JSON.stringify(r)) as Record<string, unknown>, uid: auth.currentUser?.uid ?? '', status: 'new', createdAt: serverTimestamp(),
   })
@@ -175,7 +197,9 @@ export async function savePricing(plans: PricePlan[]) {
 
 export interface ConsoleData {
   users: (UserProfile & { uid: string })[]
-  members: { uid: string; email: string; role: string; source?: string; disabled?: boolean; createdAt?: Timestamp; trialEndsAt?: Timestamp; licenseUntil?: Timestamp; plan?: string }[]
+  members: { uid: string; email: string; name?: string; role: string; source?: string; disabled?: boolean; createdAt?: Timestamp; trialEndsAt?: Timestamp; licenseUntil?: Timestamp; plan?: string; seats?: number; orgId?: string }[]
+  licenses: LicenseRecord[]
+  plays: { uid: string; gameId: string; score: number; at?: Timestamp }[]
   leads: LicenseRequest[]
   attempts: Attempt[]
   quizOwners: Record<string, number> // uid → quiz sayı
@@ -184,7 +208,7 @@ export interface ConsoleData {
 }
 
 export async function loadConsole(): Promise<ConsoleData> {
-  const [u, m, l, a, q, g, c] = await Promise.all([
+  const [u, m, l, a, q, g, c, li, pl] = await Promise.all([
     getDocs(collection(db, 'users')),
     getDocs(collection(db, 'admins')),
     getDocs(query(collection(db, 'licenseRequests'), orderBy('createdAt', 'desc'))),
@@ -192,6 +216,8 @@ export async function loadConsole(): Promise<ConsoleData> {
     getDocs(collection(db, 'quizzes')),
     getDocs(query(collection(db, 'games'), orderBy('createdAt', 'desc'), limit(2000))),
     listCatalog().catch(() => [] as CatalogItem[]),
+    getDocs(query(collection(db, 'licenses'), orderBy('at', 'desc'))).catch(() => null),
+    getDocs(query(collection(db, 'plays'), limit(5000))).catch(() => null),
   ])
   const count = (docs: { get(k: string): unknown }[], key: string) => docs.reduce<Record<string, number>>((acc, d) => { const k = String(d.get(key) ?? ''); acc[k] = (acc[k] ?? 0) + 1; return acc }, {})
   return {
@@ -202,19 +228,35 @@ export async function loadConsole(): Promise<ConsoleData> {
     quizOwners: count(q.docs, 'ownerUid'),
     gameHosts: count(g.docs, 'hostUid'),
     catalog: c,
+    licenses: li?.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<LicenseRecord, 'id'>) })) ?? [],
+    plays: pl?.docs.map((d) => d.data() as ConsoleData['plays'][number]) ?? [],
   }
 }
 
-/** Lisenziya ver (gün sayı) və ya ləğv et (days = 0). */
-export async function grantLicense(uid: string, email: string, days: number) {
-  if (days <= 0) {
-    await updateDoc(doc(db, 'admins', uid), { licenseUntil: deleteField(), plan: deleteField() })
-    void logAudit('license_revoked', { target: uid, targetEmail: email })
-    return
-  }
-  const until = Timestamp.fromMillis(Date.now() + days * 86_400_000)
-  await updateDoc(doc(db, 'admins', uid), { licenseUntil: until, plan: 'pro' })
-  void logAudit('license_granted', { target: uid, targetEmail: email, details: { days } })
+export interface LicenseRecord { id: string; uid: string; email: string; plan: 'pro' | 'institution' | 'revoked'; seats: number; from?: Timestamp; until?: Timestamp; amount: number; currency: string; note?: string; by: string; at?: Timestamp }
+export interface LicenseInput { plan: 'pro' | 'institution'; seats: number; until: Date; amount: number; note?: string }
+
+/** Lisenziya ver/yenilə: üzvlük sənədi + tarixçə qeydi (məbləğ — gəlir hesabatı üçün). */
+export async function grantLicense(uid: string, email: string, l: LicenseInput) {
+  const until = Timestamp.fromDate(l.until)
+  await updateDoc(doc(db, 'admins', uid), { licenseUntil: until, plan: l.plan, seats: Math.max(1, Math.round(l.seats)) })
+  await addDoc(collection(db, 'licenses'), {
+    uid, email, plan: l.plan, seats: Math.max(1, Math.round(l.seats)), from: serverTimestamp(), until, amount: Math.max(0, Number(l.amount) || 0),
+    currency: 'AZN', note: (l.note ?? '').slice(0, 300), by: auth.currentUser?.uid ?? '', at: serverTimestamp(),
+  })
+  void logAudit('license_granted', { target: uid, targetEmail: email, details: { plan: l.plan, until: l.until.toISOString().slice(0, 10), amount: l.amount } })
+}
+export async function revokeLicense(uid: string, email: string) {
+  await updateDoc(doc(db, 'admins', uid), { licenseUntil: deleteField(), plan: deleteField(), seats: deleteField() })
+  await addDoc(collection(db, 'licenses'), { uid, email, plan: 'revoked', seats: 0, from: serverTimestamp(), until: serverTimestamp(), amount: 0, currency: 'AZN', note: '', by: auth.currentUser?.uid ?? '', at: serverTimestamp() })
+  void logAudit('license_revoked', { target: uid, targetEmail: email })
+}
+
+/** Konsol: tələbəni təlimçiyə çevir — tip dəyişir, 3 günlük Pro sınaq başlayır. */
+export async function convertToTrainer(uid: string, email: string, name: string) {
+  await updateDoc(doc(db, 'users', uid), { type: 'trainer' })
+  await setDoc(doc(db, 'admins', uid), { email, name, role: 'trainer', source: 'signup', createdAt: serverTimestamp(), disabled: false, mustChangePassword: false })
+  void logAudit('member_converted', { target: uid, targetEmail: email })
 }
 
 /** Sınağı uzat (indidən etibarən N gün). */
@@ -225,4 +267,86 @@ export async function extendTrial(uid: string, email: string, days: number) {
 
 export async function setLeadStatus(id: string, status: LeadStatus, note?: string) {
   await updateDoc(doc(db, 'licenseRequests', id), { status, ...(note !== undefined ? { note } : {}), updatedAt: serverTimestamp() })
+}
+
+// ======================= Hesabım: redaktə, razılıqlar, ixrac, silmə =======================
+
+export const updateMyProfile = (uid: string, patch: Partial<UserProfile>) =>
+  updateDoc(doc(db, 'users', uid), JSON.parse(JSON.stringify(patch)) as Record<string, unknown>)
+
+export async function setMarketing(uid: string, granted: boolean) {
+  await updateDoc(doc(db, 'users', uid), { marketing: granted, marketingAt: serverTimestamp() })
+  await logConsent('marketing', granted).catch(() => {})
+  void track('marketing_consent', { granted: granted ? 1 : 0 })
+}
+
+const mine = async (col: string, uid: string) =>
+  (await getDocs(query(collection(db, col), where('uid', '==', uid))).catch(() => null))?.docs ?? []
+
+/** Bütün şəxsi məlumatların surəti (JSON). */
+export async function exportMyData(uid: string) {
+  const [profile, member, attempts, plays, consents, leads, quizzes] = await Promise.all([
+    getDoc(doc(db, 'users', uid)).catch(() => null),
+    getDoc(doc(db, 'admins', uid)).catch(() => null),
+    mine('attempts', uid), mine('plays', uid), mine('consents', uid), mine('licenseRequests', uid),
+    getDocs(query(collection(db, 'quizzes'), where('ownerUid', '==', uid))).then((s) => s.docs, () => []),
+  ])
+  const plain = (v: unknown): unknown => JSON.parse(JSON.stringify(v, (_k, x) => (x && typeof x === 'object' && 'seconds' in x && 'nanoseconds' in x ? new Timestamp(x.seconds, x.nanoseconds).toDate().toISOString() : x)))
+  void logAudit('data_exported')
+  return plain({
+    exportedAt: new Date().toISOString(), uid,
+    profile: profile?.data() ?? null,
+    plan: member?.exists() ? { role: member.get('role'), source: member.get('source'), createdAt: member.get('createdAt'), trialEndsAt: member.get('trialEndsAt') ?? null, licenseUntil: member.get('licenseUntil') ?? null } : null,
+    quizzes: quizzes.map((d) => ({ id: d.id, title: d.get('title') })),
+    practiceAttempts: attempts.map((d) => d.data()), liveGames: plays.map((d) => d.data()),
+    consents: consents.map((d) => d.data()), licenseRequests: leads.map((d) => d.data()),
+  })
+}
+
+/**
+ * Hesabın tam silinməsi: quizlər, keçirdiyi oyunlar, məşq və oyun tarixçəsi, müraciətlər, profil, komanda qeydi və giriş hesabı.
+ * Razılıq jurnalı (yalnız uid, tip, versiya, tarix) sübut kimi saxlanılır — məxfilik siyasətinin 7-ci bölməsi.
+ */
+export async function deleteMyAccount(user: User, onStep?: (s: string) => void) {
+  const { reauthenticateWithPopup, deleteUser } = await import('firebase/auth')
+  // təhlükəsizlik: son giriş təsdiqi (Firebase həssas əməliyyat üçün tələb edir)
+  if (user.providerData.some((p) => p.providerId === 'google.com')) await reauthenticateWithPopup(user, new GoogleAuthProvider())
+  const uid = user.uid
+  const { deleteGame, deleteQuiz } = await import('../firebase/db')
+  await logAudit('account_deleted', { target: uid, targetEmail: user.email ?? '' })
+  onStep?.('games')
+  const games = await getDocs(query(collection(db, 'games'), where('hostUid', '==', uid))).then((s) => s.docs, () => [])
+  for (const g of games) await deleteGame(g.id, g.get('pin')).catch(() => {})
+  onStep?.('quizzes')
+  const quizzes = await getDocs(query(collection(db, 'quizzes'), where('ownerUid', '==', uid))).then((s) => s.docs, () => [])
+  for (const q of quizzes) { await deleteDoc(doc(db, 'catalog', q.id)).catch(() => {}); await deleteQuiz(q.id).catch(() => {}) }
+  onStep?.('history')
+  for (const c of ['attempts', 'plays', 'licenseRequests']) for (const d of await mine(c, uid)) await deleteDoc(d.ref).catch(() => {})
+  await deleteDoc(doc(db, 'profiles', uid)).catch(() => {})
+  await deleteDoc(doc(db, 'settings', `play_${uid}`)).catch(() => {})
+  await deleteDoc(doc(db, 'admins', uid)).catch(() => {})
+  await deleteDoc(doc(db, 'users', uid))
+  onStep?.('auth')
+  void track('account_deleted')
+  await deleteUser(user)
+}
+
+/** Qeydiyyatlı istifadəçinin canlı oyun nəticəsi (oyun bitəndə bir dəfə). */
+export async function recordPlay(p: { gameId: string; title: string; rank: number; total: number; score: number; correct: number; questions: number }) {
+  const u = auth.currentUser
+  if (!u || u.isAnonymous) return
+  await setDoc(doc(db, 'plays', `${u.uid}_${p.gameId}`), { ...p, title: p.title.slice(0, 120), uid: u.uid, at: serverTimestamp() }).catch(() => {})
+}
+export async function myPlays(uid: string) {
+  return (await mine('plays', uid)).map((d) => ({ id: d.id, ...(d.data() as { gameId: string; title: string; rank: number; total: number; score: number; correct: number; questions: number; at?: Timestamp }) }))
+    .sort((a, b) => (b.at?.toMillis() ?? 0) - (a.at?.toMillis() ?? 0))
+}
+
+/** Tələbə → təlimçi (və ya müəssisə): tip dəyişir və 3 günlük Pro sınaq başlayır. */
+export async function upgradeToTrainer(user: User, profile: UserProfile, type: 'trainer' | 'institution', extra: Partial<UserProfile>) {
+  await updateDoc(doc(db, 'users', user.uid), JSON.parse(JSON.stringify({ ...extra, type })) as Record<string, unknown>)
+  const name = `${profile.firstName} ${profile.lastName}`.trim()
+  await setDoc(doc(db, 'admins', user.uid), { email: user.email ?? '', name, role: 'trainer', source: 'signup', createdAt: serverTimestamp(), disabled: false, mustChangePassword: false })
+  await saveProfile(user.uid, { name, title: extra.position ?? '', org: extra.organization ?? '', email: user.email ?? '' }).catch(() => {})
+  void track('upgrade_to_trainer', { type })
 }

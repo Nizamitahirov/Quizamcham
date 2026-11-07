@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { BookOpen, Briefcase, ChevronDown, Copy, Clock, Download, GraduationCap, Hourglass, Inbox, Mail, MessageCircle, Phone, RefreshCw, Save, Search, ShieldCheck, Tag, TrendingUp, UserPlus, Users } from 'lucide-react'
+import { Award, BellRing, BookOpen, Briefcase, ChevronDown, Copy, Coins, Rocket, CalendarClock, Clock, Download, GraduationCap, Hourglass, Inbox, Mail, MessageCircle, Phone, RefreshCw, Save, Search, ShieldCheck, Tag, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { fmtDate, fmtDateTime, fmtDayMonth } from '../../lib/format'
 import { toCsv, download } from '../../lib/csv'
 import { planInfo } from '../../lib/roles'
 import { setRestricted, type AdminRow } from '../../lib/team'
 import {
-  extendTrial, grantLicense, loadConsole, loadPricing, savePricing, setLeadStatus, unpublish,
-  type ConsoleData, type LeadStatus, type PricePlan,
+  convertToTrainer, extendTrial, grantLicense, loadConsole, loadPricing, revokeLicense, savePricing, setLeadStatus, unpublish,
+  type ConsoleData, type LeadStatus, type LicenseRecord, type PricePlan,
 } from '../../lib/account'
+import { Link } from 'react-router-dom'
 import { PageHeader, Spinner } from '../../components/ui'
 import { Section, Segmented } from '../../components/kit'
 
@@ -23,6 +24,7 @@ interface Row {
   uid: string; name: string; email: string; phone: string; type: string; org: string; position: string
   status: Status; endsAt: Date | null; joined: Date | null; quizzes: number; games: number; attempts: number
   disabled: boolean; raw: Record<string, unknown>
+  member: ConsoleData['members'][number] | null; licenses: LicenseRecord[]; seatsUsed: number
 }
 
 export default function Console() {
@@ -35,27 +37,39 @@ export default function Console() {
     if (!data) return []
     const members = new Map(data.members.map((m) => [m.uid, m]))
     const att = data.attempts.reduce<Record<string, number>>((a, x) => { a[x.uid] = (a[x.uid] ?? 0) + 1; return a }, {})
-    return data.users.map((u) => {
-      const m = members.get(u.uid)
-      const p = planInfo(m ?? null)
+    const plays = data.plays.reduce<Record<string, number>>((a, x) => { a[x.uid] = (a[x.uid] ?? 0) + 1; return a }, {})
+    const lic = data.licenses.reduce<Record<string, LicenseRecord[]>>((a, x) => { (a[x.uid] ??= []).push(x); return a }, {})
+    const seatsUsed = data.members.reduce<Record<string, number>>((a, m) => { if (m.orgId) a[m.orgId] = (a[m.orgId] ?? 0) + 1; return a }, {})
+    const fromUsers: Row[] = data.users.map((u) => {
+      const m = members.get(u.uid) ?? null
+      const p = planInfo(m)
       const status: Status = u.type === 'student' ? 'student' : !m ? 'expired' : !p.selfServe ? 'team' : p.licensed && p.active ? 'licensed' : p.active ? 'trial' : 'expired'
       return {
         uid: u.uid, name: `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.displayName || u.email, email: u.email, phone: u.phone ?? '',
         type: u.type, org: u.organization || u.institution || '', position: u.position || u.level || '',
         status, endsAt: p.endsAt, joined: u.createdAt?.toDate() ?? null,
-        quizzes: data.quizOwners[u.uid] ?? 0, games: data.gameHosts[u.uid] ?? 0, attempts: att[u.uid] ?? 0,
-        disabled: m?.disabled === true, raw: u as unknown as Record<string, unknown>,
+        quizzes: data.quizOwners[u.uid] ?? 0, games: data.gameHosts[u.uid] ?? 0, attempts: (att[u.uid] ?? 0) + (plays[u.uid] ?? 0),
+        disabled: m?.disabled === true, raw: u as unknown as Record<string, unknown>, member: m, licenses: lic[u.uid] ?? [], seatsUsed: seatsUsed[u.uid] ?? 0,
       }
-    }).sort((a, b) => (b.joined?.getTime() ?? 0) - (a.joined?.getTime() ?? 0))
+    })
+    // Komanda üzvləri (qeydiyyat profili olmayanlar) da siyahıda
+    const known = new Set(data.users.map((u) => u.uid))
+    const team: Row[] = data.members.filter((m) => !known.has(m.uid)).map((m) => ({
+      uid: m.uid, name: m.name || m.email.split('@')[0], email: m.email, phone: '', type: 'team', org: m.source === 'org' ? `🏢 ${members.get(m.orgId ?? '')?.name || members.get(m.orgId ?? '')?.email || ''}` : '', position: m.role === 'super' ? t.team.super : m.role === 'admin' || m.role === 'owner' ? t.team.admin : t.team.trainer,
+      status: 'team' as Status, endsAt: null, joined: m.createdAt?.toDate() ?? null,
+      quizzes: data.quizOwners[m.uid] ?? 0, games: data.gameHosts[m.uid] ?? 0, attempts: 0,
+      disabled: m.disabled === true, raw: { email: m.email, role: m.role }, member: m, licenses: [], seatsUsed: 0,
+    }))
+    return [...fromUsers, ...team].sort((a, b) => (b.joined?.getTime() ?? 0) - (a.joined?.getTime() ?? 0))
   }, [data])
 
   if (err) return <div className="mx-auto max-w-3xl p-8"><p className="card p-6 text-sm font-semibold text-red-700">{t.app.error} ({err})</p></div>
   if (!data) return <div className="p-10"><Spinner /></div>
 
   const now = Date.now()
-  const trainers = rows.filter((r) => r.type !== 'student')
+  const trainers = rows.filter((r) => r.type !== 'student' && r.type !== 'team')
   const k = {
-    users: rows.length,
+    users: rows.filter((r) => r.type !== 'team').length,
     new7: rows.filter((r) => r.joined && now - r.joined.getTime() < 7 * DAY).length,
     students: rows.filter((r) => r.type === 'student').length,
     trainers: trainers.length,
@@ -87,7 +101,13 @@ export default function Console() {
         <Kpi icon={Clock} label={C.kpi.expired} value={k.expired} warn={k.expired > 0} />
         <Kpi icon={ShieldCheck} label={C.kpi.licensed} value={k.licensed} good={k.licensed > 0} />
         <Kpi icon={Inbox} label={C.kpi.leads} value={k.leads} warn={k.leads > 0} />
+        <Kpi icon={Award} label={C.revenue.active} value={k.licensed} />
+        <Kpi icon={Coins} label={C.revenue.month} value={money(data.licenses.filter((l) => l.at && l.at.toDate().getMonth() === new Date().getMonth() && l.at.toDate().getFullYear() === new Date().getFullYear()).reduce((s2, l) => s2 + (l.amount || 0), 0))} />
+        <Kpi icon={Coins} label={C.revenue.total} value={money(data.licenses.reduce((s2, l) => s2 + (l.amount || 0), 0))} />
+        <Kpi icon={CalendarClock} label={C.revenue.expiring} value={rows.filter((r) => r.status === 'licensed' && r.endsAt && r.endsAt.getTime() - now < 7 * DAY).length} warn={rows.some((r) => r.status === 'licensed' && r.endsAt && r.endsAt.getTime() - now < 7 * DAY)} />
       </div>
+
+      <ContactToday rows={rows} data={data} />
 
       <div className="mb-4 grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Section icon={TrendingUp} title={C.signups} sub={C.signupsSub} className="flex flex-col" bodyClassName="flex flex-1 flex-col p-5"><SignupChart rows={rows} /></Section>
@@ -115,7 +135,9 @@ export default function Console() {
   )
 }
 
-function Kpi({ icon: Icon, label, value, warn, good }: { icon: typeof Users; label: string; value: number; warn?: boolean; good?: boolean }) {
+const money = (n: number) => `${n.toLocaleString('az-AZ', { maximumFractionDigits: 0 })} ₼`
+
+function Kpi({ icon: Icon, label, value, warn, good }: { icon: typeof Users; label: string; value: number | string; warn?: boolean; good?: boolean }) {
   return (
     <div className="card flex items-center gap-4 p-4">
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${warn ? 'bg-amber-50 text-amber-700' : good ? 'bg-green-50 text-green-700' : 'text-brand'}`} style={warn || good ? undefined : { background: 'var(--grad-soft)' }}><Icon className="h-5 w-5" /></span>
@@ -217,8 +239,10 @@ function UsersTable({ rows, reload }: { rows: Row[]; reload: () => void }) {
 }
 
 function FragmentRow({ r, open, onToggle, busy, act }: { r: Row; open: boolean; onToggle: () => void; busy: boolean; act: (uid: string, fn: () => Promise<unknown>) => Promise<void> }) {
-  const isTrainer = r.type !== 'student' && r.status !== 'team'
-  const details = Object.entries(r.raw).filter(([k, v]) => !['createdAt', 'lastLoginAt', 'termsAt', 'onboarded', 'photoURL', 'displayName', 'uid'].includes(k) && v !== '' && v != null)
+  const [mode, setMode] = useState<'details' | 'license'>('details')
+  const isClient = r.type === 'trainer' || r.type === 'institution'
+  const details = Object.entries(r.raw).filter(([k, v]) => !['createdAt', 'lastLoginAt', 'termsAt', 'onboarded', 'photoURL', 'displayName', 'uid', 'dataConsentAt', 'marketingAt'].includes(k) && v !== '' && v != null)
+  const show = (m: 'details' | 'license') => { if (open && mode === m) onToggle(); else { setMode(m); if (!open) onToggle() } }
   return (
     <>
       <tr className={r.disabled ? 'opacity-60' : ''}>
@@ -230,34 +254,116 @@ function FragmentRow({ r, open, onToggle, busy, act }: { r: Row; open: boolean; 
             <a href={`mailto:${r.email}`} className="text-muted" aria-label="Email"><Mail className="h-4 w-4" /></a>
           </div>}
         </td>
-        <td className="px-4 py-3">{A.types[r.type]?.title ?? r.type}</td>
+        <td className="px-4 py-3">{r.type === 'team' ? t.team.title : A.types[r.type]?.title ?? r.type}</td>
         <td className="px-4 py-3"><div className="max-w-56 truncate">{r.org || '—'}</div><div className="max-w-56 truncate text-xs text-muted">{r.position}</div></td>
-        <td className="px-4 py-3"><span className={`chip ${STATUS_TONE[r.status]}`}>{C.status[r.status]}</span>{r.endsAt && r.status !== 'student' && r.status !== 'team' && <div className="mt-1 text-xs text-muted">{fmtDate(r.endsAt)}</div>}</td>
+        <td className="px-4 py-3"><span className={`chip ${STATUS_TONE[r.status]}`}>{C.status[r.status]}</span>{r.endsAt && r.status !== 'student' && r.status !== 'team' && <div className="mt-1 text-xs text-muted">{fmtDate(r.endsAt)}</div>}{r.member?.plan === 'institution' && <div className="text-xs text-muted">{C.licInst} · {t.acct.org.seats(r.seatsUsed, r.member.seats ?? 1)}</div>}</td>
         <td className="px-4 py-3 text-xs text-muted">{C.activity(r.quizzes, r.games, r.attempts)}</td>
         <td className="px-4 py-3 whitespace-nowrap text-xs text-muted">{r.joined ? fmtDateTime(r.joined) : '—'}</td>
-        <td className="px-4 py-3 text-right"><button className="btn btn-ghost-dark btn-sm" aria-expanded={open} onClick={onToggle}>{C.details}<ChevronDown className={`transition ${open ? 'rotate-180' : ''}`} /></button></td>
+        <td className="px-4 py-3">
+          <div className="flex items-center justify-end gap-1">
+            {isClient && <button className={`btn btn-sm ${open && mode === 'license' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => show('license')}><Award />{C.license}</button>}
+            {r.type === 'student' && <button className="btn btn-secondary btn-sm" disabled={busy} title={C.convertHint} onClick={() => { if (confirm(`${C.convert}?\n${C.convertHint}`)) void act(r.uid, () => convertToTrainer(r.uid, r.email, r.name)) }}><Rocket />{C.convert}</button>}
+            {r.type === 'team' && <Link to="/admin/team" className="btn btn-ghost-dark btn-sm" title={C.teamRow}>{C.manageTeam}</Link>}
+            {r.type !== 'team' && <button className="btn btn-ghost-dark btn-sm" aria-expanded={open && mode === 'details'} onClick={() => show('details')}>{C.details}<ChevronDown className={`transition ${open && mode === 'details' ? 'rotate-180' : ''}`} /></button>}
+          </div>
+        </td>
       </tr>
       {open && (
         <tr className="bg-surface/50">
           <td colSpan={8} className="px-4 py-4">
-            <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-              <dl className="grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2 xl:grid-cols-3">
+            {mode === 'license' && isClient ? <LicensePanel r={r} busy={busy} act={act} /> : (
+              <dl className="grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2 xl:grid-cols-4">
                 {details.map(([k2, v]) => <div key={k2}><dt className="font-semibold uppercase tracking-wide text-muted">{k2}</dt><dd className="font-medium">{Array.isArray(v) ? v.join(', ') : typeof v === 'boolean' ? (v ? '✓' : '—') : String(v)}</dd></div>)}
               </dl>
-              {isTrainer && (
-                <div className="flex flex-col gap-2 lg:w-64">
-                  <p className="text-xs font-bold uppercase tracking-wide text-muted">{C.grant}</p>
-                  <div className="grid grid-cols-3 gap-1">{[30, 90, 365].map((d) => <button key={d} className="btn btn-secondary btn-sm" disabled={busy} onClick={() => void act(r.uid, () => grantLicense(r.uid, r.email, d))}>{C.days(d)}</button>)}</div>
-                  <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => void act(r.uid, () => extendTrial(r.uid, r.email, 3))}><Hourglass />{C.extend}</button>
-                  {r.status === 'licensed' && <button className="btn btn-ghost-dark btn-sm text-red-600" disabled={busy} onClick={() => { if (confirm(`${C.revoke}?`)) void act(r.uid, () => grantLicense(r.uid, r.email, 0)) }}>{C.revoke}</button>}
-                  <button className="btn btn-ghost-dark btn-sm" disabled={busy} onClick={() => void act(r.uid, () => setRestricted({ uid: r.uid, email: r.email } as AdminRow, !r.disabled))}>{r.disabled ? t.team.unrestrict : t.team.restrict}</button>
-                </div>
-              )}
-            </div>
+            )}
           </td>
         </tr>
       )}
     </>
+  )
+}
+
+const addMonths = (base: Date, n: number) => { const d = new Date(base); d.setMonth(d.getMonth() + n); return d }
+const isoDay = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
+
+/** Lisenziya ver / yenilə / ləğv et + tarixçə. */
+function LicensePanel({ r, busy, act }: { r: Row; busy: boolean; act: (uid: string, fn: () => Promise<unknown>) => Promise<void> }) {
+  const base = r.status === 'licensed' && r.endsAt && r.endsAt.getTime() > Date.now() ? r.endsAt : new Date()
+  const [plan, setPlan] = useState<'pro' | 'institution'>(r.member?.plan === 'institution' || r.type === 'institution' ? 'institution' : 'pro')
+  const [seats, setSeats] = useState(String(r.member?.seats ?? (r.type === 'institution' ? 5 : 1)))
+  const [until, setUntil] = useState(isoDay(addMonths(base, 1)))
+  const [amount, setAmount] = useState('')
+  const [note, setNote] = useState('')
+  const ok = until && new Date(until).getTime() > Date.now()
+  return (
+    <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div><p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">{C.licPlan}</p><Segmented size="sm" value={plan} options={[{ value: 'pro', label: C.licPro }, { value: 'institution', label: C.licInst }]} onChange={setPlan} /></div>
+          {plan === 'institution' && <label className="text-xs font-bold uppercase tracking-wide text-muted">{C.licSeats}<input className="input mt-1 h-10 w-24 text-sm" type="number" min={1} max={500} value={seats} onChange={(e) => setSeats(e.target.value)} /></label>}
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-xs font-bold uppercase tracking-wide text-muted">{C.licUntil}<input className="input mt-1 h-10 text-sm" type="date" min={isoDay(new Date())} value={until} onChange={(e) => setUntil(e.target.value)} /></label>
+          <div className="flex gap-1">{[1, 3, 12].map((m) => <button key={m} type="button" className="btn btn-secondary btn-sm" onClick={() => setUntil(isoDay(addMonths(base, m)))}>+{C.days(m === 12 ? 365 : m * 30)}</button>)}</div>
+          <label className="text-xs font-bold uppercase tracking-wide text-muted">{C.licAmount}<input className="input mt-1 h-10 w-28 text-sm" type="number" min={0} step="1" value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
+        </div>
+        <input className="input h-10 text-sm" placeholder={C.licNote} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} aria-label={C.licNote} />
+        <div className="flex flex-wrap gap-2">
+          <button className="btn btn-primary btn-sm" disabled={busy || !ok} onClick={() => void act(r.uid, () => grantLicense(r.uid, r.email, { plan, seats: plan === 'institution' ? Number(seats) || 1 : 1, until: new Date(`${until}T23:59:59`), amount: Number(amount) || 0, note }))}><Award />{C.licSave}</button>
+          {r.status === 'licensed' && <button className="btn btn-ghost-dark btn-sm text-red-600" disabled={busy} onClick={() => { if (confirm(`${C.revoke}?`)) void act(r.uid, () => revokeLicense(r.uid, r.email)) }}>{C.revoke}</button>}
+          {r.status !== 'licensed' && <button className="btn btn-ghost-dark btn-sm" disabled={busy} onClick={() => void act(r.uid, () => extendTrial(r.uid, r.email, 3))}><Hourglass />{C.extend}</button>}
+          <button className="btn btn-ghost-dark btn-sm" disabled={busy} onClick={() => void act(r.uid, () => setRestricted({ uid: r.uid, email: r.email } as AdminRow, !r.disabled))}>{r.disabled ? t.team.unrestrict : t.team.restrict}</button>
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted">{C.licHistory}</p>
+        {r.licenses.length === 0 ? <p className="text-sm text-muted">{C.licNone}</p> : (
+          <ul className="flex flex-col gap-1.5 text-sm">
+            {r.licenses.map((l) => (
+              <li key={l.id} className="flex flex-wrap items-center gap-x-3 rounded-lg bg-white px-3 py-2">
+                <span className="font-semibold">{l.plan === 'revoked' ? C.licRevoked : l.plan === 'institution' ? `${C.licInst} · ${l.seats}` : C.licPro}</span>
+                {l.plan !== 'revoked' && l.until && <span className="text-muted">→ {fmtDate(l.until.toDate())}</span>}
+                {l.amount > 0 && <span className="font-semibold tabular-nums">{money(l.amount)}</span>}
+                <span className="ml-auto text-xs text-muted">{l.at ? fmtDateTime(l.at.toDate()) : ''}</span>
+                {l.note && <span className="w-full text-xs text-muted">{l.note}</span>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Bu gün kimlə əlaqə saxlamalı: hazır WhatsApp/e-poçt mesajı ilə (avtomatik xatırlatma üçün server olmadığı halda). */
+function ContactToday({ rows, data }: { rows: Row[]; data: ConsoleData }) {
+  const now = Date.now()
+  type Item = { key: string; name: string; email: string; phone: string; reason: string; msg: string }
+  const first = (n: string) => n.split(' ')[0]
+  const items: Item[] = []
+  for (const r of rows) {
+    if (r.type === 'student' || r.type === 'team' || !r.endsAt || r.disabled) continue
+    const left = r.endsAt.getTime() - now
+    if (r.status === 'trial' && left < DAY) items.push({ key: r.uid + 't', name: r.name, email: r.email, phone: r.phone, reason: 'trialEnding', msg: C.msgTrialEnding(first(r.name)) })
+    else if (r.status === 'expired' && !r.member?.licenseUntil && -left < 7 * DAY) items.push({ key: r.uid + 'e', name: r.name, email: r.email, phone: r.phone, reason: 'trialEnded', msg: C.msgTrialEnded(first(r.name)) })
+    else if (r.status === 'licensed' && left < 7 * DAY) items.push({ key: r.uid + 'l', name: r.name, email: r.email, phone: r.phone, reason: 'licenseExpiring', msg: C.msgLicense(first(r.name), fmtDate(r.endsAt)) })
+  }
+  for (const l of data.leads) if (l.status === 'new' && l.createdAt && now - l.createdAt.toMillis() > DAY) items.push({ key: l.id, name: l.name, email: l.email, phone: l.phone, reason: 'leadWaiting', msg: C.msgLead(first(l.name)) })
+  return (
+    <Section icon={BellRing} title={`${C.contactToday} · ${items.length}`} sub={C.contactTodaySub} className="mb-4" bodyClassName="p-0">
+      {items.length === 0 ? <p className="px-5 py-4 text-sm text-muted">{C.noContacts}</p> : (
+        <ul className="grid divide-y divide-line md:grid-cols-2 md:divide-y-0">
+          {items.map((it) => (
+            <li key={it.key} className="flex flex-wrap items-center gap-3 border-line px-5 py-3 md:border-b">
+              <div className="min-w-0 flex-1"><div className="truncate font-semibold">{it.name}</div><div className="text-xs font-semibold text-amber-700">{C.reasons[it.reason]}</div></div>
+              {it.phone && <a className="btn btn-secondary btn-sm" href={`https://wa.me/${it.phone.replace(/\D/g, '')}?text=${encodeURIComponent(it.msg)}`} target="_blank" rel="noreferrer"><MessageCircle className="text-green-700" />WhatsApp</a>}
+              <a className="btn btn-ghost-dark btn-sm" href={`mailto:${it.email}?subject=${encodeURIComponent(C.subject)}&body=${encodeURIComponent(it.msg)}`}><Mail /></a>
+              {it.phone && <a className="btn btn-ghost-dark btn-sm" href={`tel:${it.phone.replace(/\s/g, '')}`} aria-label={A.call}><Phone /></a>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   )
 }
 

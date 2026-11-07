@@ -11,7 +11,7 @@ import { QRDownload } from '../../components/QRBlock'
 import { AiImport } from '../../components/AiImport'
 import { TemplateGallery } from '../../components/ImportModals'
 import type { AdminState } from '../../firebase/auth'
-import { scopeUid, visibleGames } from '../../lib/access'
+import { orgGamesScope, orgScope, scopeUid, visibleGames } from '../../lib/access'
 import { runMaintenance } from '../../lib/maintenance'
 import type { GameStats, Phase } from '../../types'
 
@@ -27,8 +27,8 @@ export default function Dashboard() {
   const [maint, setMaint] = useState('')
   const [tpl, setTpl] = useState(false)
   useEffect(() => {
-    void listQuizzes(scopeUid(admin), admin.perms.library).then((q) => setQuizCount(q.length)).catch(() => setQuizCount(0))
-    const load = () => void listGames(200, scopeUid(admin)).then((g) => setGames(visibleGames(admin, g as G[]))).catch(() => setGames([]))
+    void listQuizzes(scopeUid(admin), admin.perms.library, orgScope(admin)).then((q) => setQuizCount(q.length)).catch(() => setQuizCount(0))
+    const load = () => void listGames(200, scopeUid(admin), orgGamesScope(admin)).then((g) => setGames(visibleGames(admin, g as G[]))).catch(() => setGames([]))
     load()
     // baxım: sessiyada bir dəfə
     try {

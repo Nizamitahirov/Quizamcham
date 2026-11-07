@@ -42,12 +42,14 @@ export default function Onboarding() {
   const { loading, user, profile } = useAccount()
   const nav = useNavigate()
   const [step, setStep] = useState(0)
-  const [d, setD] = useState<Draft>({ type: 'trainer', firstName: '', lastName: '', phone: '', country: 'Azərbaycan', city: '', interests: [], marketing: true })
+  const [d, setD] = useState<Draft>({ type: 'trainer', firstName: '', lastName: '', phone: '', country: 'Azərbaycan', city: '', interests: [], marketing: false })
   const [terms, setTerms] = useState(false)
+  const [dataOk, setDataOk] = useState(false)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }))
 
+  useEffect(() => { void import('../../firebase/extras').then((m) => m.track('onboarding_start')) }, [])
   useEffect(() => {
     if (!user) return
     const [f, ...rest] = (user.displayName ?? '').split(' ')
@@ -73,7 +75,7 @@ export default function Onboarding() {
       if (d.type === 'trainer' && (!d.sector || !d.position?.trim())) return A.required
       if (d.type === 'institution' && (!d.orgType || !d.organization?.trim() || !d.position?.trim())) return A.required
       if (d.type === 'student' && !d.level) return A.required
-      if (!terms) return A.required
+      if (!terms || !dataOk) return A.consentRequired
     }
     return ''
   }
@@ -186,10 +188,15 @@ export default function Onboarding() {
                 </div>
               </div>
               <Choice label={A.source} value={d.source} options={A.sources} onChange={(v) => set({ source: v })} />
-              <div className="flex flex-col gap-2 rounded-xl bg-white/5 p-4 text-sm">
-                <label className="flex items-start gap-3"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-orange-500" checked={terms} onChange={(e) => setTerms(e.target.checked)} /><span>{A.terms} <Link to="/privacy" target="_blank" className="underline">{t.privacy.more}</Link> <span className="text-orange-300">*</span></span></label>
-                <label className="flex items-start gap-3"><input type="checkbox" className="mt-0.5 h-4 w-4 accent-orange-500" checked={!!d.marketing} onChange={(e) => set({ marketing: e.target.checked })} /><span className="text-white/75">{A.marketing}</span></label>
-              </div>
+              <fieldset className="flex flex-col gap-3 rounded-xl bg-white/5 p-4 text-sm">
+                <legend className="sr-only">{A.consents}</legend>
+                <label className="flex items-start gap-3"><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500" checked={dataOk} onChange={(e) => setDataOk(e.target.checked)} />
+                  <span>{A.consentData} <Link to="/consent" target="_blank" className="underline">{A.readText}</Link> <span className="text-orange-300">*</span>{d.type === 'student' && <span className="mt-1 block text-xs text-white/50">{A.minorNote}</span>}</span></label>
+                <label className="flex items-start gap-3"><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
+                  <span>{A.consentTermsA} <Link to="/privacy" target="_blank" className="underline">{t.legal.privacy}</Link> {A.consentTermsB} <Link to="/terms" target="_blank" className="underline">{t.legal.terms}</Link> {A.consentTermsC} <span className="text-orange-300">*</span></span></label>
+                <label className="flex items-start gap-3 border-t border-white/10 pt-3"><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500" checked={!!d.marketing} onChange={(e) => set({ marketing: e.target.checked })} />
+                  <span className="text-white/75">{A.marketing} <Link to="/marketing-consent" target="_blank" className="underline">{A.readText}</Link> <span className="text-white/45">({A.optional})</span></span></label>
+              </fieldset>
             </>
           )}
 

@@ -2,7 +2,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 /** Ciddi (serious/critical) əlçatanlıq pozuntusu olmamalıdır. */
-for (const path of ['/', '/join', '/admin/login', '/privacy', '/start', '/pricing']) {
+for (const path of ['/', '/join', '/admin/login', '/privacy', '/terms', '/consent', '/start', '/pricing']) {
   test(`əlçatanlıq: ${path}`, async ({ page }) => {
     await page.goto(path)
     await page.waitForTimeout(1200)

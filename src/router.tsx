@@ -24,11 +24,13 @@ const Privacy = lazy(() => import('./pages/Privacy'))
 const Team = lazy(() => import('./pages/admin/Team'))
 const Logs = lazy(() => import('./pages/admin/Logs'))
 const Console = lazy(() => import('./pages/admin/Console'))
+const OrgTeam = lazy(() => import('./pages/admin/OrgTeam'))
 const Start = lazy(() => import('./pages/account/Start'))
 const Onboarding = lazy(() => import('./pages/account/Onboarding'))
 const Learn = lazy(() => import('./pages/account/Learn'))
 const Practice = lazy(() => import('./pages/account/Practice'))
 const Pricing = lazy(() => import('./pages/account/Pricing'))
+const Account = lazy(() => import('./pages/account/Account'))
 const Analytics = lazy(() => import('./pages/admin/Analytics'))
 
 const S = (el: ReactNode) => <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>}>{el}</Suspense>
@@ -41,6 +43,9 @@ export const router = createBrowserRouter([
       { path: '/', element: S(<Home />) },
       { path: '/join', element: S(<Join />) },
       { path: '/privacy', element: S(<Privacy />) },
+      { path: '/terms', element: S(<Privacy />) },
+      { path: '/consent', element: S(<Privacy />) },
+      { path: '/marketing-consent', element: S(<Privacy />) },
       { path: '/play', element: S(<Play />) },
       { path: '/g/:gameId', element: S(<PlayerGame />) },
       { path: '/host/:gameId', element: S(<HostGame />) },
@@ -50,6 +55,7 @@ export const router = createBrowserRouter([
       { path: '/learn', element: S(<Learn />) },
       { path: '/learn/:quizId', element: S(<Practice />) },
       { path: '/pricing', element: S(<Pricing />) },
+      { path: '/account', element: S(<Account />) },
       {
         path: '/admin',
         element: S(<AdminLayout />),
@@ -61,6 +67,7 @@ export const router = createBrowserRouter([
           { path: 'games/:gameId', element: S(<GameReport />), errorElement: <RouteError /> },
           { path: 'settings', element: S(<OwnerOnly><Settings /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'logs', element: S(<OwnerOnly perm="logs"><Logs /></OwnerOnly>), errorElement: <RouteError /> },
+          { path: 'org', element: S(<OrgTeam />), errorElement: <RouteError /> },
           { path: 'console', element: S(<OwnerOnly perm="console"><Console /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'profile', element: S(<Profile />), errorElement: <RouteError /> },
           { path: 'sounds', element: S(<OwnerOnly><Sounds /></OwnerOnly>), errorElement: <RouteError /> },

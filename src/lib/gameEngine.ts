@@ -2,7 +2,7 @@ import {
   collection, doc, getDoc, getDocFromServer, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch, query, where,
 } from 'firebase/firestore'
 import { db } from '../firebase/config'
-import { loadQuiz } from '../firebase/db'
+import { loadQuiz, orgIdFor } from '../firebase/db'
 import type { Answer, AvatarData, Award, Fastest, Game, GameStats, HistoryItem, HostProfile, LeaderEntry, LobbyEntry, Player, PowerType, PublicQuestion, Question, QuizSettings, Reveal, TrainerProfile } from '../types'
 import { POWER_START } from './defaults'
 import { evaluateAnswer, normalizeText, rankPlayers, SCORED_TYPES, basePoints, streakBonus } from './scoring'
@@ -12,6 +12,7 @@ import { serverNow } from './timeSync'
 import { shortName } from './nameFilter'
 import { track } from '../firebase/extras'
 import { computeTeams, pickTeam } from './teams'
+import { FREE_MAX_PLAYERS, planInfo } from './roles'
 
 export const MIN_READ_MS = 3000
 export const readMsFor = (settings: QuizSettings | undefined, q?: Question) => (q?.type === 'slide' ? 1500 : Math.max(MIN_READ_MS, (settings?.readTime ?? 4) * 1000))
@@ -41,10 +42,20 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   const p = prof?.exists() ? (prof.data() as TrainerProfile) : null
   const host: HostProfile | null = p?.name ? { name: p.name, title: p.title || '', org: p.org || '', avatar: p.avatar ?? null, photoUrl: p.photoUrl || '' } : null
 
+  // Plan: özü qeydiyyatdan keçən təlimçinin sınağı/lisenziyası bitibsə — pulsuz plan, oyunda maks. 10 iştirakçı
+  const member = await getDoc(doc(db, 'admins', hostUid)).catch(() => null)
+  const plan = planInfo(member?.exists() ? (member.data() as Parameters<typeof planInfo>[0]) : null)
+  const orgId = await orgIdFor(hostUid)
+  // müəssisə təlimçisinin planı sahibin lisenziyasından gəlir
+  const owner = member?.get('source') === 'org' && orgId ? await getDoc(doc(db, 'admins', orgId)).catch(() => null) : null
+  const planR = owner ? planInfo(member!.data() as Parameters<typeof planInfo>[0], Date.now(), owner.exists() ? (owner.data() as Parameters<typeof planInfo>[0]) : null) : plan
+  const free = planR.selfServe && !planR.active
+  const settings: QuizSettings = free ? { ...quiz.settings, maxPlayers: Math.min(quiz.settings.maxPlayers || 10, FREE_MAX_PLAYERS) } : quiz.settings
+
   const gameRef = doc(collection(db, 'games'))
   const game: Omit<Game, 'id'> = {
     host,
-    pin, quizId, hostUid, title: quiz.title, settings: quiz.settings,
+    pin, quizId, hostUid, title: quiz.title, settings, plan: free ? 'free' : planR.selfServe ? 'pro' : 'team', ...(orgId ? { orgId } : {}),
     phase: 'lobby', locked: false, questionIndex: -1, totalQuestions: questions.length,
     currentQuestion: null, questionStartedAt: null, questionEndsAt: null, pausedRemainingMs: null,
     reveal: null, lobby: [], leaderboard: [], playerCount: 0, answeredCount: 0,
@@ -56,7 +67,8 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   batch.set(doc(db, 'pins', pin), { gameId: gameRef.id, active: true, createdAt: serverTimestamp() })
   // Daimi QR: tapşırıq rejimi canlı təlimin QR-ını dəyişmir; hər təlimçinin öz QR-ı da var
   if (quiz.settings.mode !== 'assign') {
-    batch.set(doc(db, 'settings', 'current'), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
+    // platforma üzrə ümumi QR yalnız komanda üzvləri üçündür — müştərilər bir-birinin QR-ını dəyişməsin
+    if (!plan.selfServe) batch.set(doc(db, 'settings', 'current'), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
     batch.set(doc(db, 'settings', `play_${hostUid}`), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
   }
   await batch.commit()

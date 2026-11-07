@@ -19,7 +19,7 @@ export default function Pricing() {
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [err, setErr] = useState('')
-  useEffect(() => { void loadPricing().then(setPrices).catch(() => setPrices(null)) }, [])
+  useEffect(() => { void loadPricing().then(setPrices).catch(() => setPrices(null)); void import('../../firebase/extras').then((m) => m.track('pricing_view')) }, [])
   useEffect(() => {
     if (!profile) return
     setF((x) => ({ ...x, name: x.name || `${profile.firstName} ${profile.lastName}`.trim(), phone: x.phone || profile.phone, organization: x.organization || profile.organization || profile.institution || '', seats: x.seats || profile.seats || '' }))

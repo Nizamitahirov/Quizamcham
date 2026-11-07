@@ -395,10 +395,11 @@ describe('qeydiyyat, sınaq, kataloq, lisenziya', () => {
     await assertFails(setDoc(doc(google('g2'), 'users', G), profile('student', 'g2@gmail.com')))
     await assertFails(setDoc(doc(google('g3'), 'users', 'g3'), profile('student', 'fake@x.az')))
   })
-  it('tip sonradan dəyişdirilə bilməz', async () => {
-    await setDoc(doc(google(S), 'users', S), profile('student', `${S}@gmail.com`))
+  it('tip yalnız tələbədən təlimçiyə dəyişə bilər (geri yox)', async () => {
+    await setDoc(doc(google(S), 'users', S), profile('trainer', `${S}@gmail.com`))
     await assertSucceeds(updateDoc(doc(google(S), 'users', S), { city: 'Bakı' }))
-    await assertFails(updateDoc(doc(google(S), 'users', S), { type: 'trainer' }))
+    await assertFails(updateDoc(doc(google(S), 'users', S), { type: 'student' }))
+    await assertFails(updateDoc(doc(google(S), 'users', S), { type: 'institution' }))
   })
   it('sınaq yalnız düz 3 gün, profildən sonra və yalnız Google ilə', async () => {
     await assertFails(setDoc(doc(google(G), 'admins', G), trial(`${G}@gmail.com`)))           // profil yoxdur
@@ -413,14 +414,38 @@ describe('qeydiyyat, sınaq, kataloq, lisenziya', () => {
     await setDoc(doc(google(S), 'users', S), profile('student', `${S}@gmail.com`))
     await assertFails(setDoc(doc(google(S), 'admins', S), trial(`${S}@gmail.com`)))
   })
-  it('sınağı bitmiş təlimçi quiz yarada / oyun başlada bilmir, lisenziya ilə bilir', async () => {
+  it('sınağı bitmiş təlimçi pulsuz plandadır: quiz yaradır, oyunda ən çox 10 iştirakçı; lisenziya ilə limit yoxdur', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await setDoc(doc(ctx.firestore(), 'admins', G), { ...trial(`${G}@gmail.com`), createdAt: Timestamp.fromMillis(Date.now() - 4 * 86400000) })
     })
-    await assertFails(setDoc(doc(google(G), 'quizzes', 'qg'), { title: 'X', ownerUid: G }))
-    await assertFails(setDoc(doc(google(G), 'games', 'gg'), { hostUid: G, phase: 'lobby' }))
-    await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', G), { licenseUntil: Timestamp.fromMillis(Date.now() + 86400000) }) })
     await assertSucceeds(setDoc(doc(google(G), 'quizzes', 'qg'), { title: 'X', ownerUid: G }))
+    await assertFails(setDoc(doc(google(G), 'games', 'gg'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 50 } }))
+    await assertSucceeds(setDoc(doc(google(G), 'games', 'gg'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 10 } }))
+    await assertFails(updateDoc(doc(google(G), 'games', 'gg'), { 'settings.maxPlayers': 100 }))
+    await assertSucceeds(updateDoc(doc(google(G), 'games', 'gg'), { phase: 'countdown' }))
+    // sınaqda başlamış böyük oyun sınaq bitəndə pozulmur
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'games', 'gbig'), { hostUid: G, phase: 'question', settings: { maxPlayers: 100 } }) })
+    await assertSucceeds(updateDoc(doc(google(G), 'games', 'gbig'), { phase: 'reveal' }))
+    await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', G), { licenseUntil: Timestamp.fromMillis(Date.now() + 86400000) }) })
+    await assertSucceeds(setDoc(doc(google(G), 'games', 'gg2'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 150 } }))
+  })
+  it('müştəri (özü qeydiyyatlı) kitabxanaya paylaşa, kataloqa dərc edə, ümumi QR-ı dəyişə bilməz', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', G), trial(`${G}@gmail.com`)) })
+    await assertSucceeds(setDoc(doc(google(G), 'quizzes', 'qs'), { title: 'X', ownerUid: G }))
+    await assertFails(updateDoc(doc(google(G), 'quizzes', 'qs'), { shared: true }))
+    await assertFails(setDoc(doc(google(G), 'catalog', 'qs'), { title: 'X', publishedBy: G }))
+    await assertFails(setDoc(doc(google(G), 'settings', 'current'), { activeGameId: 'x' }))
+    await assertSucceeds(setDoc(doc(google(G), 'settings', `play_${G}`), { activeGameId: 'x' }))
+  })
+  it('razılıq jurnalı: öz adına yazılır, dəyişdirilə/silinə bilməz', async () => {
+    const c = { uid: S, type: 'marketing', granted: true, version: '2026-11-07', at: serverTimestamp() }
+    await assertSucceeds(setDoc(doc(google(S), 'consents', 'c1'), c))
+    await assertFails(setDoc(doc(google(S), 'consents', 'c2'), { ...c, uid: G }))
+    await assertFails(setDoc(doc(anon('a9'), 'consents', 'c3'), { ...c, uid: 'a9' }))
+    await assertFails(updateDoc(doc(google(S), 'consents', 'c1'), { granted: false }))
+    await assertFails(deleteDoc(doc(google(S), 'consents', 'c1')))
+    await assertSucceeds(getDoc(doc(google(S), 'consents', 'c1')))
+    await assertFails(getDoc(doc(google(G), 'consents', 'c1')))
   })
   it('aktiv sınaqdakı təlimçi quiz yaradır; lisenziya sahələrini yalnız super dəyişir', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', G), trial(`${G}@gmail.com`)) })
@@ -460,5 +485,110 @@ describe('qeydiyyat, sınaq, kataloq, lisenziya', () => {
     await assertSucceeds(getDocs(collection(as(SUPER), 'users')))
     await assertFails(setDoc(doc(as(ADMIN), 'settings', 'pricing'), { plans: [] }))
     await assertSucceeds(setDoc(doc(as(SUPER), 'settings', 'pricing'), { plans: [] }))
+  })
+})
+
+describe('hesabım, lisenziya qeydləri, çevirmə', () => {
+  const G = 'guser9', S = 'student9'
+  const google = (uid: string) => env.authenticatedContext(uid, { email: `${uid}@gmail.com`, firebase: { sign_in_provider: 'google.com' } }).firestore()
+  const prof = (type: string, uid: string) => ({ email: `${uid}@gmail.com`, type, firstName: 'A', lastName: 'B', phone: '+994501112233', onboarded: true, createdAt: serverTimestamp() })
+  it('müştəri öz hesabını (profil + üzvlük) silə bilir; komanda üzvü öz üzvlüyünü silə bilməz', async () => {
+    await setDoc(doc(google(G), 'users', G), prof('trainer', G))
+    await setDoc(doc(google(G), 'admins', G), { email: `${G}@gmail.com`, name: 'A', role: 'trainer', source: 'signup', createdAt: serverTimestamp(), disabled: false, mustChangePassword: false })
+    await assertSucceeds(deleteDoc(doc(google(G), 'admins', G)))
+    await assertSucceeds(deleteDoc(doc(google(G), 'users', G)))
+    await assertFails(deleteDoc(doc(as(TRAINER), 'admins', TRAINER)))
+  })
+  it('tələbə özünü təlimçiyə çevirə bilir, əksinə yox', async () => {
+    await setDoc(doc(google(S), 'users', S), prof('student', S))
+    await assertSucceeds(updateDoc(doc(google(S), 'users', S), { type: 'trainer' }))
+    await assertFails(updateDoc(doc(google(S), 'users', S), { type: 'student' }))
+  })
+  it('konsol tələbənin yalnız tipini dəyişə bilər; admin (konsolsuz) yox', async () => {
+    await setDoc(doc(google(S), 'users', S), prof('student', S))
+    await assertFails(updateDoc(doc(as(ADMIN), 'users', S), { type: 'trainer' }))
+    await assertFails(updateDoc(doc(as(SUPER), 'users', S), { type: 'trainer', phone: '+1' }))
+    await assertSucceeds(updateDoc(doc(as(SUPER), 'users', S), { type: 'trainer' }))
+  })
+  it('lisenziya qeydləri: konsol yazır/oxuyur, təlimçi yox; dəyişdirmək yalnız super', async () => {
+    const lic = { uid: G, email: 'g@x.az', plan: 'pro', seats: 1, from: serverTimestamp(), until: Timestamp.fromMillis(Date.now() + 9e9), amount: 49, currency: 'AZN', by: SUPER, at: serverTimestamp() }
+    await assertSucceeds(setDoc(doc(as(SUPER), 'licenses', 'l1'), lic))
+    await assertFails(setDoc(doc(as(TRAINER), 'licenses', 'l2'), { ...lic, by: TRAINER }))
+    await assertFails(getDocs(collection(as(TRAINER), 'licenses')))
+    await assertFails(setDoc(doc(as(SUPER), 'licenses', 'l3'), { ...lic, amount: -5 }))
+  })
+  it('oyun tarixçəsi: yalnız iştirak etdiyi oyun üçün, öz adına', async () => {
+    const play = (uid: string, gameId = 'g1') => ({ uid, gameId, title: 'T', rank: 1, total: 2, score: 900, correct: 3, questions: 3, at: serverTimestamp() })
+    await assertSucceeds(setDoc(doc(as(P2), 'plays', `${P2}_g1`), play(P2)))   // P2 g1-in iştirakçısıdır
+    await assertFails(setDoc(doc(as(P1), 'plays', `${P1}_g1`), play(P1)))      // P1 iştirakçı deyil
+    await assertFails(setDoc(doc(as(P2), 'plays', `x_g1`), play(P2)))
+  })
+  it('istifadəçi öz müraciətini oxuya və silə bilir', async () => {
+    const req = { uid: G, email: `${G}@gmail.com`, name: 'A', phone: '+994501112233', plan: 'trainer', status: 'new', createdAt: serverTimestamp() }
+    await setDoc(doc(google(G), 'licenseRequests', 'rq'), req)
+    await assertSucceeds(getDoc(doc(google(G), 'licenseRequests', 'rq')))
+    await assertFails(getDoc(doc(google(S), 'licenseRequests', 'rq')))
+    await assertSucceeds(deleteDoc(doc(google(G), 'licenseRequests', 'rq')))
+  })
+})
+
+describe('müəssisə (təşkilat)', () => {
+  const OWN = 'org-owner', OWN2 = 'org-owner2', M1 = 'org-m1', M2 = 'org-m2'
+  const google = (uid: string) => env.authenticatedContext(uid, { email: `${uid}@gmail.com`, firebase: { sign_in_provider: 'google.com' } }).firestore()
+  const owner = (uid: string, extra = {}) => ({ email: `${uid}@x.az`, name: 'O', role: 'trainer', source: 'signup', createdAt: Timestamp.fromMillis(Date.now() - 10 * 86400000), plan: 'institution', seats: 3, licenseUntil: Timestamp.fromMillis(Date.now() + 30 * 86400000), disabled: false, ...extra })
+  const member = (uid: string, org: string) => ({ email: `${uid}@x.az`, name: 'M', role: 'trainer', source: 'org', orgId: org, createdAt: serverTimestamp(), createdBy: org, disabled: false, mustChangePassword: true })
+  beforeEach(async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore()
+      await setDoc(doc(db, 'admins', OWN), owner(OWN))
+      await setDoc(doc(db, 'admins', OWN2), owner(OWN2))
+      await setDoc(doc(db, 'admins', M2), { ...member(M2, OWN2), createdAt: Timestamp.now() })
+      await setDoc(doc(db, 'quizzes', 'oq2'), { title: 'Org2', ownerUid: M2, orgId: OWN2 })
+      await setDoc(doc(db, 'games', 'og2'), { hostUid: M2, orgId: OWN2, phase: 'finished', settings: { maxPlayers: 50 } })
+    })
+  })
+  it('lisenziyalı müəssisə sahibi öz təlimçisini əlavə edir; başqa təşkilata və ya şifrəsiz yox', async () => {
+    await assertSucceeds(setDoc(doc(google(OWN), 'admins', M1), member(M1, OWN)))
+    await assertFails(setDoc(doc(google(OWN), 'admins', 'x1'), member('x1', OWN2)))
+    await assertFails(setDoc(doc(google(OWN), 'admins', 'x2'), { ...member('x2', OWN), mustChangePassword: false }))
+    await assertFails(setDoc(doc(google(OWN), 'admins', 'x3'), { ...member('x3', OWN), role: 'admin' }))
+    await assertFails(setDoc(doc(as(TRAINER), 'admins', 'x4'), member('x4', TRAINER)))
+  })
+  it('lisenziyası bitmiş müəssisə sahibi təlimçi əlavə edə bilməz', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', OWN), { licenseUntil: Timestamp.fromMillis(Date.now() - 1000) }) })
+    await assertFails(setDoc(doc(google(OWN), 'admins', M1), member(M1, OWN)))
+  })
+  it('təlimçi müəssisənin lisenziyasını alır: 10-dan çox iştirakçı; lisenziya bitəndə pulsuz limit', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', M1), { ...member(M1, OWN), createdAt: Timestamp.now(), mustChangePassword: false }) })
+    await assertSucceeds(setDoc(doc(as(M1), 'games', 'm1g'), { hostUid: M1, orgId: OWN, phase: 'lobby', settings: { maxPlayers: 100 } }))
+    await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', OWN), { licenseUntil: Timestamp.fromMillis(Date.now() - 1000) }) })
+    await assertFails(setDoc(doc(as(M1), 'games', 'm1g2'), { hostUid: M1, orgId: OWN, phase: 'lobby', settings: { maxPlayers: 100 } }))
+    await assertSucceeds(setDoc(doc(as(M1), 'games', 'm1g3'), { hostUid: M1, orgId: OWN, phase: 'lobby', settings: { maxPlayers: 10 } }))
+  })
+  it('təşkilat daxilində quiz ortaqdır, başqa təşkilat görmür; sahib üzvlərin oyunlarını görür', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', M1), { ...member(M1, OWN), createdAt: Timestamp.now(), mustChangePassword: false }) })
+    await assertSucceeds(setDoc(doc(as(M1), 'quizzes', 'oq1'), { title: 'Org1', ownerUid: M1, orgId: OWN }))
+    await assertFails(setDoc(doc(as(M1), 'quizzes', 'oqx'), { title: 'X', ownerUid: M1, orgId: OWN2 }))
+    await assertSucceeds(getDoc(doc(google(OWN), 'quizzes', 'oq1')))
+    await assertFails(getDoc(doc(google(OWN), 'quizzes', 'oq2')))
+    await assertFails(getDoc(doc(as(M1), 'quizzes', 'oq2')))
+    await assertSucceeds(getDocs(query(collection(google(OWN2), 'games'), where('orgId', '==', OWN2))))
+    await assertFails(getDocs(query(collection(google(OWN), 'games'), where('orgId', '==', OWN2))))
+    await assertSucceeds(getDocs(query(collection(google(OWN2), 'admins'), where('orgId', '==', OWN2))))
+    await assertFails(getDocs(query(collection(google(OWN), 'admins'), where('orgId', '==', OWN2))))
+  })
+  it('müəssisə təlimçisi kitabxanaya paylaşa və ümumi QR-ı dəyişə bilməz', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', M1), { ...member(M1, OWN), createdAt: Timestamp.now(), mustChangePassword: false }) })
+    await assertSucceeds(setDoc(doc(as(M1), 'quizzes', 'oq3'), { title: 'T', ownerUid: M1, orgId: OWN }))
+    await assertFails(updateDoc(doc(as(M1), 'quizzes', 'oq3'), { shared: true }))
+    await assertFails(setDoc(doc(as(M1), 'settings', 'current'), { activeGameId: 'x' }))
+  })
+  it('sahib öz təlimçisini məhdudlaşdırır və silir; başqasınınkını yox', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', M1), { ...member(M1, OWN), createdAt: Timestamp.now() }) })
+    await assertSucceeds(updateDoc(doc(google(OWN), 'admins', M1), { disabled: true }))
+    await assertFails(updateDoc(doc(google(OWN), 'admins', M1), { orgId: OWN2 }))
+    await assertFails(updateDoc(doc(google(OWN), 'admins', M2), { disabled: true }))
+    await assertFails(deleteDoc(doc(google(OWN), 'admins', M2)))
+    await assertSucceeds(deleteDoc(doc(google(OWN), 'admins', M1)))
   })
 })

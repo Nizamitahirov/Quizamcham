@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, RotateCcw, Trophy, XCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Award, CheckCircle2, Clock, RotateCcw, Trophy, XCircle } from 'lucide-react'
 import { loadCatalogItem, saveAttempt, useAccount, type CatalogItem } from '../../lib/account'
 import { toPublic } from '../../lib/gameEngine'
 import { evaluateAnswer, SCORED_TYPES } from '../../lib/scoring'
@@ -111,6 +111,7 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
           ))}
         </div>
         <p className="text-white/65">{correct}/{total}</p>
+        {p >= 70 && <CertButton item={item} score={score} correct={correct} total={total} />}
         <div className="flex w-full flex-col gap-2 sm:flex-row">
           <button className="btn btn-primary btn-lg flex-1" onClick={onRetry}><RotateCcw />{A.retry}</button>
           <Link to="/learn" className="btn btn-ghost btn-lg flex-1"><ArrowLeft />{A.toCatalog}</Link>
@@ -164,4 +165,25 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
       )}
     </div>
   )
+}
+
+/** Məşqi ≥70% ilə bitirənə sertifikat (PNG). */
+function CertButton({ item, score, correct, total }: { item: CatalogItem; score: number; correct: number; total: number }) {
+  const { profile } = useAccount()
+  const [busy, setBusy] = useState(false)
+  const name = profile ? `${profile.firstName} ${profile.lastName}` : ''
+  const make = async () => {
+    setBusy(true)
+    try {
+      const { renderCertificate } = await import('../../lib/shareCard')
+      const blob = await renderCertificate(
+        { name, quiz: item.title, place: 0, total: 0, score, trainer: item.author, date: new Date() },
+        { title: t.cert.title, given: t.cert.given, completed: `${A.certFor} · ${correct}/${total}`, place: '', score: t.cert.score(score.toLocaleString(LOCALE)), trainer: t.cert.trainer, date: t.cert.date },
+      )
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = `jabr-certificate-${item.id}.png`; a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 2000)
+    } finally { setBusy(false) }
+  }
+  return <button className="btn btn-ghost w-full" disabled={busy || !name} onClick={() => void make()}><Award />{A.certificate}</button>
 }

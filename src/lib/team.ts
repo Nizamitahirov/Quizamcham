@@ -1,6 +1,6 @@
 import { deleteApp, initializeApp } from 'firebase/app'
 import { createUserWithEmailAndPassword, getAuth, inMemoryPersistence, sendPasswordResetEmail, setPersistence, signOut } from 'firebase/auth'
-import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore'
 import { app, auth, db } from '../firebase/config'
 import { normalizeRole, PERM_KEYS, type AccessConfig, type PermMap, type Role } from './roles'
 import { logAudit } from './audit'
@@ -98,3 +98,36 @@ export async function setMemberPerms(row: AdminRow, perms: PermMap) {
   await updateDoc(doc(db, 'admins', row.uid), { perms: Object.keys(p).length ? p : deleteField(), ...stamp() })
   void logAudit('member_perms', { target: row.uid, targetEmail: row.email, details: Object.fromEntries(Object.entries(p).map(([k, v]) => [k, v ? 'allow' : 'deny'])) })
 }
+
+// ---------------- Müəssisə: sahibin öz təlimçiləri ----------------
+
+export interface OrgMember { uid: string; email: string; name: string; disabled: boolean; mustChangePassword: boolean; createdAt?: { toDate(): Date } }
+
+export async function listOrgMembers(orgId: string): Promise<OrgMember[]> {
+  const s = await getDocs(query(collection(db, 'admins'), where('orgId', '==', orgId)))
+  return s.docs.map((d) => ({ uid: d.id, email: d.get('email') ?? '', name: d.get('name') ?? '', disabled: d.get('disabled') === true, mustChangePassword: d.get('mustChangePassword') === true, createdAt: d.get('createdAt') }))
+    .sort((a, b) => a.email.localeCompare(b.email))
+}
+
+/** Müəssisə sahibi təlimçi əlavə edir: müvəqqəti şifrə, ilk girişdə məcburi dəyişmə; lisenziya sahibdən gəlir. */
+export async function createOrgMember(email: string, name: string, orgId: string) {
+  const secondary = initializeApp(app.options, `org-${Date.now()}`)
+  const a2 = getAuth(secondary)
+  await setPersistence(a2, inMemoryPersistence)
+  const password = tempPassword()
+  try {
+    const cred = await createUserWithEmailAndPassword(a2, email.trim(), password)
+    await setDoc(doc(db, 'admins', cred.user.uid), {
+      email: email.trim(), name: name.trim(), role: 'trainer', source: 'org', orgId, createdAt: serverTimestamp(), createdBy: orgId, disabled: false, mustChangePassword: true,
+    })
+    await signOut(a2)
+    void logAudit('member_created', { target: cred.user.uid, targetEmail: email.trim(), details: { org: orgId } })
+    return { uid: cred.user.uid, password }
+  } finally {
+    await deleteApp(secondary)
+  }
+}
+export const setOrgMemberDisabled = (m: OrgMember, disabled: boolean) =>
+  updateDoc(doc(db, 'admins', m.uid), { disabled, updatedAt: serverTimestamp(), updatedBy: auth.currentUser?.uid ?? '' })
+export const removeOrgMember = (m: OrgMember) => deleteDoc(doc(db, 'admins', m.uid))
+export const resetOrgMember = (m: OrgMember) => sendPasswordResetEmail(auth, m.email)

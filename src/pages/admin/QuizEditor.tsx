@@ -6,9 +6,10 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities'
 import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull, setQuizShared } from '../../firebase/db'
 import { logAudit } from '../../lib/audit'
-import { isPublished, publishToCatalog, unpublish } from '../../lib/account'
+import { catalogMeta, publishToCatalog, unpublish } from '../../lib/account'
+import { FREE_MAX_PLAYERS } from '../../lib/roles'
 import { compressImage } from '../../lib/image'
-import { canManage, scopeUid } from '../../lib/access'
+import { canManage, orgScope, scopeUid } from '../../lib/access'
 import { launchQuiz, toPublic } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { download } from '../../lib/csv'
@@ -90,7 +91,7 @@ export default function QuizEditor() {
     return () => { window.removeEventListener('beforeunload', h); if (timer.current) void save() }
   }, [save])
 
-  const readOnly = !!quiz && !canManage(admin, quiz.ownerUid)
+  const readOnly = !!quiz && !canManage(admin, quiz.ownerUid, quiz.orgId)
   const readOnlyRef = useRef(false)
   useEffect(() => { readOnlyRef.current = readOnly }, [readOnly])
   const commit = useCallback((nextQuiz: Quiz, nextQs: Question[], dirtyIds: string[] = [], opts: { noUndo?: boolean } = {}) => {
@@ -219,7 +220,7 @@ export default function QuizEditor() {
 
       <div className="mb-4"><Tabs value={tab} onChange={setTab} tabs={[{ value: 'questions', label: `${t.admin.editorTabs.questions} (${questions.length})`, icon: ListChecks, badge: errCount }, { value: 'settings', label: t.admin.editorTabs.settings, icon: Settings2 }]} /></div>
 
-      {tab === 'settings' ? <SettingsForm s={quiz.settings} onChange={setSettings} /> : (
+      {tab === 'settings' ? <SettingsForm s={quiz.settings} onChange={setSettings} maxPlayersCap={admin.plan.free ? FREE_MAX_PLAYERS : undefined} /> : (
       <div className="grid gap-4 lg:grid-cols-[300px_1fr_280px]">
         <QuestionList questions={questions} sel={sel} errors={errors} onSelect={setSel} onReorder={reorder} onAdd={addQ} onDup={dupQ} onDel={delQ} onCopy={setCopying} />
         {current ? (
@@ -458,7 +459,7 @@ function CopyQuestionModal({ q, currentQuizId, onClose }: { q: Question | null; 
   const [list, setList] = useState<{ id: string; title: string; coverEmoji: string }[] | null>(null)
   const [msg, setMsg] = useState('')
   // yalnız redaktə hüququ olan quizlərə köçürmək olar
-  useEffect(() => { if (q) { setMsg(''); void listQuizzes(scopeUid(admin), admin.perms.library).then((l) => setList(l.filter((x) => x.id !== currentQuizId && canManage(admin, x.ownerUid)))) } }, [q, currentQuizId, admin])
+  useEffect(() => { if (q) { setMsg(''); void listQuizzes(scopeUid(admin), admin.perms.library, orgScope(admin)).then((l) => setList(l.filter((x) => x.id !== currentQuizId && canManage(admin, x.ownerUid)))) } }, [q, currentQuizId, admin])
   return (
     <Modal open={!!q} onClose={onClose} title={t.copyQ.title}>
       <p className="mb-3 text-sm text-muted">{t.copyQ.pick}</p>
@@ -491,19 +492,28 @@ function PhonePreview({ q, shuffle }: { q: Question; shuffle: boolean }) {
   )
 }
 
-/** Kataloqda dərc et / yenilə / çıxar (tələbələr üçün limitsiz məşq). */
+/** Kataloqda dərc et / yenilə / çıxar (tələbələr üçün limitsiz məşq) — kateqoriya və çətinliklə. */
 function PublishButton({ quizId, author }: { quizId: string; author: string }) {
   const [on, setOn] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  useEffect(() => { void isPublished(quizId).then(setOn) }, [quizId])
+  const [category, setCategory] = useState('')
+  const [level, setLevel] = useState<'easy' | 'medium' | 'hard'>('medium')
+  useEffect(() => { void catalogMeta(quizId).then((m) => { setOn(!!m); if (m?.category) setCategory(m.category); if (m?.level) setLevel(m.level) }) }, [quizId])
   if (on === null) return null
   const pub = async () => {
     setBusy(true); setErr('')
-    try { await publishToCatalog(quizId, author); setOn(true) } catch (e) { setErr((e as Error).message === 'no-scored' ? t.acct.noScored : t.app.error) } finally { setBusy(false) }
+    try { await publishToCatalog(quizId, author, { category, level }); setOn(true) } catch (e) { setErr((e as Error).message === 'no-scored' ? t.acct.noScored : t.app.error) } finally { setBusy(false) }
   }
   return (
-    <span className="flex items-center gap-1">
+    <span className="flex flex-wrap items-center gap-1">
+      <select className="input h-10 w-auto py-0 text-sm" value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t.acct.category}>
+        <option value="">{t.acct.category}…</option>
+        {t.acct.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+      </select>
+      <select className="input h-10 w-auto py-0 text-sm" value={level} onChange={(e) => setLevel(e.target.value as typeof level)} aria-label={t.acct.difficulty}>
+        {(['easy', 'medium', 'hard'] as const).map((l) => <option key={l} value={l}>{t.acct.levelsQ[l]}</option>)}
+      </select>
       <button className={`btn ${on ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={err || t.acct.publishHint} disabled={busy} onClick={() => void pub()}>
         <BookOpenCheck />{on ? t.acct.update : t.acct.publish}
       </button>

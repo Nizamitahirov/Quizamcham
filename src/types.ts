@@ -68,6 +68,7 @@ export interface Quiz {
   questionOrder: string[]
   ownerUid: string
   shared?: boolean // kitabxanaya paylaşılıb: bütün təlimçilər görür və surətini çıxara bilir
+  orgId?: string // müəssisə: təşkilat daxilində ortaq
   tags?: string[]
   createdAt?: Timestamp
   updatedAt?: Timestamp
@@ -140,6 +141,8 @@ export interface Game {
   countdownAt?: Timestamp | null // sualın oxuma mərhələsinin server vaxtı (başlanğıc = countdownAt + readMs)
   selfDone?: number // öz tempində: bütün sualları bitirənlərin sayı
   host?: HostProfile | null
+  plan?: 'free' | 'pro' | 'team' // pulsuz planda maks. 10 iştirakçı
+  orgId?: string
 }
 
 export interface TeamEntry { team: number; score: number; members: number; total: number }

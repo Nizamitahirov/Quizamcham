@@ -11,11 +11,12 @@ import { DEFAULT_APP_SETTINGS, convertType, uid6, withDefaults } from '../lib/de
  * Quizlər. ownerScope verilibsə (təlimçi): yalnız öz quizləri + kitabxanaya paylaşılanlar
  * (Rules təlimçiyə süzgəcsiz siyahını qadağan edir). Admin/super: hamısı.
  */
-export async function listQuizzes(ownerScope?: string, withLibrary = true): Promise<(Quiz & { count: number })[]> {
+export async function listQuizzes(ownerScope?: string, withLibrary = true, orgScope?: string): Promise<(Quiz & { count: number })[]> {
   const docs = ownerScope
     ? (await Promise.all([
       getDocs(query(collection(db, 'quizzes'), where('ownerUid', '==', ownerScope))),
       ...(withLibrary ? [getDocs(query(collection(db, 'quizzes'), where('shared', '==', true)))] : []),
+      ...(orgScope ? [getDocs(query(collection(db, 'quizzes'), where('orgId', '==', orgScope)))] : []),
     ])).flatMap((s) => s.docs)
     : (await getDocs(query(collection(db, 'quizzes'), orderBy('updatedAt', 'desc')))).docs
   const seen = new Set<string>()
@@ -39,6 +40,7 @@ export function normalizeQuiz(q: Partial<Quiz> & { id: string }): Quiz {
     questionOrder: q.questionOrder ?? [],
     ownerUid: q.ownerUid ?? '',
     shared: q.shared === true,
+    orgId: q.orgId || undefined,
     tags: q.tags ?? [],
     createdAt: q.createdAt,
     updatedAt: q.updatedAt,
@@ -85,13 +87,22 @@ export async function saveQuizFull(quiz: Quiz, questions: Question[], dirtyIds: 
   await batch.commit()
 }
 
+/** Yaradanın təşkilatı: müəssisə təlimçisi → orgId, müəssisə sahibi → öz uid-i, digərləri → '' (Rules-dakı orgOf ilə eyni). */
+export async function orgIdFor(uid: string): Promise<string> {
+  const s = await getDoc(doc(db, 'admins', uid)).catch(() => null)
+  if (!s?.exists()) return ''
+  if (s.get('source') === 'org') return String(s.get('orgId') ?? '')
+  return s.get('source') === 'signup' && s.get('plan') === 'institution' ? uid : ''
+}
+
 export async function createQuiz(ownerUid: string, partial: Partial<Quiz> = {}, questions: Question[] = []): Promise<string> {
   const ref = doc(collection(db, 'quizzes'))
+  const orgId = await orgIdFor(ownerUid)
   // təlimçinin standart ayarları (profil) → quizin öz ayarları üstündür
   const defaults = (await loadProfile(ownerUid))?.defaults ?? {}
   const quiz = normalizeQuiz({ ...partial, settings: { ...withDefaults(defaults as Quiz['settings']), ...(partial.settings ?? {}) } as Quiz['settings'], id: ref.id, ownerUid })
   const batch = writeBatch(db)
-  batch.set(ref, { ...quizMeta(quiz, questions), createdAt: serverTimestamp() })
+  batch.set(ref, { ...quizMeta(quiz, questions), ...(orgId ? { orgId } : {}), createdAt: serverTimestamp() })
   questions.forEach((q) => batch.set(doc(db, 'quizzes', ref.id, 'questions', q.id), cleanQuestion(q)))
   await batch.commit()
   return ref.id
@@ -239,7 +250,19 @@ export const saveProfile = (uid: string, p: TrainerProfile) => setDoc(doc(db, 'p
 // ---------------- Oyunlar (admin) ----------------
 
 /** Oyunlar. hostScope verilibsə (təlimçi) — yalnız onun oyunları (Rules bunu tələb edir). */
-export async function listGames(max = 100, hostScope?: string) {
+export async function listGames(max = 100, hostScope?: string, orgScope?: string) {
+  if (orgScope) {
+    // müəssisə sahibi: öz oyunları + təlimçilərinin oyunları
+    const [own, org] = await Promise.all([
+      getDocs(query(collection(db, 'games'), where('hostUid', '==', hostScope ?? orgScope), orderBy('createdAt', 'desc'), qLimit(max))),
+      getDocs(query(collection(db, 'games'), where('orgId', '==', orgScope), orderBy('createdAt', 'desc'), qLimit(max))),
+    ])
+    const seen = new Set<string>()
+    return [...own.docs, ...org.docs].filter((d) => (seen.has(d.id) ? false : (seen.add(d.id), true)))
+      .map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as { id: string; createdAt?: { toMillis(): number } } & Record<string, unknown>)
+      .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0))
+      .slice(0, max)
+  }
   const snap = await getDocs(hostScope
     ? query(collection(db, 'games'), where('hostUid', '==', hostScope), orderBy('createdAt', 'desc'), qLimit(max))
     : query(collection(db, 'games'), orderBy('createdAt', 'desc'), qLimit(max)))

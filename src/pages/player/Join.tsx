@@ -96,7 +96,8 @@ export default function Join() {
       if (!gs.exists()) return fail(t.join.notFound)
       const g = gs.data() as Game
       const why = joinBlockReason(g)
-      if (why) return fail(t.join[why])
+      if (why === 'full' && g.plan === 'free') void import('../../firebase/extras').then((m) => m.track('plan_limit_hit'))
+      if (why) return fail(why === 'full' && g.plan === 'free' ? t.join.fullFree : t.join[why])
       setNameFilterOn(g.settings?.nameFilter !== false)
       setGameId(gid)
       setStep('profile')
