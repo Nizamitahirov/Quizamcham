@@ -11,6 +11,7 @@ import { isValidPin } from '../../lib/pin'
 import { cleanName, isNameAllowed } from '../../lib/nameFilter'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
+import { LegalLink, LegalModal } from '../../components/LegalModal'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
 import { LangSwitch } from '../../components/LangSwitch'
@@ -32,6 +33,7 @@ export default function Join() {
   const [error, setError] = useState('')
   const [shakeKey, setShakeKey] = useState(0)
   const [busy, setBusy] = useState(false)
+  const [legal, setLegal] = useState(false)
   const [slow, setSlow] = useState(false)
   // Qoşulma 6 saniyədən uzun çəkirsə, iştirakçıya bunun normal olduğunu bildir (təkrar basıb pozmasın)
   useEffect(() => {
@@ -196,7 +198,8 @@ export default function Join() {
             </div>
             {error && <p key={shakeKey} className="shake rounded-xl bg-red-500/15 py-2 text-center text-sm font-bold text-red-300" role="alert">{error}</p>}
             {slow && <p className="rounded-xl bg-amber-400/15 px-3 py-2 text-center text-sm font-semibold text-amber-200" role="status">{t.join.slow}</p>}
-            <p className="text-center text-xs leading-relaxed text-white/50">{t.privacy.short} <Link to="/privacy" className="underline">{t.privacy.more}</Link></p>
+            <p className="text-center text-xs leading-relaxed text-white/50">{t.privacy.short} <LegalLink onOpen={() => setLegal(true)} /></p>
+            <LegalModal ids={['privacy']} open={legal} onClose={() => setLegal(false)} />
             <button className="btn btn-primary btn-lg sticky bottom-4 text-xl" disabled={busy || first.trim().length < 2 || last.trim().length < 2}>
               {busy ? t.join.joining : <><Rocket />{t.join.go}</>}
             </button>

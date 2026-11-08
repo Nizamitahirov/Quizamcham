@@ -225,7 +225,8 @@ export const en: Dict = {
     level: 'Education level', institution: 'School / university', field: 'Field of study', year: 'Year / grade',
     interests: 'Interests', interestsHint: 'Pick a few', source: 'How did you hear about us?',
     marketing: 'I agree to receive news, new quizzes and offers by email, SMS or WhatsApp.', terms: 'I have read and agree to the privacy policy',
-    consents: 'Consents', consentData: 'I consent to the processing of my personal data (including storage on servers in the European Union).',
+    consents: 'Consents', consentData: 'I consent to the processing of my personal data',
+    consentTerms: 'I accept the privacy policy and terms of use', consentMarketing: 'I want to receive news and offers',
     consentTermsA: 'I have read and accept the', consentTermsB: 'and the', consentTermsC: '.', readText: 'Read the text', optional: 'optional',
     minorNote: 'If you are under 16, you need your parent’s consent to sign up.', consentRequired: 'Tick the required consents (*) to continue',
     required: 'Please fill in the required fields', badPhone: 'Please enter a valid phone number',
@@ -379,7 +380,7 @@ export const en: Dict = {
     ],
     ctaTitle: 'Make your next training live', ctaSub: '3-day Pro trial, then the free plan — no card required.',
   },
-  legal: { docs: 'Legal documents', version: 'Version', print: 'Print', forPlayers: 'Short notice for live game participants', terms: 'Terms of Use', privacy: 'Privacy Policy', consent: 'Data processing consent' },
+  legal: { more: 'Details', accept: 'I have read it, I agree', docs: 'Legal documents', version: 'Version', print: 'Print', forPlayers: 'Short notice for live game participants', terms: 'Terms of Use', privacy: 'Privacy Policy', consent: 'Data processing consent' },
   privacy: {
     title: 'Privacy notice', short: 'By joining, you agree that your name and answers are used for this training session.', more: 'Details',
     body: [

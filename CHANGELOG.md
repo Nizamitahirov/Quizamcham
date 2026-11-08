@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-11-08
+- **Razılıqlar qısa sətirlərlə:** qeydiyyatda 3 checkbox (məlumat emalı *, məxfilik + şərtlər *, marketinq — istəyə bağlı). Uzun mətn ekranda göstərilmir; "Ətraflı" sənədi modalda açır, "Oxudum, razıyam" checkbox-u işarələyir. Eyni modal giriş səhifəsində, "Hesabım"da və oyunçu qoşulma səhifəsində.
+- **Düzəliş — qeydiyyat itə bilərdi:** "Tamamla" basılan kimi lokal profil görünür, səhifə serverə yazı çatmamış yönləndirilirdi; səhifə dərhal bağlanarsa qeydiyyat itirdi, təlimçi isə qısa müddət giriş səhifəsinə düşə bilərdi. İndi yönləndirmə yalnız bütün yazılar təsdiqlənəndən sonra.
+- **Düzəliş:** keşin "profil yoxdur" cavabı server təsdiqi sayılmır (səhifə yenilənəndə istifadəçi səhvən qeydiyyata qaytarılmır).
+- "isteğe bağlı" → "istəyə bağlı".
+
 ## 1.0.0 — 2026-11-07 (hüquqi uyğunluq, pulsuz plan, müəssisələr)
 - **Hüquqi sənədlər** (AZ/EN, versiyalı): Məxfilik siyasəti, İstifadə şərtləri, Fərdi məlumatların emalına razılıq, Marketinq razılığı — "Fərdi məlumatlar haqqında" Qanun və GDPR prinsipləri əsasında (/privacy, /terms, /consent, /marketing-consent). Operatorun hüquqi adı/VÖEN-i `src/content/legal.ts`-də əlavə olunmalıdır.
 - **3 ayrı razılıq** qeydiyyatda: məlumat emalı (məcburi), məxfilik + şərtlər (məcburi), marketinq (isteğe bağlı, standart söndürülü). Hər razılıq versiya və server vaxtı ilə dəyişdirilə bilməyən jurnala yazılır.

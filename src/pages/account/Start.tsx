@@ -9,6 +9,7 @@ import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
 import { LangSwitch } from '../../components/LangSwitch'
 import { Spinner } from '../../components/ui'
+import { LegalLink, LegalModal } from '../../components/LegalModal'
 
 const A = t.acct
 
@@ -31,6 +32,7 @@ export default function Start() {
   const [busy, setBusy] = useState(false)
   const [checking, setChecking] = useState(true)
   const [err, setErr] = useState('')
+  const [legal, setLegal] = useState(false)
 
   const go = async (uid: string) => {
     void touchLogin(uid)
@@ -92,7 +94,8 @@ export default function Start() {
               {err && <p className="rounded-xl bg-red-500/15 px-3 py-2 text-center text-sm font-semibold text-red-200" role="alert">{err}</p>}
             </>
           )}
-          <p className="text-center text-xs leading-relaxed text-white/50">{A.agree} <Link to="/privacy" className="underline">{t.privacy.more}</Link></p>
+          <p className="text-center text-xs leading-relaxed text-white/50">{A.agree} <LegalLink onOpen={() => setLegal(true)} /></p>
+          <LegalModal ids={['privacy', 'terms']} open={legal} onClose={() => setLegal(false)} />
           <div className="border-t border-white/10 pt-4 text-center">
             <Link to="/admin/login" className="text-sm font-semibold text-white/70 underline-offset-4 hover:text-white hover:underline">{A.teamLogin}</Link>
           </div>

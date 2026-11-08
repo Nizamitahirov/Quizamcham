@@ -85,8 +85,12 @@ export function useAccount() {
     const unsub = onAuthStateChanged(auth, (u) => {
       unsubDoc?.(); unsubDoc = null
       if (!u || u.isAnonymous) return setState({ loading: false, user: null, profile: null })
-      unsubDoc = onSnapshot(doc(db, 'users', u.uid),
-        (s) => setState({ loading: false, user: u, profile: s.exists() ? (s.data() as UserProfile) : null }),
+      unsubDoc = onSnapshot(doc(db, 'users', u.uid), { includeMetadataChanges: true },
+        (s) => {
+          // keşdən gələn "yoxdur" sübut deyil — server cavabını gözlə (yoxsa istifadəçi səhvən qeydiyyata qaytarılır)
+          if (!s.exists() && s.metadata.fromCache) return
+          setState({ loading: false, user: u, profile: s.exists() ? (s.data() as UserProfile) : null })
+        },
         () => setState({ loading: false, user: u, profile: null }))
     })
     return () => { unsub(); unsubDoc?.() }

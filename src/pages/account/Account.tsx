@@ -13,6 +13,8 @@ import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
 import { LangSwitch } from '../../components/LangSwitch'
 import { Spinner } from '../../components/ui'
+import { LegalLink, LegalModal } from '../../components/LegalModal'
+import type { LegalId } from '../../content/legal'
 
 const A = t.acct
 
@@ -35,6 +37,7 @@ export default function Account() {
   const [confirm, setConfirm] = useState('')
   const [delStep, setDelStep] = useState('')
   const [err, setErr] = useState('')
+  const [docIds, setDoc] = useState<LegalId[] | null>(null)
   const [up, setUp] = useState<{ type: 'trainer' | 'institution'; position: string; organization: string; sector: string }>({ type: 'trainer', position: '', organization: '', sector: '' })
 
   useEffect(() => { if (profile) setD(profile) }, [profile])
@@ -147,10 +150,10 @@ export default function Account() {
             <section className="glass p-6">
               <h2 className="mb-3 flex items-center gap-2 text-lg font-black"><ShieldCheck className="h-5 w-5 text-orange-300" />{A.consentsTitle}</h2>
               <ul className="flex flex-col gap-3 text-sm">
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-400" /><span><Link to="/consent" className="font-semibold underline-offset-2 hover:underline">{t.legal.consent}</Link><span className="block text-xs text-white/50">{A.consentGiven(ts(profile.dataConsentAt ?? profile.termsAt), profile.consentVersion ?? LEGAL_VERSION)}</span><span className="block text-xs text-white/40">{A.withdrawData}</span></span></li>
-                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-400" /><span><Link to="/privacy" className="font-semibold hover:underline">{t.legal.privacy}</Link> · <Link to="/terms" className="font-semibold hover:underline">{t.legal.terms}</Link><span className="block text-xs text-white/50">{A.consentGiven(ts(profile.termsAt), profile.consentVersion ?? LEGAL_VERSION)}</span></span></li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-400" /><span><span className="font-semibold">{t.legal.consent}</span> <LegalLink onOpen={() => setDoc(['consent'])} /><span className="block text-xs text-white/50">{A.consentGiven(ts(profile.dataConsentAt ?? profile.termsAt), profile.consentVersion ?? LEGAL_VERSION)}</span><span className="block text-xs text-white/40">{A.withdrawData}</span></span></li>
+                <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-400" /><span><span className="font-semibold">{t.legal.privacy} · {t.legal.terms}</span> <LegalLink onOpen={() => setDoc(['privacy', 'terms'])} /><span className="block text-xs text-white/50">{A.consentGiven(ts(profile.termsAt), profile.consentVersion ?? LEGAL_VERSION)}</span></span></li>
                 <li className="flex items-start justify-between gap-3 border-t border-white/10 pt-3">
-                  <span><Link to="/marketing-consent" className="font-semibold hover:underline">{A.marketingOn}</Link><span className="block text-xs text-white/50">{A.marketingHint}</span>{profile.marketingAt && <span className="block text-xs text-white/40">{ts(profile.marketingAt)}</span>}</span>
+                  <span><span className="font-semibold">{A.marketingOn}</span> <LegalLink onOpen={() => setDoc(['marketing'])} /><span className="block text-xs text-white/50">{A.marketingHint}</span>{profile.marketingAt && <span className="block text-xs text-white/40">{ts(profile.marketingAt)}</span>}</span>
                   <button type="button" role="switch" aria-checked={!!profile.marketing} aria-label={A.marketingOn} onClick={() => void setMarketing(user.uid, !profile.marketing)}
                     className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition ${profile.marketing ? '' : 'bg-white/20'}`} style={profile.marketing ? { background: 'var(--grad)' } : undefined}>
                     <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${profile.marketing ? 'left-[1.375rem]' : 'left-0.5'}`} />
@@ -180,6 +183,7 @@ export default function Account() {
           </section>
         </div>
       </main>
+      <LegalModal ids={docIds ?? []} open={!!docIds} onClose={() => setDoc(null)} />
     </div>
   )
 }
