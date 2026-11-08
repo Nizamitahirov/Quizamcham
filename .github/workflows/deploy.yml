@@ -1,0 +1,43 @@
+name: Deploy (Contabo)
+
+on:
+  push:
+    branches: [main]
+    paths: ['server/**', 'deploy/**', 'src/**', 'public/**', 'index.html', 'package*.json', '.github/workflows/deploy.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - name: Frontend build
+        run: npm ci && npm run build
+      - name: SSH açarı
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Faylları serverə göndər
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          rsync -az --delete dist/ "$SSH_USER@$SSH_HOST:/opt/jabr/web/"
+          rsync -az --delete --exclude node_modules --exclude dist server/ "$SSH_USER@$SSH_HOST:/opt/jabr/server/"
+          rsync -az --exclude .env deploy/ "$SSH_USER@$SSH_HOST:/opt/jabr/deploy/"
+      - name: Xidmətləri qaldır
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: ssh "$SSH_USER@$SSH_HOST" 'bash /opt/jabr/deploy/up.sh'
