@@ -676,6 +676,7 @@ export const az = {
   },
   a11y: { soundOn: 'Səsi aç', soundOff: 'Səsi bağla', music: 'Musiqi', fullscreen: 'Tam ekran' },
   csvHead: { rank: 'Yer', first: 'Ad', last: 'Soyad', team: 'Komanda', score: 'Xal', correct: 'Düzgün', acc: 'Dəqiqlik %', avg: 'Orta vaxt (s)', streak: 'Ən uzun seriya', q: (i: number) => `S${i}`, pts: (i: number) => `S${i} xal` },
+  resetPw: { title: 'Yeni şifrə təyin edin', pw: 'Yeni şifrə (ən azı 8 simvol)', pw2: 'Şifrəni təkrarlayın', save: 'Şifrəni yenilə', mismatch: 'Şifrələr eyni deyil', short: 'Şifrə ən azı 8 simvol olmalıdır', done: 'Şifrə yeniləndi. İndi daxil ola bilərsiniz.', expired: 'Keçidin vaxtı bitib və ya artıq istifadə olunub. Adminizdən yeni keçid istəyin.', login: 'Girişə keç' },
   feedback: { aria: (ok: boolean, p: number) => (ok ? `Düzdür, +${p} xal` : 'Səhvdir') },
 }
 

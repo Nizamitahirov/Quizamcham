@@ -10,6 +10,7 @@ const Play = lazy(() => import('./pages/player/Play'))
 const PlayerGame = lazy(() => import('./pages/player/PlayerGame'))
 const HostGame = lazy(() => import('./pages/host/HostGame'))
 const Login = lazy(() => import('./pages/admin/Login'))
+const ResetPassword = lazy(() => import('./pages/account/ResetPassword'))
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const QuizList = lazy(() => import('./pages/admin/QuizList'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
       { path: '/host/:gameId', element: S(<HostGame />) },
       { path: '/admin/login', element: S(<Login />) },
       { path: '/start', element: S(<Start />) },
+      { path: '/reset', element: S(<ResetPassword />) },
       { path: '/onboarding', element: S(<Onboarding />) },
       { path: '/learn', element: S(<Learn />) },
       { path: '/learn/:quizId', element: S(<Practice />) },

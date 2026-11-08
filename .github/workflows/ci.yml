@@ -34,6 +34,36 @@ jobs:
       - run: npm ci
       - run: npm run test:rules
 
+  jabr:
+    name: Jabr serveri (PostgreSQL) — eyni qayda testləri + SDK
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_PASSWORD: test, POSTGRES_DB: jabr_test }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: cd server && npm ci && npm run build
+      - name: Serveri test rejimində işə sal
+        run: |
+          cd server && nohup node dist/index.js > ../server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:3100/api/health && break; sleep 1; done
+        env:
+          DATABASE_URL: postgres://postgres:test@localhost:5432/jabr_test
+          ALLOW_TEST_AUTH: '1'
+          PORT: '3100'
+          HOST: 127.0.0.1
+          LOG_LEVEL: warn
+      - run: npm run test:jabr
+      - if: failure()
+        run: cat server.log
+
   e2e:
     name: E2E + əlçatanlıq (Playwright)
     runs-on: ubuntu-latest
