@@ -23,6 +23,10 @@ const DAY = 86_400_000
 
 class Deny extends Error {}
 const fail = (): never => { throw new Deny() }
+/** Firestore semantikası: "A || B" — A xəta versə də B doğrudursa icazə verilir. Hər disyunkt ayrıca qiymətləndirilir. */
+const ok = async (fn: () => unknown): Promise<boolean> => {
+  try { return (await fn()) === true } catch (e) { if (e instanceof Deny) return false; throw e }
+}
 
 // ---------- dəyər köməkçiləri (Firestore rules semantikası) ----------
 const has = (d: J | undefined, k: string): boolean => isMap(d) && Object.prototype.hasOwnProperty.call(d, k)
@@ -200,12 +204,12 @@ async function evaluate(c: Ctx): Promise<boolean> {
   // ---------- quizzes ----------
   if (col === 'quizzes' && path.length === 2) {
     if (read) return (await c.can('allContent'))
-      || ((await c.isAdmin()) && (f(rd(), 'ownerUid') === c.uid || (g(rd(), 'shared', false) === true && (await c.can('library')))))
+      || ((await c.isAdmin()) && ((await ok(() => f(rd(), 'ownerUid') === c.uid)) || (g(rd(), 'shared', false) === true && (await c.can('library')))))
       || ((await c.orgOf()) !== '' && g(rd(), 'orgId', '') === (await c.orgOf()))
     if (op === 'create') return (await c.can('createQuiz')) && f(nd(), 'ownerUid') === c.uid
       && (g(nd(), 'shared', false) === false || (await c.can('share')))
       && inList(g(nd(), 'orgId', ''), ['', await c.orgOf()])
-    const manage = async () => (await c.isAdmin()) && (f(rd(), 'ownerUid') === c.uid || (await c.isOwner()) || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid))
+    const manage = async () => (await c.isAdmin()) && ((await ok(() => f(rd(), 'ownerUid') === c.uid)) || (await c.isOwner()) || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid))
     if (op === 'update') return (await manage()) && eq(f(nd(), 'ownerUid'), f(rd(), 'ownerUid'))
       && eq(g(nd(), 'orgId', ''), g(rd(), 'orgId', ''))
       && (eq(g(nd(), 'shared', false), g(rd(), 'shared', false)) || (await c.can('share')))
@@ -269,7 +273,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
     if (op === 'create') return own() && fieldsOk() && isReq(f(nd(), 'createdAt'), now) && eq(f(nd(), 'email'), c.auth!.token.email ?? fail())
     if (op === 'update') {
       if (own() && fieldsOk()
-        && (eq(f(nd(), 'type'), f(rd(), 'type')) || (f(rd(), 'type') === 'student' && inList(f(nd(), 'type'), ['trainer', 'institution'])))
+        && ((await ok(() => eq(f(nd(), 'type'), f(rd(), 'type')))) || (await ok(() => f(rd(), 'type') === 'student' && inList(f(nd(), 'type'), ['trainer', 'institution']))))
         && eq(f(nd(), 'createdAt'), f(rd(), 'createdAt')) && eq(f(nd(), 'email'), f(rd(), 'email'))) return true
       return (await c.can('console')) && onlyAffected(nd(), rd(), ['type']) && inList(f(nd(), 'type'), ['student', 'trainer', 'institution'])
     }
@@ -293,7 +297,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
     return (await c.can('publish')) && f(nd(), 'publishedBy') === c.uid
   }
   if (col === 'attempts' && path.length === 2) {
-    if (read) return (c.registered() && f(rd(), 'uid') === c.uid) || c.can('console')
+    if (read) return (await ok(() => c.registered() && f(rd(), 'uid') === c.uid)) || c.can('console')
     if (op === 'create') {
       const d = nd()
       return c.registered() && keysOnly(d, ['uid', 'quizId', 'quizTitle', 'correct', 'total', 'score', 'durationMs', 'at'])
@@ -307,7 +311,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
     return false
   }
   if (col === 'plays' && path.length === 2) {
-    if (read) return (c.registered() && f(rd(), 'uid') === c.uid) || c.can('console')
+    if (read) return (await ok(() => c.registered() && f(rd(), 'uid') === c.uid)) || c.can('console')
     if (op === 'create') {
       const d = nd()
       return c.registered() && id === `${c.uid}_${f(d, 'gameId')}`
@@ -358,9 +362,9 @@ async function evaluate(c: Ctx): Promise<boolean> {
     const gid = id
     if (op === 'list') return (await c.can('allContent')) || ((await c.isAdmin()) && f(rd(), 'hostUid') === c.uid)
       || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid)
-    if (op === 'get') return (await c.can('allContent')) || ((await c.isAdmin()) && f(rd(), 'hostUid') === c.uid) || (await c.isPlayer(gid))
-      || (c.signedIn() && f(rd(), 'phase') !== 'finished') || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid)
-    const manage = async () => (await c.isAdmin()) && (f(rd(), 'hostUid') === c.uid || (await c.isOwner()) || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid))
+    if (op === 'get') return (await c.can('allContent')) || ((await c.isAdmin()) && (await ok(() => f(rd(), 'hostUid') === c.uid))) || (await c.isPlayer(gid))
+      || (c.signedIn() && (await ok(() => f(rd(), 'phase') !== 'finished'))) || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid)
+    const manage = async () => (await c.isAdmin()) && ((await ok(() => f(rd(), 'hostUid') === c.uid)) || (await c.isOwner()) || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid))
     if (op === 'create') return (await c.can('runGames')) && f(nd(), 'hostUid') === c.uid
       && inList(g(nd(), 'orgId', ''), ['', await c.orgOf()])
       && (!(await c.freeHost()) || (g(f(nd(), 'settings'), 'maxPlayers', 200) as number) <= 10)

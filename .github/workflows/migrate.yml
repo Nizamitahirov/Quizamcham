@@ -1,0 +1,67 @@
+# Firebase → Contabo məlumat köçürməsi (əl ilə işə salınır; təkrar işə salmaq təhlükəsizdir — sənədlər tam yenilənir).
+# Lazımi GitHub sirləri: FIREBASE_SERVICE_ACCOUNT (xidmət hesabı JSON), istəyə bağlı FIREBASE_HASH_CONFIG
+# (Firebase konsolu → Authentication → ⋮ → Password hash parameters blokunun özü; köhnə şifrələrlə giriş üçün).
+# Dump faylı yalnız runner-in müvəqqəti qovluğunda və serverdə qısa müddət saxlanılır; artefakt kimi YÜKLƏNMİR.
+name: Migrate (Firebase → Contabo)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Serverdəki bütün sənədlər Firebase-dəki ilə əvəzlənəcək. Təsdiq üçün KÖÇÜR yazın'
+        required: true
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: inputs.confirm == 'KÖÇÜR'
+    runs-on: ubuntu-latest
+    env:
+      HAS_HASH: ${{ secrets.FIREBASE_HASH_CONFIG != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Firestore + Auth ixracı
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          umask 077
+          test -n "$SA" || { echo "FIREBASE_SERVICE_ACCOUNT sirri təyin olunmayıb"; exit 1; }
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" node scripts/migrate/export.mjs > "$RUNNER_TEMP/dump.ndjson"
+          rm -f "$RUNNER_TEMP/sa.json"
+      - name: SSH açarı
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Şifrə hash parametrləri (varsa) serverin .env faylına
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          HASH: ${{ secrets.FIREBASE_HASH_CONFIG }}
+        if: env.HAS_HASH == 'true'
+        run: |
+          # bir sətrə yığılır; dəyər stdin ilə ötürülür (əmr sətrində görünmür)
+          printf '%s' "$HASH" | tr '\n\r' '  ' | ssh "$SSH_USER@$SSH_HOST" '
+            v=$(cat); f=/opt/jabr/deploy/.env
+            grep -v "^FIREBASE_HASH_CONFIG=" "$f" > "$f.tmp" || true
+            printf "FIREBASE_HASH_CONFIG='"'"'%s'"'"'\n" "$v" >> "$f.tmp"
+            chmod 600 "$f.tmp" && mv "$f.tmp" "$f"'
+      - name: İdxal
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" 'cd /opt/jabr/deploy && docker compose up -d api >/dev/null 2>&1 && docker compose exec -T api node dist/import.js' < "$RUNNER_TEMP/dump.ndjson"
+          rm -f "$RUNNER_TEMP/dump.ndjson"
+          ssh "$SSH_USER@$SSH_HOST" 'curl -fsS http://localhost/api/health'
