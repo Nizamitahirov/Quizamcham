@@ -105,7 +105,10 @@ export async function runQuery(caller: Caller, q: Query): Promise<{ path: string
   // Firestore kimi: nəticədəki hər sənəd üçün "list" icazəsi olmalıdır, əks halda bütün sorğu rədd olunur
   if (!caller.bypass) {
     const now = Date.now()
-    for (const row of r.rows) await check(caller, 'list', row.path, row.data, null, now)
+    // bir sorğu daxilində qaydaların oxuduğu sənədlər (admins, settings, games…) bir dəfə yüklənir
+    const cache = new Map<string, Promise<Doc | null>>()
+    const load = (p: string) => { let v = cache.get(p); if (!v) { v = loadDoc(p); cache.set(p, v) } return v }
+    for (const row of r.rows) await check(caller, 'list', row.path, row.data, null, now, load)
     // Nəticə boşdursa, Firestore kimi sorğunun özü yoxlanılır: "==" süzgəcləri ilə qurulmuş nümunə sənədə icazə olmalıdır
     if (r.rows.length === 0) {
       const probe: Doc = {}
@@ -116,7 +119,7 @@ export async function runQuery(caller: Caller, q: Query): Promise<{ path: string
         ks.slice(0, -1).forEach((k) => { node = (isMap(node[k]) ? node[k] : (node[k] = {})) as Doc })
         node[ks[ks.length - 1]] = w.value
       }
-      await check(caller, 'list', `${q.parent}/__query__`, probe, null, now)
+      await check(caller, 'list', `${q.parent}/__query__`, probe, null, now, load)
     }
   }
   return r.rows

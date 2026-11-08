@@ -2,7 +2,7 @@
  * Giriş sistemi (Firebase Auth-un əvəzi): anonim oyunçu, e-poçt + şifrə, Google, sessiyalar, şifrə sıfırlama.
  * Şifrələr scrypt ilə hash-lənir; sessiya tokeni bazada yalnız SHA-256 hash kimi saxlanılır.
  */
-import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto'
+import { createCipheriv, createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from 'node:crypto'
 import { promisify } from 'node:util'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { pool } from './store.js'
@@ -54,7 +54,36 @@ export async function hashPassword(pw: string) {
   const key = await scrypt(pw, salt, 64, { N: 16384, r: 8, p: 1 })
   return `scrypt$16384$8$1$${salt.toString('base64')}$${key.toString('base64')}`
 }
-async function verifyPassword(pw: string, stored: string | null) {
+/**
+ * Firebase-dən köçürülmüş şifrələr: "fbscrypt$<salt>$<hash>" (Firebase-in dəyişdirilmiş scrypt alqoritmi).
+ * Parametrlər Firebase konsolundan (Authentication → Password hash parameters) — yalnız serverin .env faylında:
+ * FIREBASE_HASH_CONFIG (konsoldakı hash_config blokunun özü).
+ */
+function firebaseHashParams() {
+  const raw = process.env.FIREBASE_HASH_CONFIG ?? ''
+  const pick = (k: string) => raw.match(new RegExp(`${k}\\s*[:=]\\s*"?([^",\\s}]+)`))?.[1]
+  const key = pick('base64_signer_key'), sep = pick('base64_salt_separator'), rounds = pick('rounds'), mem = pick('mem_cost')
+  if (!key || !sep || !rounds || !mem) return null
+  return { key: Buffer.from(key, 'base64'), sep: Buffer.from(sep, 'base64'), rounds: Number(rounds), mem: Number(mem) }
+}
+export async function verifyFirebase(pw: string, salt: string, hash: string) {
+  const p = firebaseHashParams()
+  if (!p) return false
+  const derived = await scrypt(pw, Buffer.concat([Buffer.from(salt, 'base64'), p.sep]), 32, { N: 2 ** p.mem, r: p.rounds, p: 1, maxmem: 256 * 1024 * 1024 })
+  const c = createCipheriv('aes-256-ctr', derived, Buffer.alloc(16, 0))
+  const out = Buffer.concat([c.update(p.key), c.final()])
+  const want = Buffer.from(hash, 'base64')
+  return want.length === out.length && timingSafeEqual(want, out)
+}
+
+async function verifyPassword(pw: string, stored: string | null, uid?: string) {
+  if (stored?.startsWith('fbscrypt$')) {
+    const [, salt, hash] = stored.split('$')
+    const ok = await verifyFirebase(pw, salt, hash)
+    // uğurlu girişdə öz formatımıza keçirilir
+    if (ok && uid) await pool.query('update auth_users set password_hash = $2 where uid = $1', [uid, await hashPassword(pw)])
+    return ok
+  }
   if (!stored?.startsWith('scrypt$')) return false
   const [, N, r, p, salt, hash] = stored.split('$')
   const key = await scrypt(pw, Buffer.from(salt, 'base64'), 64, { N: Number(N), r: Number(r), p: Number(p) })
@@ -68,11 +97,11 @@ const publicUser = (u: UserRow) => ({
   isAnonymous: u.provider === 'anonymous', provider: u.provider,
 })
 
-async function issueSession(u: UserRow) {
+async function issueSession(u: UserRow, provider = u.provider) {
   const token = newToken()
-  await pool.query(`insert into sessions (id, uid, provider, expires_at) values ($1, $2, $3, now() + interval '${SESSION_DAYS} days')`, [sha(token), u.uid, u.provider])
+  await pool.query(`insert into sessions (id, uid, provider, expires_at) values ($1, $2, $3, now() + interval '${SESSION_DAYS} days')`, [sha(token), u.uid, provider])
   await pool.query('update auth_users set last_login_at = now() where uid = $1', [u.uid])
-  return { token, user: publicUser(u) }
+  return { token, user: { ...publicUser(u), provider, isAnonymous: provider === 'anonymous' } }
 }
 
 /** Sorğudan istifadəçini müəyyən edir (Bearer token; testlərdə x-test-auth). */
@@ -91,7 +120,7 @@ export async function authFrom(token: string | undefined, testHeader?: string): 
      where s.id = $1 and s.expires_at > now() and not u.disabled`, [sha(token)])
   const u = r.rows[0]
   if (!u) return { auth: null, bypass: false }
-  return { auth: { uid: u.uid, token: { email: u.email ?? undefined, firebase: { sign_in_provider: u.provider } } }, bypass: false }
+  return { auth: { uid: u.uid, token: { email: u.email ?? undefined, firebase: { sign_in_provider: u.sp } } }, bypass: false }
 }
 
 export const bearer = (req: FastifyRequest) => {
@@ -126,11 +155,11 @@ export function authRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { email: string; password: string } }>('/api/auth/signin', { preHandler: [limit('signin-ip', 60, 600_000), limit('signin', 10, 600_000, (r) => `${r.ip}:${String((r.body as { email?: string } | undefined)?.email ?? '').toLowerCase()}`)] }, async (req) => {
     const email = String(req.body?.email ?? '').trim().toLowerCase()
-    const r = await pool.query<UserRow>("select * from auth_users where email = $1 and provider = 'password'", [email])
+    const r = await pool.query<UserRow>('select * from auth_users where email = $1 and password_hash is not null', [email])
     const u = r.rows[0]
-    if (!u || !(await verifyPassword(String(req.body?.password ?? ''), u.password_hash ?? null))) throw err('auth/invalid-credential', 401)
+    if (!u || !(await verifyPassword(String(req.body?.password ?? ''), u.password_hash ?? null, u.uid))) throw err('auth/invalid-credential', 401)
     if (u.disabled) throw err('auth/user-disabled', 403)
-    return issueSession(u)
+    return issueSession(u, 'password')
   })
 
   // Google: Google Identity Services ID tokeni yoxlanılır
@@ -145,7 +174,8 @@ export function authRoutes(app: FastifyInstance) {
     let r = await pool.query<UserRow>('select * from auth_users where google_sub = $1', [p.sub])
     if (!r.rows[0]) {
       // köçürülmüş Google istifadəçisi (e-poçt üzrə) və ya yeni hesab
-      r = await pool.query<UserRow>("select * from auth_users where email = $1 and provider = 'google.com'", [email])
+      // e-poçt Google tərəfindən təsdiqlənib — eyni e-poçtlu mövcud hesaba bağlanır (köçürülmüş istifadəçilər daxil)
+      r = await pool.query<UserRow>("select * from auth_users where email = $1 and provider <> 'anonymous'", [email])
       if (r.rows[0]) await pool.query('update auth_users set google_sub = $1 where uid = $2', [p.sub, r.rows[0].uid])
       else r = await pool.query<UserRow>("insert into auth_users (uid, email, provider, google_sub, display_name, photo_url) values ($1, $2, 'google.com', $3, $4, $5) returning *",
         [newUid(), email, p.sub, p.name ?? null, p.picture ?? null])
@@ -153,7 +183,7 @@ export function authRoutes(app: FastifyInstance) {
     const u = r.rows[0]
     if (u.disabled) throw err('auth/user-disabled', 403)
     await pool.query('update auth_users set display_name = coalesce($2, display_name), photo_url = coalesce($3, photo_url) where uid = $1', [u.uid, p.name ?? null, p.picture ?? null])
-    return issueSession({ ...u, display_name: p.name ?? u.display_name, photo_url: p.picture ?? u.photo_url })
+    return issueSession({ ...u, display_name: p.name ?? u.display_name, photo_url: p.picture ?? u.photo_url }, 'google.com')
   })
 
   app.get('/api/auth/me', async (req) => {
@@ -175,7 +205,7 @@ export function authRoutes(app: FastifyInstance) {
     if (!auth) throw err('auth/unauthenticated', 401)
     const r = await pool.query<UserRow>('select * from auth_users where uid = $1', [auth.uid])
     const u = r.rows[0]
-    if (!(await verifyPassword(String(req.body?.currentPassword ?? ''), u.password_hash ?? null))) throw err('auth/wrong-password', 401)
+    if (!(await verifyPassword(String(req.body?.currentPassword ?? ''), u.password_hash ?? null, u.uid))) throw err('auth/wrong-password', 401)
     const pw = String(req.body?.newPassword ?? '')
     if (pw.length < 6) throw err('auth/weak-password')
     await pool.query('update auth_users set password_hash = $2 where uid = $1', [u.uid, await hashPassword(pw)])
@@ -187,7 +217,7 @@ export function authRoutes(app: FastifyInstance) {
   // Şifrə sıfırlama: link e-poçtla göndərilir (göndərmə mailer.ts-dən; hələlik jurnal)
   app.post<{ Body: { email: string } }>('/api/auth/reset/request', { preHandler: limit('reset', 5, 600_000, (r) => `${r.ip}:${String((r.body as { email?: string } | undefined)?.email ?? '').toLowerCase()}`) }, async (req) => {
     const email = String(req.body?.email ?? '').trim().toLowerCase()
-    const r = await pool.query<UserRow>("select * from auth_users where email = $1 and provider = 'password'", [email])
+    const r = await pool.query<UserRow>('select * from auth_users where email = $1 and password_hash is not null', [email])
     if (r.rows[0]) {
       const token = newToken()
       await pool.query("insert into password_resets (id, uid, expires_at) values ($1, $2, now() + interval '1 hour')", [sha(token), r.rows[0].uid])
