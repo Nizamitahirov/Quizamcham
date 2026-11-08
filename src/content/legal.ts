@@ -22,7 +22,7 @@ const az: LegalDoc[] = [
       { h: '2. Prinsiplərimiz', list: [
         'Qanunilik və şəffaflıq — məlumatları yalnız razılığınız və ya qanuni əsasla, açıq məqsədlə emal edirik.',
         'Məqsədin məhdudluğu — məlumatlar yalnız bu siyasətdə göstərilən məqsədlər üçün istifadə olunur.',
-        'Minimallıq — yalnız xidmət üçün lazım olan məlumatları soruşuruq; məcburi olmayan sahələr isteğe bağlıdır.',
+        'Minimallıq — yalnız xidmət üçün lazım olan məlumatları soruşuruq; məcburi olmayan sahələr istəyə bağlıdır.',
         'Dəqiqlik — məlumatlarınızı istənilən vaxt "Hesabım" səhifəsində yeniləyə bilərsiniz.',
         'Saxlama müddətinin məhdudluğu — məlumatlar lazım olduğu müddətdən artıq saxlanılmır (bölmə 7).',
         'Təhlükəsizlik və məxfilik — giriş hüquqları rollar üzrə serverdə məhdudlaşdırılır, bütün əlaqə şifrələnir.',
@@ -31,7 +31,7 @@ const az: LegalDoc[] = [
       { h: '3. Hansı məlumatları toplayırıq', list: [
         'Qeydiyyat (Google hesabı ilə): ad, soyad, e-poçt, Google profil şəkli, telefon nömrəsi, ölkə, şəhər.',
         'Peşə/təhsil məlumatı: təlimçi üçün sektor, vəzifə, təşkilat, məqsəd; müəssisə üçün növ, ad, ölçü, təlimçi sayı; tələbə üçün təhsil səviyyəsi, müəssisə, ixtisas, kurs.',
-        'Maraq sahələri və bizi haradan eşitdiyiniz (isteğe bağlı).',
+        'Maraq sahələri və bizi haradan eşitdiyiniz (istəyə bağlı).',
         'Canlı oyun iştirakçısı: daxil etdiyiniz ad, soyad, avatar, cavablar, xal və yer. Anonim iştirakçıdan e-poçt və telefon soruşulmur.',
         'Məşq nəticələri: keçdiyiniz quizlər, düzgün cavab sayı, xal və vaxt.',
         'Lisenziya müraciəti: ad, telefon, e-poçt, təşkilat, plan, qeyd.',
@@ -126,7 +126,7 @@ const az: LegalDoc[] = [
   },
   {
     id: 'marketing', title: 'Marketinq bildirişlərinə razılıq',
-    summary: 'İsteğe bağlıdır — vermədikdə də platformadan tam istifadə edə bilərsiniz.',
+    summary: 'İstəyə bağlıdır — vermədikdə də platformadan tam istifadə edə bilərsiniz.',
     sections: [
       { h: 'Nəyə razılıq verirsiniz', p: ['Jabr platformasının yenilikləri, yeni ictimai quizlər, təlim tədbirləri, xüsusi təkliflər və endirimlər barədə mənə e-poçt, SMS, WhatsApp və ya telefon zəngi vasitəsilə məlumat göndərilməsinə razıyam.'] },
       { h: 'Tezlik', p: ['Ayda bir neçə dəfədən çox olmamaqla, yalnız faydalı məzmun.'] },

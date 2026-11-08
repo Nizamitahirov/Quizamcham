@@ -11,8 +11,9 @@ export function useDocSnap<T>(path: string | null, map: (id: string, data: Recor
   useEffect(() => {
     if (!path) return
     let retry: number | undefined
+    // includeMetadataChanges: keşin "yoxdur" cavabı nəzərə alınmır, serverin təsdiqi (yalnız metadata dəyişikliyi) mütləq çatmalıdır
     const unsub = onSnapshot(
-      doc(db, path),
+      doc(db, path), { includeMetadataChanges: true },
       (snap) => {
         // Keşdən gələn "yoxdur" sübut deyil (şəbəkə yenidən qurulanda / yaddaş keşində) — server təsdiqləyənə qədər gözlə
         if (!snap.exists() && snap.metadata.fromCache) return

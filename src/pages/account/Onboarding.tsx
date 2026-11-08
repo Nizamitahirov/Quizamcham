@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { ArrowLeft, ArrowRight, Building2, Check, GraduationCap, Presentation } from 'lucide-react'
 import { completeOnboarding, routeAfterLogin, useAccount, type AccountType, type UserProfile } from '../../lib/account'
@@ -7,6 +7,8 @@ import { t, currentLang } from '../../i18n/az'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
 import { Spinner } from '../../components/ui'
+import { LegalLink, LegalModal } from '../../components/LegalModal'
+import type { LegalId } from '../../content/legal'
 
 const A = t.acct
 type Draft = Omit<UserProfile, 'email' | 'onboarded' | 'createdAt' | 'termsAt'>
@@ -45,6 +47,7 @@ export default function Onboarding() {
   const [d, setD] = useState<Draft>({ type: 'trainer', firstName: '', lastName: '', phone: '', country: 'Azərbaycan', city: '', interests: [], marketing: false })
   const [terms, setTerms] = useState(false)
   const [dataOk, setDataOk] = useState(false)
+  const [docModal, setDoc] = useState<{ ids: LegalId[]; accept: () => void } | null>(null)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (p: Partial<Draft>) => setD((x) => ({ ...x, ...p }))
@@ -55,7 +58,9 @@ export default function Onboarding() {
     const [f, ...rest] = (user.displayName ?? '').split(' ')
     setD((x) => ({ ...x, firstName: x.firstName || f || '', lastName: x.lastName || rest.join(' ') }))
   }, [user])
-  useEffect(() => { if (profile?.onboarded && user) void routeAfterLogin(user.uid).then((r) => nav(r, { replace: true })) }, [profile, user, nav])
+  // Artıq qeydiyyatdan keçibsə yönləndir — amma saxlama zamanı YOX: lokal yazı serverə çatmamış (və təlimçi hesabı yaranmamış) səhifədən çıxmaq olmaz
+  const saving = useRef(false)
+  useEffect(() => { if (profile?.onboarded && user && !saving.current) void routeAfterLogin(user.uid).then((r) => nav(r, { replace: true })) }, [profile, user, nav])
 
   const types = useMemo(() => [
     { v: 'student' as AccountType, icon: GraduationCap },
@@ -85,10 +90,11 @@ export default function Onboarding() {
     setErr('')
     if (step < 2) return setStep(step + 1)
     setBusy(true)
+    saving.current = true
     try {
       await completeOnboarding(user, { ...d, firstName: d.firstName.trim(), lastName: d.lastName.trim(), phone: d.phone.trim(), lang: currentLang() })
       nav(d.type === 'student' ? '/learn' : '/admin', { replace: true })
-    } catch { setErr(t.app.error); setBusy(false) }
+    } catch { setErr(t.app.error); setBusy(false); saving.current = false }
   }
 
   return (
@@ -188,15 +194,22 @@ export default function Onboarding() {
                 </div>
               </div>
               <Choice label={A.source} value={d.source} options={A.sources} onChange={(v) => set({ source: v })} />
-              <fieldset className="flex flex-col gap-3 rounded-xl bg-white/5 p-4 text-sm">
+              <fieldset className="flex flex-col divide-y divide-white/10 rounded-xl bg-white/5 px-4 text-sm">
                 <legend className="sr-only">{A.consents}</legend>
-                <label className="flex items-start gap-3"><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500" checked={dataOk} onChange={(e) => setDataOk(e.target.checked)} />
-                  <span>{A.consentData} <Link to="/consent" target="_blank" className="underline">{A.readText}</Link> <span className="text-orange-300">*</span>{d.type === 'student' && <span className="mt-1 block text-xs text-white/50">{A.minorNote}</span>}</span></label>
-                <label className="flex items-start gap-3"><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500" checked={terms} onChange={(e) => setTerms(e.target.checked)} />
-                  <span>{A.consentTermsA} <Link to="/privacy" target="_blank" className="underline">{t.legal.privacy}</Link> {A.consentTermsB} <Link to="/terms" target="_blank" className="underline">{t.legal.terms}</Link> {A.consentTermsC} <span className="text-orange-300">*</span></span></label>
-                <label className="flex items-start gap-3 border-t border-white/10 pt-3"><input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 accent-orange-500" checked={!!d.marketing} onChange={(e) => set({ marketing: e.target.checked })} />
-                  <span className="text-white/75">{A.marketing} <Link to="/marketing-consent" target="_blank" className="underline">{A.readText}</Link> <span className="text-white/45">({A.optional})</span></span></label>
+                {[
+                  { id: 'c-data', on: dataOk, set: setDataOk, label: A.consentData, docs: ['consent'] as LegalId[], req: true },
+                  { id: 'c-terms', on: terms, set: setTerms, label: A.consentTerms, docs: ['privacy', 'terms'] as LegalId[], req: true },
+                  { id: 'c-mkt', on: !!d.marketing, set: (v: boolean) => set({ marketing: v }), label: A.consentMarketing, docs: ['marketing'] as LegalId[], req: false },
+                ].map((c) => (
+                  <div key={c.id} className="flex items-center gap-3 py-3">
+                    <input id={c.id} type="checkbox" className="h-4 w-4 shrink-0 accent-orange-500" checked={c.on} onChange={(e) => c.set(e.target.checked)} />
+                    <label htmlFor={c.id} className="min-w-0 flex-1 cursor-pointer">{c.label}{c.req ? <span className="text-orange-300"> *</span> : <span className="text-white/40"> · {A.optional}</span>}</label>
+                    <LegalLink onOpen={() => setDoc({ ids: c.docs, accept: () => c.set(true) })} />
+                  </div>
+                ))}
+                {d.type === 'student' && <p className="py-2 text-xs text-white/45">{A.minorNote}</p>}
               </fieldset>
+              <LegalModal ids={docModal?.ids ?? []} open={!!docModal} onClose={() => setDoc(null)} onAccept={docModal?.accept} />
             </>
           )}
 
