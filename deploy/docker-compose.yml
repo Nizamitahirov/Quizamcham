@@ -23,6 +23,11 @@ services:
     environment:
       DATABASE_URL: postgres://jabr:${POSTGRES_PASSWORD}@db:5432/jabr
       PORT: 3000
+      # istəyə bağlı (deploy/.env): Google girişi, e-poçt, ictimai ünvan
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@jabr.az}
+      PUBLIC_URL: ${PUBLIC_URL:-}
     depends_on:
       db:
         condition: service_healthy

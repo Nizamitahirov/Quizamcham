@@ -19,6 +19,9 @@ jobs:
         with: { node-version: 22, cache: npm }
       - name: Frontend build
         run: npm ci && npm run build
+        env:
+          VITE_BACKEND: jabr
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
       - name: SSH açarı
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}

@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore --project demo-quizamcham 'vitest run --config vitest.rules.config.ts'",
+    "test:jabr": "vitest run --config vitest.jabr.config.ts",
     "e2e": "playwright test",
     "load-test": "node scripts/load-test.mjs"
   },

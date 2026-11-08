@@ -2,9 +2,29 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { fileURLToPath } from 'node:url'
+
+/**
+ * VITE_BACKEND=jabr → "firebase/*" importları öz serverimizin klient SDK-sına (src/lib/jdb) yönləndirilir.
+ * Tətbiq kodu dəyişmir; standart build hələ Firebase ilə işləyir (köçürmə tamamlanana qədər).
+ */
+const jabr = process.env.VITE_BACKEND === 'jabr'
+const jdb = (f: string) => fileURLToPath(new URL(`./src/lib/jdb/${f}.ts`, import.meta.url))
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  resolve: jabr ? {
+    alias: [
+      { find: /^firebase\/app$/, replacement: jdb('app') },
+      { find: /^firebase\/auth$/, replacement: jdb('auth') },
+      { find: /^firebase\/firestore$/, replacement: jdb('firestore') },
+      { find: /^firebase\/analytics$/, replacement: jdb('analytics') },
+      { find: /^firebase\/app-check$/, replacement: jdb('app-check') },
+    ],
+  } : undefined,
+  // yerli inkişaf: /api sorğuları (WebSocket daxil) yerli Jabr serverinə
+  server: jabr ? { proxy: { '/api': { target: process.env.JABR_API ?? 'http://127.0.0.1:3100', ws: true } } } : undefined,
+  preview: jabr ? { proxy: { '/api': { target: process.env.JABR_API ?? 'http://127.0.0.1:3100', ws: true } } } : undefined,
   build: {
     rollupOptions: {
       output: {

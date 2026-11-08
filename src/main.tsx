@@ -7,15 +7,19 @@ import { router } from './router'
 import { installGlobalErrorHandlers } from './lib/errorLog'
 import { initExtras } from './firebase/extras'
 
+// Google girişindən qayıdış (yalnız öz serverimizlə): popup/yönləndirmə cavabı emal olunur, tətbiq render olunmur
+const googleCallback = import.meta.env.VITE_BACKEND === 'jabr' && location.pathname === '/auth/google'
+if (googleCallback) void import('./lib/jdb/auth').then((m) => m.handleGoogleCallback())
+
 installGlobalErrorHandlers()
-void initExtras()
+if (!googleCallback) void initExtras()
 
 // PWA: yalnız production-da (dev zamanı keş problemlərinin qarşısını almaq üçün)
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js').catch(() => {}) })
 }
 
-createRoot(document.getElementById('root')!).render(
+if (!googleCallback) createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MotionConfig reducedMotion="user">
       <RouterProvider router={router} />

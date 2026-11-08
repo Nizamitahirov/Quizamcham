@@ -411,5 +411,6 @@ export const en: Dict = {
   },
   a11y: { soundOn: 'Unmute', soundOff: 'Mute', music: 'Music', fullscreen: 'Fullscreen' },
   csvHead: { rank: 'Rank', first: 'First name', last: 'Last name', team: 'Team', score: 'Score', correct: 'Correct', acc: 'Accuracy %', avg: 'Avg. time (s)', streak: 'Longest streak', q: (i: number) => `Q${i}`, pts: (i: number) => `Q${i} pts` },
+  resetPw: { title: 'Set a new password', pw: 'New password (at least 8 characters)', pw2: 'Repeat password', save: 'Update password', mismatch: 'Passwords do not match', short: 'Password must be at least 8 characters', done: 'Password updated. You can sign in now.', expired: 'This link has expired or was already used. Ask your admin for a new one.', login: 'Go to sign in' },
   feedback: { aria: (ok: boolean, p: number) => (ok ? `Correct, +${p} points` : 'Wrong') },
 }
