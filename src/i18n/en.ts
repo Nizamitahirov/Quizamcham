@@ -204,7 +204,7 @@ export const en: Dict = {
   acct: {
     startTitle: 'Welcome to Jabr', startSub: 'Sign in or create an account in one click',
     google: 'Continue with Google', googleBusy: 'Opening Google…', teamLogin: 'Team member? Sign in with email',
-    popupClosed: 'The Google window was closed. Please try again.', unauthorized: 'Google sign-in is not yet enabled for this domain.',
+    popupClosed: 'The Google window was closed. Please try again.', googleOff: 'Google sign-in is not set up on this address yet. Please sign in with email and password.', unauthorized: 'Google sign-in is not yet enabled for this domain.',
     forTrainers: 'For trainers', forTrainersPts: ['3 days free, every feature', 'Live, automatic and self-paced games', 'Reports, certificates, analytics'],
     forStudents: 'For students', forStudentsPts: ['Public quizzes — unlimited practice', 'Explanations and correct answers', 'Result history'],
     signIn: 'Sign in', signUp: 'Sign up', signOut: 'Sign out', freeTrial: '3 days free',

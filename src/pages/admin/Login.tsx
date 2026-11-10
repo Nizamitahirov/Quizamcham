@@ -27,7 +27,7 @@ export default function Login() {
     setBusy(true); setErr('')
     try { const u = await signInWithGoogle(); void touchLogin(u.uid); nav(await routeAfterLogin(u.uid)) } catch (ex) {
       const code = (ex as { code?: string }).code ?? ''
-      setErr(code.includes('popup-closed') || code.includes('cancelled') ? t.acct.popupClosed : t.admin.badCreds)
+      setErr(code.includes('popup-closed') || code.includes('cancelled') ? t.acct.popupClosed : code.includes('operation-not-allowed') ? t.acct.googleOff : t.admin.badCreds)
     } finally { setBusy(false) }
   }
   const submit = async (e: React.FormEvent) => {

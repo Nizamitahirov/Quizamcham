@@ -54,7 +54,7 @@ export default function Start() {
     setBusy(true); setErr('')
     try { const u = await signInWithGoogle(); await go(u.uid) } catch (e) {
       const code = (e as { code?: string }).code ?? ''
-      setErr(code.includes('popup-closed') || code.includes('cancelled') ? A.popupClosed : code.includes('unauthorized-domain') ? A.unauthorized : t.app.error)
+      setErr(code.includes('popup-closed') || code.includes('cancelled') ? A.popupClosed : code.includes('unauthorized-domain') ? A.unauthorized : code.includes('operation-not-allowed') ? A.googleOff : t.app.error)
       setBusy(false)
     }
   }

@@ -48,10 +48,11 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SITE_HOST: ${{ vars.SITE_HOST }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
         run: |
           # domen yoxdursa: pulsuz ara ünvan <ip>.sslip.io (HTTPS ilə)
           host="${SITE_HOST:-${SSH_HOST//./-}.sslip.io}"
-          ssh "$SSH_USER@$SSH_HOST" "SITE_HOST='$host' bash /opt/jabr/deploy/up.sh"
+          ssh "$SSH_USER@$SSH_HOST" "SITE_HOST='$host' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' bash /opt/jabr/deploy/up.sh"
       - name: HTTPS ünvanı xaricdən yoxla
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
