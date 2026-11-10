@@ -438,7 +438,7 @@ export const az = {
     // giriş / qeydiyyat
     startTitle: 'Jabr-a xoş gəlmisiniz', startSub: 'Bir kliklə daxil olun və ya qeydiyyatdan keçin',
     google: 'Google ilə davam et', googleBusy: 'Google açılır…', teamLogin: 'Komanda üzvüsünüz? E-poçt ilə daxil olun',
-    popupClosed: 'Google pəncərəsi bağlandı. Yenidən cəhd edin.', unauthorized: 'Bu domen üçün Google girişi hələ aktiv deyil.',
+    popupClosed: 'Google pəncərəsi bağlandı. Yenidən cəhd edin.', googleOff: 'Google ilə giriş bu ünvanda hələ qoşulmayıb. Zəhmət olmasa e-poçt və şifrə ilə daxil olun.', unauthorized: 'Bu domen üçün Google girişi hələ aktiv deyil.',
     forTrainers: 'Təlimçilər üçün', forTrainersPts: ['3 gün pulsuz, bütün funksiyalar', 'Canlı, avtomatik və öz tempində oyunlar', 'Hesabat, sertifikat, analitika'],
     forStudents: 'Tələbələr üçün', forStudentsPts: ['İctimai quizlər — limitsiz məşq', 'Hər cəhddən sonra izah və düzgün cavab', 'Nəticə tarixçəsi'],
     signIn: 'Daxil ol', signUp: 'Qeydiyyat', signOut: 'Çıxış', freeTrial: '3 gün pulsuz',
