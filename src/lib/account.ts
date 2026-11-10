@@ -10,6 +10,7 @@ import { logAudit } from './audit'
 import type { Question } from '../types'
 import { LEGAL_VERSION } from '../content/legal'
 import { track } from '../firebase/extras'
+import { moderateQuiz, type ModIssue } from '../../server/src/moderation'
 
 // ======================= Qeydiyyat =======================
 
@@ -112,22 +113,42 @@ export interface CatalogItem {
   id: string; title: string; description?: string; coverEmoji?: string; coverColor?: string; tags?: string[]
   questions: Question[]; questionCount: number; publishedBy: string; publishedAt?: Timestamp; author?: string
   category?: string; level?: 'easy' | 'medium' | 'hard'
+  /** review — şəkilli quiz admin təsdiqini gözləyir; hidden — şikayət/moderasiya ilə gizlədilib */
+  status?: 'live' | 'review'; hidden?: boolean; hiddenReason?: string; hasImages?: boolean
+}
+
+/** Avtomatik məzmun yoxlamasından keçməyən dərc cəhdi. */
+export class ModerationError extends Error {
+  constructor(public issues: ModIssue[]) { super('moderation') }
 }
 
 /** Quizi kataloqa dərc edir (yalnız qiymətləndirilən suallar + slaydlar; tələbə limitsiz məşq edə bilir). */
-export async function publishToCatalog(quizId: string, author: string, meta: { category?: string; level?: 'easy' | 'medium' | 'hard' } = {}) {
+export async function publishToCatalog(quizId: string, author: string, meta: { category?: string; level?: 'easy' | 'medium' | 'hard' } = {}, opts: { trusted?: boolean } = {}) {
   const data = await loadQuiz(quizId)
   if (!data) throw new Error('quiz-not-found')
   const questions = data.questions.filter((q) => SCORED_TYPES.has(q.type) || q.type === 'slide')
   if (!questions.some((q) => SCORED_TYPES.has(q.type))) throw new Error('no-scored')
-  await setDoc(doc(db, 'catalog', quizId), JSON.parse(JSON.stringify({
+  const payload = JSON.parse(JSON.stringify({
     title: data.quiz.title, description: data.quiz.description ?? '', coverEmoji: data.quiz.coverEmoji, coverColor: data.quiz.coverColor,
     tags: data.quiz.tags ?? [], questions, questionCount: questions.filter((q) => SCORED_TYPES.has(q.type)).length,
     publishedBy: auth.currentUser?.uid ?? '', author, category: meta.category ?? '', level: meta.level ?? 'medium',
-  })) as Record<string, unknown>)
+  })) as Record<string, unknown>
+  // avtomatik yoxlama (server də eyni yoxlamanı təkrarlayır)
+  const m = moderateQuiz(payload)
+  if (!m.ok) throw new ModerationError(m.issues)
+  // şəkilləri avtomatik yoxlamaq mümkün deyil → super admin təsdiqləyənə qədər "review"
+  const status = m.hasImages && !opts.trusted ? 'review' : 'live'
+  try {
+    await setDoc(doc(db, 'catalog', quizId), { ...payload, hasImages: m.hasImages, status })
+  } catch (e) {
+    const msg = (e as Error).message ?? ''
+    if (msg.startsWith('moderation:')) throw new ModerationError(JSON.parse(msg.slice(11)) as ModIssue[])
+    throw e
+  }
   await updateDoc(doc(db, 'catalog', quizId), { publishedAt: serverTimestamp() })
-  void logAudit('quiz_published', { target: quizId, details: { title: data.quiz.title } })
+  void logAudit('quiz_published', { target: quizId, details: { title: data.quiz.title, status } })
   void track('quiz_published')
+  return status
 }
 export async function unpublish(quizId: string) {
   await deleteDoc(doc(db, 'catalog', quizId))
@@ -136,14 +157,47 @@ export async function unpublish(quizId: string) {
 export async function isPublished(quizId: string) {
   return (await getDoc(doc(db, 'catalog', quizId)).catch(() => null))?.exists() ?? false
 }
-export async function catalogMeta(quizId: string): Promise<{ category?: string; level?: 'easy' | 'medium' | 'hard' } | null> {
+export async function catalogMeta(quizId: string): Promise<Pick<CatalogItem, 'category' | 'level' | 'status' | 'hidden'> | null> {
   const s = await getDoc(doc(db, 'catalog', quizId)).catch(() => null)
-  return s?.exists() ? { category: s.get('category'), level: s.get('level') } : null
+  return s?.exists() ? { category: s.get('category'), level: s.get('level'), status: s.get('status'), hidden: s.get('hidden') } : null
 }
-export async function listCatalog(): Promise<CatalogItem[]> {
+/** Kataloq: standart olaraq yalnız tələbələrə görünənlər (gizlədilmiş və yoxlamada olanlar çıxarılır). */
+export async function listCatalog(all = false): Promise<CatalogItem[]> {
   const s = await getDocs(collection(db, 'catalog'))
   return s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CatalogItem, 'id'>) }))
+    .filter((c) => all || (!c.hidden && c.status !== 'review'))
     .sort((a, b) => (b.publishedAt?.toMillis() ?? 0) - (a.publishedAt?.toMillis() ?? 0))
+}
+
+// ---------- Şikayətlər və moderasiya ----------
+export type ReportReason = 'language' | 'sexual' | 'hate' | 'wrong' | 'spam' | 'other'
+export interface QuizReport { id: string; uid: string; quizId: string; reason: ReportReason; note?: string; at?: Timestamp }
+/** Tələbə şikayəti (bir quizə bir dəfə). 3 şikayətdən sonra server quizi avtomatik gizlədir. */
+export async function reportQuiz(quizId: string, reason: ReportReason, note: string) {
+  const uid = auth.currentUser?.uid ?? ''
+  const ref = doc(db, 'reports', `${quizId}_${uid}`)
+  try {
+    await setDoc(ref, { uid, quizId, reason, note: note.trim().slice(0, 300), at: serverTimestamp() })
+    return 'ok' as const
+  } catch (e) {
+    // şikayəti dəyişmək qadağandır — mövcud şikayət icazə xətası verir
+    if ((e as { code?: string }).code === 'permission-denied') return 'already' as const
+    throw e
+  }
+}
+export async function listReports(): Promise<QuizReport[]> {
+  const s = await getDocs(collection(db, 'reports'))
+  return s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<QuizReport, 'id'>) }))
+}
+/** Konsol: təsdiqlə/bərpa et (şikayətlər silinir). */
+export async function approveCatalog(quizId: string, reports: QuizReport[]) {
+  await updateDoc(doc(db, 'catalog', quizId), { status: 'live', hidden: false, hiddenReason: deleteField() })
+  for (const r of reports.filter((x) => x.quizId === quizId)) await deleteDoc(doc(db, 'reports', r.id)).catch(() => {})
+  void logAudit('quiz_approved', { target: quizId })
+}
+export async function hideCatalog(quizId: string) {
+  await updateDoc(doc(db, 'catalog', quizId), { hidden: true, hiddenReason: 'admin' })
+  void logAudit('quiz_hidden', { target: quizId })
 }
 export async function loadCatalogItem(id: string): Promise<CatalogItem | null> {
   const s = await getDoc(doc(db, 'catalog', id))
@@ -219,7 +273,7 @@ export async function loadConsole(): Promise<ConsoleData> {
     getDocs(query(collection(db, 'attempts'), orderBy('at', 'desc'), limit(3000))),
     getDocs(collection(db, 'quizzes')),
     getDocs(query(collection(db, 'games'), orderBy('createdAt', 'desc'), limit(2000))),
-    listCatalog().catch(() => [] as CatalogItem[]),
+    listCatalog(true).catch(() => [] as CatalogItem[]),
     getDocs(query(collection(db, 'licenses'), orderBy('at', 'desc'))).catch(() => null),
     getDocs(query(collection(db, 'plays'), limit(5000))).catch(() => null),
   ])

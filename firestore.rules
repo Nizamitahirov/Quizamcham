@@ -235,10 +235,41 @@ service cloud.firestore {
     }
 
     // ---------- İctimai kataloq: tələbələr limitsiz məşq edir ----------
+    // Dərc: publish icazəsi olanlar VƏ ya öz quizini dərc edən istənilən təlimçi (mətn yoxlaması serverdə).
+    // Gizlədilmiş (şikayət/moderasiya) dərcləri yalnız konsol icazəsi olan bərpa edir; şəkilli quizlər "review" statusunda gözləyir.
+    function ownsQuiz(id) {
+      return isAdmin() && can('createQuiz') && exists(/databases/$(db)/documents/quizzes/$(id))
+        && get(/databases/$(db)/documents/quizzes/$(id)).data.ownerUid == request.auth.uid;
+    }
+    function catalogSafe() {
+      return request.resource.data.get('hidden', false) == false
+        && !(resource != null && resource.data.get('hidden', false) == true)
+        && request.resource.data.get('status', 'live') in ['live', 'review']
+        && (request.resource.data.get('hasImages', false) == false || request.resource.data.get('status', 'live') == 'review');
+    }
     match /catalog/{quizId} {
       allow read: if registered() || isAdmin();
-      allow create, update: if can('publish') && request.resource.data.publishedBy == request.auth.uid;
-      allow delete: if can('publish');
+      allow create, update: if (can('console')
+            && (request.resource.data.publishedBy == request.auth.uid || (resource != null && request.resource.data.publishedBy == resource.data.publishedBy)))
+        || (request.resource.data.publishedBy == request.auth.uid
+            && (can('publish') || ownsQuiz(quizId))
+            && (resource == null || can('publish') || resource.data.publishedBy == request.auth.uid)
+            && catalogSafe());
+      allow delete: if can('publish') || can('console') || (isAdmin() && resource.data.publishedBy == request.auth.uid);
+    }
+
+    // ---------- Şikayətlər (tələbə → kataloqdakı quiz). 3 şikayət → server quizi avtomatik gizlədir ----------
+    match /reports/{id} {
+      allow create: if registered()
+        && id == request.resource.data.quizId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'quizId', 'reason', 'note', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.reason in ['language', 'sexual', 'hate', 'wrong', 'spam', 'other']
+        && str(request.resource.data.get('note', ''), 300)
+        && request.resource.data.at == request.time
+        && exists(/databases/$(db)/documents/catalog/$(request.resource.data.quizId));
+      allow read, delete: if can('console');
+      allow update: if false;
     }
 
     // ---------- Məşq nəticələri ----------

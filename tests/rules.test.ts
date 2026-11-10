@@ -11,6 +11,10 @@ let env: RulesTestEnvironment
 const OWNER = 'owner1', TRAINER = 'trainer1', TRAINER2 = 'trainer2', P1 = 'player1', P2 = 'player2'
 const SUPER = 'ii98moHX58SDPcn9lA4SYHWanou1', ADMIN = 'admin1', BANNED = 'trainer3'
 
+/** Kataloq üçün etibarlı məzmun (Jabr serveri dərcdə avtomatik moderasiya edir). img → şəkilli sual. */
+const CQ = (img = false) => [1, 2, 3].map((i) => ({ id: `x${i}`, type: 'single', text: `Sual ${i}?`, options: [{ id: 'a', text: 'Bəli' }, { id: 'b', text: 'Xeyr' }], correct: ['a'], ...(img && i === 1 ? { imageUrl: 'data:image/png;base64,AAAA' } : {}) }))
+const cat = (by: string, extra: Record<string, unknown> = {}, img = false) => ({ title: 'Sınaq quizi', questions: CQ(img), publishedBy: by, status: 'live', hasImages: img, ...extra })
+
 const player = (extra = {}) => ({
   firstName: 'Aysel', lastName: 'Məmmədova', avatar: { style: 'fun-emoji', seed: 'x' }, joinedAt: serverTimestamp(), lastSeen: serverTimestamp(),
   kicked: false, score: 0, correctCount: 0, streak: 0, bestStreak: 0, totalCorrectTimeMs: 0, lastResult: null, history: [], ...extra,
@@ -429,11 +433,13 @@ describe('qeydiyyat, sınaq, kataloq, lisenziya', () => {
     await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', G), { licenseUntil: Timestamp.fromMillis(Date.now() + 86400000) }) })
     await assertSucceeds(setDoc(doc(google(G), 'games', 'gg2'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 150 } }))
   })
-  it('müştəri (özü qeydiyyatlı) kitabxanaya paylaşa, kataloqa dərc edə, ümumi QR-ı dəyişə bilməz', async () => {
+  it('müştəri (özü qeydiyyatlı) kitabxanaya paylaşa, ümumi QR-ı dəyişə bilməz; öz quizini kataloqa dərc edə bilər', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', G), trial(`${G}@gmail.com`)) })
     await assertSucceeds(setDoc(doc(google(G), 'quizzes', 'qs'), { title: 'X', ownerUid: G }))
     await assertFails(updateDoc(doc(google(G), 'quizzes', 'qs'), { shared: true }))
-    await assertFails(setDoc(doc(google(G), 'catalog', 'qs'), { title: 'X', publishedBy: G }))
+    await assertFails(setDoc(doc(google(G), 'catalog', 'qs'), cat(TRAINER)))   // başqasının adına yox
+    await assertFails(setDoc(doc(google(G), 'catalog', 'q1'), cat(G)))         // başqasının quizi yox
+    await assertSucceeds(setDoc(doc(google(G), 'catalog', 'qs'), cat(G)))
     await assertFails(setDoc(doc(google(G), 'settings', 'current'), { activeGameId: 'x' }))
     await assertSucceeds(setDoc(doc(google(G), 'settings', `play_${G}`), { activeGameId: 'x' }))
   })
@@ -458,8 +464,8 @@ describe('qeydiyyat, sınaq, kataloq, lisenziya', () => {
     await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'catalog', 'c1'), { title: 'K', questions: [] }) })
     await assertSucceeds(getDoc(doc(google(S), 'catalog', 'c1')))
     await assertFails(getDoc(doc(anon('a2'), 'catalog', 'c1')))
-    await assertFails(setDoc(doc(as(TRAINER), 'catalog', 'c2'), { title: 'K', publishedBy: TRAINER }))
-    await assertSucceeds(setDoc(doc(as(ADMIN), 'catalog', 'c2'), { title: 'K', publishedBy: ADMIN }))
+    await assertFails(setDoc(doc(as(TRAINER), 'catalog', 'c2'), cat(TRAINER)))
+    await assertSucceeds(setDoc(doc(as(ADMIN), 'catalog', 'c2'), cat(ADMIN)))
   })
   it('məşq nəticəsi: öz adına, ağlabatan rəqəmlərlə; başqası oxuya bilmir', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'catalog', 'c1'), { title: 'K' }) })
@@ -590,5 +596,41 @@ describe('müəssisə (təşkilat)', () => {
     await assertFails(updateDoc(doc(google(OWN), 'admins', M2), { disabled: true }))
     await assertFails(deleteDoc(doc(google(OWN), 'admins', M2)))
     await assertSucceeds(deleteDoc(doc(google(OWN), 'admins', M1)))
+  })
+})
+
+describe('ictimai kataloq: moderasiya və şikayətlər', () => {
+  const STU = 'stu1'
+  const stu = () => env.authenticatedContext(STU, { email: 's@gmail.com', firebase: { sign_in_provider: 'google.com' } }).firestore()
+  const item = (extra: Record<string, unknown> = {}, img = false) => cat(TRAINER, extra, img)
+  const anon = () => env.authenticatedContext(P1, { firebase: { sign_in_provider: 'anonymous' } }).firestore()
+  it('təlimçi öz quizini dərc edir; şəkilli quiz yalnız "review" statusunda; gizlətmə sahəsini yaza bilmir', async () => {
+    await assertSucceeds(setDoc(doc(as(TRAINER), 'catalog', 'q1'), item()))
+    await assertFails(setDoc(doc(as(TRAINER), 'catalog', 'q1'), item({}, true)))
+    await assertSucceeds(setDoc(doc(as(TRAINER), 'catalog', 'q1'), item({ status: 'review' }, true)))
+    await assertFails(setDoc(doc(as(TRAINER), 'catalog', 'q1'), item({ hidden: true })))
+    await assertFails(setDoc(doc(as(TRAINER), 'catalog', 'q1'), item({ status: 'approved' })))
+    await assertFails(setDoc(doc(as(TRAINER2), 'catalog', 'q1'), item({ publishedBy: TRAINER2 })))  // başqasının quizi
+    await assertSucceeds(deleteDoc(doc(as(TRAINER), 'catalog', 'q1')))
+  })
+  it('gizlədilmiş quizi müəllif özü bərpa edə bilmir, super admin bərpa edir', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'catalog', 'q1'), item({ hidden: true, hiddenReason: 'reports' })) })
+    await assertFails(setDoc(doc(as(TRAINER), 'catalog', 'q1'), item()))
+    await assertFails(updateDoc(doc(as(TRAINER), 'catalog', 'q1'), { hidden: false }))
+    await assertSucceeds(updateDoc(doc(as(SUPER), 'catalog', 'q1'), { hidden: false, status: 'live' }))
+    await assertSucceeds(updateDoc(doc(as(SUPER), 'catalog', 'q1'), { hidden: true }))
+  })
+  it('tələbə bir dəfə şikayət edir; şikayətləri yalnız konsol görür', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'catalog', 'q1'), item()) })
+    const r = (extra = {}) => ({ uid: STU, quizId: 'q1', reason: 'language', note: 'qaba söz', at: serverTimestamp(), ...extra })
+    await assertFails(setDoc(doc(stu(), 'reports', 'q1_other'), r()))                  // id formatı
+    await assertFails(setDoc(doc(stu(), 'reports', `q1_${STU}`), r({ reason: 'x' })))   // naməlum səbəb
+    await assertFails(setDoc(doc(stu(), 'reports', `nope_${STU}`), r({ quizId: 'nope' }))) // kataloqda olmayan
+    await assertFails(setDoc(doc(anon(), 'reports', `q1_${P1}`), r({ uid: P1 })))        // anonim yox
+    await assertSucceeds(setDoc(doc(stu(), 'reports', `q1_${STU}`), r()))
+    await assertFails(setDoc(doc(stu(), 'reports', `q1_${STU}`), r({ reason: 'spam' }))) // təkrar/dəyişmə yox
+    await assertFails(getDocs(collection(stu(), 'reports')))
+    await assertFails(getDocs(collection(as(TRAINER), 'reports')))
+    await assertSucceeds(getDocs(collection(as(SUPER), 'reports')))
   })
 })

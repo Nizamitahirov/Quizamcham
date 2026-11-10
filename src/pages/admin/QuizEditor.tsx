@@ -6,7 +6,8 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities'
 import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull, setQuizShared } from '../../firebase/db'
 import { logAudit } from '../../lib/audit'
-import { catalogMeta, publishToCatalog, unpublish } from '../../lib/account'
+import { catalogMeta, ModerationError, publishToCatalog, unpublish } from '../../lib/account'
+import type { ModIssue } from '../../../server/src/moderation'
 import { FREE_MAX_PLAYERS } from '../../lib/roles'
 import { compressImage } from '../../lib/image'
 import { canManage, orgScope, scopeUid } from '../../lib/access'
@@ -189,7 +190,9 @@ export default function QuizEditor() {
         <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-600' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
           {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' && savedAt ? <CheckCircle2 className="h-4 w-4" /> : state === 'error' ? <AlertTriangle className="h-4 w-4" /> : null}{status}
         </span>
-        {admin.perms.publish && <PublishButton quizId={quiz.id} author={admin.user?.displayName || admin.user?.email?.split('@')[0] || ''} />}
+        {(admin.perms.publish || (admin.perms.createQuiz && quiz.ownerUid === admin.user?.uid)) && (
+          <PublishButton quizId={quiz.id} trusted={!!admin.perms.console} author={admin.user?.displayName || admin.user?.email?.split('@')[0] || ''} />
+        )}
         {!readOnly && admin.perms.share && (
           <button className={`btn ${quiz.shared ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={t.admin.shareHint} aria-pressed={!!quiz.shared}
             onClick={async () => {
@@ -492,21 +495,43 @@ function PhonePreview({ q, shuffle }: { q: Question; shuffle: boolean }) {
   )
 }
 
-/** Kataloqda dərc et / yenilə / çıxar (tələbələr üçün limitsiz məşq) — kateqoriya və çətinliklə. */
-function PublishButton({ quizId, author }: { quizId: string; author: string }) {
-  const [on, setOn] = useState<boolean | null>(null)
+/** Moderasiya problemlərini insan dilində göstərir. */
+function issueText(i: ModIssue) {
+  const M = t.mod
+  const w = i.where.match(/^q(\d+)(?:\.(option)(\d+)|\.(explanation)|\.(answer))?$/)
+  const where = w
+    ? [M.where.q(Number(w[1])), w[2] ? M.where.option(Number(w[3])) : w[4] ? M.where.explanation : w[5] ? M.where.answer : ''].filter(Boolean).join(', ')
+    : (M.where as Record<string, unknown>)[i.where] as string ?? i.where
+  const what = i.code === 'quality' ? (M.quality[i.match ?? ''] ?? M.codes.quality) : M.codes[i.code]
+  return { where, what, match: i.code === 'quality' ? '' : i.match ?? '' }
+}
+
+/** İctimai et (tələbə kataloqu): avtomatik məzmun yoxlaması, şəkilli quizlər admin təsdiqinə, kateqoriya və çətinlik. */
+function PublishButton({ quizId, author, trusted }: { quizId: string; author: string; trusted: boolean }) {
+  const [meta, setMeta] = useState<Awaited<ReturnType<typeof catalogMeta>> | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
+  const [issues, setIssues] = useState<ModIssue[]>([])
   const [category, setCategory] = useState('')
   const [level, setLevel] = useState<'easy' | 'medium' | 'hard'>('medium')
-  useEffect(() => { void catalogMeta(quizId).then((m) => { setOn(!!m); if (m?.category) setCategory(m.category); if (m?.level) setLevel(m.level) }) }, [quizId])
-  if (on === null) return null
+  useEffect(() => { void catalogMeta(quizId).then((m) => { setMeta(m); if (m?.category) setCategory(m.category); if (m?.level) setLevel(m.level) }) }, [quizId])
+  if (meta === undefined) return null
+  const on = !!meta
   const pub = async () => {
-    setBusy(true); setErr('')
-    try { await publishToCatalog(quizId, author, { category, level }); setOn(true) } catch (e) { setErr((e as Error).message === 'no-scored' ? t.acct.noScored : t.app.error) } finally { setBusy(false) }
+    if (!on && !confirm(t.mod.confirm)) return
+    setBusy(true); setErr(''); setIssues([])
+    try {
+      const status = await publishToCatalog(quizId, author, { category, level }, { trusted })
+      setMeta({ category, level, status, hidden: false })
+    } catch (e) {
+      if (e instanceof ModerationError) setIssues(e.issues)
+      else if ((e as Error).message === 'no-scored') setErr(t.acct.noScored)
+      else if ((e as { code?: string }).code === 'permission-denied' && meta?.hidden) setErr(t.mod.hiddenHint)
+      else setErr(t.app.error)
+    } finally { setBusy(false) }
   }
   return (
-    <span className="flex flex-wrap items-center gap-1">
+    <span className="relative flex flex-wrap items-center gap-1">
       <select className="input h-10 w-auto py-0 text-sm" value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t.acct.category}>
         <option value="">{t.acct.category}…</option>
         {t.acct.categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -515,11 +540,30 @@ function PublishButton({ quizId, author }: { quizId: string; author: string }) {
         {(['easy', 'medium', 'hard'] as const).map((l) => <option key={l} value={l}>{t.acct.levelsQ[l]}</option>)}
       </select>
       <button className={`btn ${on ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={err || t.acct.publishHint} disabled={busy} onClick={() => void pub()}>
-        <BookOpenCheck />{on ? t.acct.update : t.acct.publish}
+        <BookOpenCheck />{on ? t.acct.update : t.mod.makePublic}
       </button>
+      {meta?.hidden ? <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-700" title={t.mod.hiddenHint}>{t.mod.hidden}</span>
+        : meta?.status === 'review' ? <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800" title={t.mod.reviewHint}>{t.mod.review}</span>
+        : on ? <span className="rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700">{t.mod.publicNow}</span> : null}
       {on && <button className="btn btn-ghost-dark btn-icon text-red-600" title={t.acct.unpublish} aria-label={t.acct.unpublish} disabled={busy}
-        onClick={() => { if (confirm(`${t.acct.unpublish}?`)) { setBusy(true); void unpublish(quizId).then(() => setOn(false)).finally(() => setBusy(false)) } }}><X /></button>}
+        onClick={() => { if (confirm(`${t.acct.unpublish}?`)) { setBusy(true); void unpublish(quizId).then(() => setMeta(null)).finally(() => setBusy(false)) } }}><X /></button>}
       {err && <span className="text-xs font-semibold text-red-600" role="alert">{err}</span>}
+      {issues.length > 0 && (
+        <div role="alert" className="absolute right-0 top-12 z-40 w-[min(92vw,26rem)] rounded-2xl border border-red-200 bg-white p-4 text-left text-sm text-ink shadow-xl">
+          <div className="mb-2 flex items-start justify-between gap-2">
+            <strong className="text-red-700">{t.mod.title}</strong>
+            <button className="btn btn-ghost-dark btn-icon -m-1" aria-label={t.app.close} onClick={() => setIssues([])}><X /></button>
+          </div>
+          <ul className="max-h-72 space-y-2 overflow-auto">
+            {issues.map((i, k) => { const x = issueText(i); return (
+              <li key={k} className="rounded-xl bg-red-50 px-3 py-2">
+                <div className="font-semibold">{x.where}</div>
+                <div className="text-muted">{x.what}{x.match && <> — «<span className="font-mono">{x.match}</span>»</>}</div>
+              </li>
+            ) })}
+          </ul>
+        </div>
+      )}
     </span>
   )
 }

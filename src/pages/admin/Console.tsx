@@ -6,8 +6,8 @@ import { toCsv, download } from '../../lib/csv'
 import { planInfo } from '../../lib/roles'
 import { setRestricted, type AdminRow } from '../../lib/team'
 import {
-  convertToTrainer, extendTrial, grantLicense, loadConsole, loadPricing, revokeLicense, savePricing, setLeadStatus, unpublish,
-  type ConsoleData, type LeadStatus, type LicenseRecord, type PricePlan,
+  approveCatalog, convertToTrainer, extendTrial, grantLicense, hideCatalog, listReports, loadConsole, loadPricing, revokeLicense, savePricing, setLeadStatus, unpublish,
+  type ConsoleData, type QuizReport, type LeadStatus, type LicenseRecord, type PricePlan,
 } from '../../lib/account'
 import { Link } from 'react-router-dom'
 import { PageHeader, Spinner } from '../../components/ui'
@@ -412,20 +412,39 @@ function Leads({ data, reload }: { data: ConsoleData; reload: () => void }) {
 }
 
 function CatalogStats({ data, reload }: { data: ConsoleData; reload: () => void }) {
+  const M = t.mod
+  const [reports, setReports] = useState<QuizReport[]>([])
+  const [busy, setBusy] = useState('')
+  useEffect(() => { void listReports().then(setReports).catch(() => setReports([])) }, [data])
+  const act = (id: string, fn: () => Promise<unknown>) => { setBusy(id); void fn().then(reload).finally(() => setBusy('')) }
   const stats = data.catalog.map((c) => {
     const at = data.attempts.filter((a) => a.quizId === c.id)
     const avg = at.length ? Math.round((at.reduce((s, a) => s + (a.total ? a.correct / a.total : 0), 0) / at.length) * 100) : 0
-    return { c, n: at.length, avg }
-  }).sort((a, b) => b.n - a.n)
+    const rep = reports.filter((r) => r.quizId === c.id)
+    const flagged = !!c.hidden || c.status === 'review' || rep.length > 0
+    return { c, n: at.length, avg, rep, flagged }
+  }).sort((a, b) => Number(b.flagged) - Number(a.flagged) || b.n - a.n)
+  const queue = stats.filter((x) => x.flagged).length
   return (
-    <Section icon={BookOpen} title={`${C.catalogTitle} · ${data.catalog.length}`} sub={C.catalogSub} bodyClassName="p-0">
+    <Section icon={BookOpen} title={`${C.catalogTitle} · ${data.catalog.length}${queue ? ` · ${M.queue}: ${queue}` : ''}`} sub={C.catalogSub} bodyClassName="p-0">
       {stats.length === 0 ? <p className="p-5 text-sm text-muted">{A.emptyCatalog}</p> : (
         <ul className="divide-y divide-line">
-          {stats.map(({ c, n, avg }) => (
-            <li key={c.id} className="flex items-center gap-3 px-5 py-3 text-sm">
+          {stats.map(({ c, n, avg, rep, flagged }) => (
+            <li key={c.id} className={`flex flex-wrap items-center gap-3 px-5 py-3 text-sm ${flagged ? 'bg-amber-50/60' : ''}`}>
               <span className="text-xl">{c.coverEmoji ?? '🎯'}</span>
-              <div className="min-w-0 flex-1"><div className="truncate font-semibold">{c.title}</div><div className="text-xs text-muted">{C.plays(n)} · {C.avgScore(avg)}</div></div>
-              <button className="btn btn-ghost-dark btn-sm text-red-600" onClick={() => { if (confirm(`${A.unpublish}?`)) void unpublish(c.id).then(reload) }}>{A.unpublish}</button>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-semibold">{c.title}</div>
+                <div className="text-xs text-muted">{c.author ? `${c.author} · ` : ''}{C.plays(n)} · {C.avgScore(avg)}</div>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {c.hidden && <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">{c.hiddenReason === 'reports' ? M.autoHidden : M.hidden}</span>}
+                  {c.status === 'review' && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">{M.review}</span>}
+                  {rep.length > 0 && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold" title={rep.map((r) => M.reasons[r.reason] + (r.note ? `: ${r.note}` : '')).join('\n')}>{M.reports(rep.length)} · {[...new Set(rep.map((r) => M.reasons[r.reason]))].join(', ')}</span>}
+                </div>
+              </div>
+              <Link to={`/learn/${c.id}`} className="btn btn-ghost-dark btn-sm">{A.toCatalog}</Link>
+              {flagged && <button className="btn btn-secondary btn-sm text-green-700" disabled={busy === c.id} onClick={() => act(c.id, () => approveCatalog(c.id, reports))}>{c.hidden ? M.restore : M.approve}</button>}
+              {!c.hidden && <button className="btn btn-ghost-dark btn-sm" disabled={busy === c.id} onClick={() => act(c.id, () => hideCatalog(c.id))}>{M.hide}</button>}
+              <button className="btn btn-ghost-dark btn-sm text-red-600" disabled={busy === c.id} onClick={() => { if (confirm(`${A.unpublish}?`)) act(c.id, () => unpublish(c.id)) }}>{A.unpublish}</button>
             </li>
           ))}
         </ul>

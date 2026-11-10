@@ -24,6 +24,8 @@ docker compose up -d --build --remove-orphans
 docker image prune -f >/dev/null
 sleep 5
 docker compose ps
+echo "==> hazır ictimai quizlər:"
+docker compose exec -T api node dist/seed.js || true
 echo "==> health:"
 curl -fsS http://127.0.0.1/api/health || (docker compose logs --tail=50 api; exit 1)
 echo

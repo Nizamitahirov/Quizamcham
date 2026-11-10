@@ -293,8 +293,30 @@ async function evaluate(c: Ctx): Promise<boolean> {
   }
   if (col === 'catalog' && path.length === 2) {
     if (read) return c.registered() || c.isAdmin()
-    if (op === 'delete') return c.can('publish')
-    return (await c.can('publish')) && f(nd(), 'publishedBy') === c.uid
+    if (op === 'delete') return (await c.can('publish')) || (await c.can('console')) || ((await c.isAdmin()) && f(rd(), 'publishedBy') === c.uid)
+    const d = nd()
+    const ownsQuiz = async () => (await c.isAdmin()) && (await c.can('createQuiz')) && (await c.exists(`quizzes/${id}`))
+      && f(await c.get(`quizzes/${id}`), 'ownerUid') === c.uid
+    const safe = () => g(d, 'hidden', false) === false
+      && !(res !== null && g(res, 'hidden', false) === true)
+      && inList(g(d, 'status', 'live'), ['live', 'review'])
+      && (g(d, 'hasImages', false) === false || g(d, 'status', 'live') === 'review')
+    if ((await c.can('console')) && (f(d, 'publishedBy') === c.uid || (res !== null && eq(f(d, 'publishedBy'), f(res, 'publishedBy'))))) return true
+    return f(d, 'publishedBy') === c.uid
+      && ((await c.can('publish')) || (await ownsQuiz()))
+      && (res === null || (await c.can('publish')) || f(res, 'publishedBy') === c.uid)
+      && safe()
+  }
+  if (col === 'reports' && path.length === 2) {
+    if (read || op === 'delete') return c.can('console')
+    if (op !== 'create') return false
+    const d = nd()
+    return c.registered() && id === `${f(d, 'quizId')}_${c.uid}`
+      && keysOnly(d, ['uid', 'quizId', 'reason', 'note', 'at'])
+      && f(d, 'uid') === c.uid
+      && inList(f(d, 'reason'), ['language', 'sexual', 'hate', 'wrong', 'spam', 'other'])
+      && str(g(d, 'note', ''), 300) && isReq(f(d, 'at'), now)
+      && c.exists(`catalog/${f(d, 'quizId')}`)
   }
   if (col === 'attempts' && path.length === 2) {
     if (read) return (await ok(() => c.registered() && f(rd(), 'uid') === c.uid)) || c.can('console')
