@@ -22,6 +22,10 @@ jobs:
         env:
           VITE_BACKEND: jabr
           VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+      - name: Caddy konfiqurasiyasını yoxla
+        run: |
+          docker run --rm -v "$PWD/deploy/Caddyfile:/etc/caddy/Caddyfile:ro" -e SITE_HOST=example.sslip.io -e SITE_REDIRECT=example.sslip.io \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: SSH açarı
         env:
           SSH_KEY: ${{ secrets.SSH_KEY }}
@@ -43,4 +47,8 @@ jobs:
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
-        run: ssh "$SSH_USER@$SSH_HOST" 'bash /opt/jabr/deploy/up.sh'
+          SITE_HOST: ${{ vars.SITE_HOST }}
+        run: |
+          # domen yoxdursa: pulsuz ara ünvan <ip>.sslip.io (HTTPS ilə)
+          host="${SITE_HOST:-${SSH_HOST//./-}.sslip.io}"
+          ssh "$SSH_USER@$SSH_HOST" "SITE_HOST='$host' bash /opt/jabr/deploy/up.sh"
