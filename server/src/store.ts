@@ -6,6 +6,7 @@ import { EventEmitter } from 'node:events'
 import pg from 'pg'
 import { allowed, type Auth, type Op } from './rules.js'
 import { applyUpdate, isMap, mergeSet, resolve, type Doc, type J } from './values.js'
+import { moderateQuiz, type QuizLike } from './moderation.js'
 
 export const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 20 })
 /** Dəyişiklik hadisələri: realtime abunələr üçün. */
@@ -163,6 +164,14 @@ export async function commit(caller: Caller, writes: Write[]): Promise<{ time: n
         after = w.merge && before ? mergeSet(before, w.data, now) : (resolve(w.data, now) as Doc)
         op = before ? 'update' : 'create'
       }
+      // İctimai kataloq: avtomatik məzmun yoxlaması (klientdən asılı olmayaraq) + şəkil olub-olmadığı serverdə hesablanır
+      if (after && parent === 'catalog' && !caller.bypass) {
+        const m = moderateQuiz(after as unknown as QuizLike)
+        const content = (d: Doc | null) => JSON.stringify(d && [d.title, d.description, d.tags, d.questions])
+        // yalnız status/gizlətmə dəyişirsə (konsol əməliyyatları) mətn yenidən yoxlanılmır
+        if (!m.ok && content(before) !== content(after)) throw new DbError('failed-precondition', 'moderation:' + JSON.stringify(m.issues.slice(0, 20)))
+        after = { ...after, hasImages: m.hasImages }
+      }
       state.set(w.path, after)
       planned.push({ w, parent, id, op, before, after })
     }
@@ -187,10 +196,22 @@ export async function commit(caller: Caller, writes: Write[]): Promise<{ time: n
     client.release()
   }
   for (const a of applied) changes.emit('change', a)
+  for (const a of applied) if (a.data && a.path.startsWith('reports/')) void autoHide(String(a.data.quizId ?? '')).catch(() => {})
   return { time: now }
 }
 
 /** Kolleksiyanı tamamilə təmizləmək (yalnız testlər üçün). */
 export async function clearAll() {
   await pool.query('truncate docs')
+}
+
+/** 3 və ya daha çox şikayət → quiz kataloqda gizlədilir (super admin konsoldan bərpa edə və ya silə bilər). */
+export const REPORT_LIMIT = 3
+async function autoHide(quizId: string) {
+  if (!quizId) return
+  const n = await pool.query<{ n: string }>("select count(*) n from docs where parent = 'reports' and data->>'quizId' = $1", [quizId])
+  if (Number(n.rows[0].n) < REPORT_LIMIT) return
+  const cur = await loadDoc(`catalog/${quizId}`)
+  if (!cur || cur.hidden === true) return
+  await commit({ auth: null, bypass: true }, [{ op: 'update', path: `catalog/${quizId}`, data: { hidden: true, hiddenReason: 'reports', hiddenAt: { __sv: 'ts' } } }])
 }

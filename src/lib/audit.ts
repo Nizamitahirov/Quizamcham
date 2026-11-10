@@ -7,7 +7,7 @@ export type AuditAction =
   | 'member_created' | 'member_role' | 'member_restricted' | 'member_unrestricted' | 'member_removed'
   | 'quiz_deleted' | 'quiz_shared' | 'quiz_unshared' | 'game_deleted' | 'settings_saved' | 'sounds_saved'
   | 'data_export' | 'data_cleanup' | 'logs_cleared' | 'access_changed' | 'member_perms'
-  | 'quiz_published' | 'quiz_unpublished' | 'pricing_saved' | 'license_granted' | 'license_revoked' | 'trial_extended'
+  | 'quiz_published' | 'quiz_unpublished' | 'quiz_approved' | 'quiz_hidden' | 'pricing_saved' | 'license_granted' | 'license_revoked' | 'trial_extended'
   | 'account_deleted' | 'data_exported' | 'member_converted'
 
 export interface AuditRow {

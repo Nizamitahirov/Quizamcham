@@ -1,0 +1,1486 @@
+[
+ {
+  "id": "jabr-az-geo-tarix",
+  "data": {
+   "title": "Azərbaycan: coğrafiya və tarix",
+   "description": "Azərbaycanın coğrafiyası, tarixi və mədəni irsi haqqında 10 sual.",
+   "coverEmoji": "🇦🇿",
+   "coverColor": "#0EA5E9",
+   "tags": [
+    "Azərbaycan",
+    "tarix",
+    "coğrafiya"
+   ],
+   "questions": [
+    {
+     "id": "az-g01",
+     "type": "single",
+     "text": "Azərbaycanın paytaxtı hansı şəhərdir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Bakı"
+      },
+      {
+       "id": "b",
+       "text": "Gəncə"
+      },
+      {
+       "id": "c",
+       "text": "Sumqayıt"
+      },
+      {
+       "id": "d",
+       "text": "Şəki"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Bakı 1920-ci ildən bəri paytaxtdır və Xəzər sahilində yerləşir."
+    },
+    {
+     "id": "az-g02",
+     "type": "single",
+     "text": "Azərbaycanın ən hündür zirvəsi hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Şahdağ"
+      },
+      {
+       "id": "b",
+       "text": "Tufandağ"
+      },
+      {
+       "id": "c",
+       "text": "Babadağ"
+      },
+      {
+       "id": "d",
+       "text": "Bazardüzü"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Bazardüzü dağının hündürlüyü 4466 metrdir."
+    },
+    {
+     "id": "az-g03",
+     "type": "single",
+     "text": "Azərbaycan Xalq Cümhuriyyəti hansı ildə elan olunub?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "1920"
+      },
+      {
+       "id": "b",
+       "text": "1991"
+      },
+      {
+       "id": "c",
+       "text": "1918"
+      },
+      {
+       "id": "d",
+       "text": "1905"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "AXC 28 may 1918-ci ildə elan olunub — Şərqdə ilk demokratik respublika."
+    },
+    {
+     "id": "az-g04",
+     "type": "single",
+     "text": "Dövlət müstəqilliyinin bərpası haqqında Konstitusiya Aktı hansı tarixdə qəbul olunub?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "28 may 1918"
+      },
+      {
+       "id": "b",
+       "text": "18 oktyabr 1991"
+      },
+      {
+       "id": "c",
+       "text": "12 noyabr 1995"
+      },
+      {
+       "id": "d",
+       "text": "20 yanvar 1990"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "18 oktyabr Müstəqilliyin Bərpası Günü kimi qeyd olunur."
+    },
+    {
+     "id": "az-g05",
+     "type": "single",
+     "text": "Azərbaycan ərazisindən axan ən uzun çay hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kür"
+      },
+      {
+       "id": "b",
+       "text": "Araz"
+      },
+      {
+       "id": "c",
+       "text": "Samur"
+      },
+      {
+       "id": "d",
+       "text": "Tərtər"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Kür Cənubi Qafqazın ən uzun çayıdır (təxminən 1515 km)."
+    },
+    {
+     "id": "az-g06",
+     "type": "truefalse",
+     "text": "Xəzər dənizi dünyanın ən böyük qapalı su hövzəsidir.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Xəzər okeanla birbaşa əlaqəsi olmayan ən böyük su hövzəsidir."
+    },
+    {
+     "id": "az-g07",
+     "type": "single",
+     "text": "Nizami Gəncəvinin \"Xəmsə\"si neçə poemadan ibarətdir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "3"
+      },
+      {
+       "id": "b",
+       "text": "7"
+      },
+      {
+       "id": "c",
+       "text": "5"
+      },
+      {
+       "id": "d",
+       "text": "4"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "\"Xəmsə\" — \"beşlik\" deməkdir: \"Sirlər xəzinəsi\", \"Xosrov və Şirin\", \"Leyli və Məcnun\", \"Yeddi gözəl\", \"İskəndərnamə\"."
+    },
+    {
+     "id": "az-g08",
+     "type": "single",
+     "text": "Qobustan Milli Parkı ilk növbədə nə ilə məşhurdur?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Şəlalələr"
+      },
+      {
+       "id": "b",
+       "text": "Qayaüstü təsvirlər (petroqliflər)"
+      },
+      {
+       "id": "c",
+       "text": "Buzlaqlar"
+      },
+      {
+       "id": "d",
+       "text": "Qum təpələri"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Qobustanın qayaüstü təsvirləri 2007-ci ildən UNESCO Dünya İrsi siyahısındadır."
+    },
+    {
+     "id": "az-g09",
+     "type": "single",
+     "text": "Azərbaycanın milli valyutası hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Manat"
+      },
+      {
+       "id": "b",
+       "text": "Lari"
+      },
+      {
+       "id": "c",
+       "text": "Dram"
+      },
+      {
+       "id": "d",
+       "text": "Lirə"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Manat 1992-ci ildən dövriyyədədir."
+    },
+    {
+     "id": "az-g10",
+     "type": "truefalse",
+     "text": "Şəki Xan Sarayı ilə birlikdə Şəkinin tarixi mərkəzi UNESCO Dünya İrsi siyahısına daxil edilib.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Şəkinin tarixi mərkəzi Xan Sarayı ilə birlikdə 2019-cu ildə siyahıya daxil edilib."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Tarix və mədəniyyət",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-kosmos-tebiet",
+  "data": {
+   "title": "Kosmos və təbiət",
+   "description": "Planetlər, insan bədəni və təbiət hadisələri haqqında maraqlı suallar.",
+   "coverEmoji": "🪐",
+   "coverColor": "#7C3AED",
+   "tags": [
+    "elm",
+    "kosmos",
+    "biologiya"
+   ],
+   "questions": [
+    {
+     "id": "kosm01",
+     "type": "single",
+     "text": "Günəşə ən yaxın planet hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Venera"
+      },
+      {
+       "id": "b",
+       "text": "Merkuri"
+      },
+      {
+       "id": "c",
+       "text": "Mars"
+      },
+      {
+       "id": "d",
+       "text": "Yer"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Merkuri Günəşə ən yaxın və Günəş sisteminin ən kiçik planetidir."
+    },
+    {
+     "id": "kosm02",
+     "type": "single",
+     "text": "Günəş sistemindəki ən böyük planet hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Yupiter"
+      },
+      {
+       "id": "b",
+       "text": "Saturn"
+      },
+      {
+       "id": "c",
+       "text": "Neptun"
+      },
+      {
+       "id": "d",
+       "text": "Yer"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Yupiterin kütləsi digər bütün planetlərin cəmindən təxminən 2,5 dəfə çoxdur."
+    },
+    {
+     "id": "kosm03",
+     "type": "single",
+     "text": "Suyun kimyəvi formulu hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "CO₂"
+      },
+      {
+       "id": "b",
+       "text": "O₂"
+      },
+      {
+       "id": "c",
+       "text": "NaCl"
+      },
+      {
+       "id": "d",
+       "text": "H₂O"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Su molekulu iki hidrogen və bir oksigen atomundan ibarətdir."
+    },
+    {
+     "id": "kosm04",
+     "type": "single",
+     "text": "Bitkilər fotosintez zamanı havadan hansı qazı udur?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Oksigen"
+      },
+      {
+       "id": "b",
+       "text": "Azot"
+      },
+      {
+       "id": "c",
+       "text": "Karbon qazı (CO₂)"
+      },
+      {
+       "id": "d",
+       "text": "Hidrogen"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Bitkilər CO₂ udur və oksigen buraxır."
+    },
+    {
+     "id": "kosm05",
+     "type": "single",
+     "text": "Dəniz səviyyəsində su neçə dərəcədə qaynayır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "90 °C"
+      },
+      {
+       "id": "b",
+       "text": "100 °C"
+      },
+      {
+       "id": "c",
+       "text": "80 °C"
+      },
+      {
+       "id": "d",
+       "text": "120 °C"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Hündürlük artdıqca təzyiq azalır və su daha aşağı temperaturda qaynayır."
+    },
+    {
+     "id": "kosm06",
+     "type": "single",
+     "text": "İnsan bədəninin ən böyük orqanı hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Dəri"
+      },
+      {
+       "id": "b",
+       "text": "Qaraciyər"
+      },
+      {
+       "id": "c",
+       "text": "Ağciyər"
+      },
+      {
+       "id": "d",
+       "text": "Beyin"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Yetkin insanda dərinin sahəsi təxminən 1,5–2 m²-dir."
+    },
+    {
+     "id": "kosm07",
+     "type": "single",
+     "text": "Günəş işığı Yerə təxminən nə qədər vaxtda çatır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "8 saniyə"
+      },
+      {
+       "id": "b",
+       "text": "8 saat"
+      },
+      {
+       "id": "c",
+       "text": "1 gün"
+      },
+      {
+       "id": "d",
+       "text": "Təxminən 8 dəqiqə"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "İşıq 150 milyon km-i təxminən 8 dəqiqə 20 saniyəyə qət edir."
+    },
+    {
+     "id": "kosm08",
+     "type": "truefalse",
+     "text": "Ay öz işığını yayır.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "f"
+     ],
+     "explanation": "Ay işıq yaymır — Günəş işığını əks etdirir."
+    },
+    {
+     "id": "kosm09",
+     "type": "single",
+     "text": "Yerin təbii peyki hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Fobos"
+      },
+      {
+       "id": "b",
+       "text": "Ay"
+      },
+      {
+       "id": "c",
+       "text": "Titan"
+      },
+      {
+       "id": "d",
+       "text": "Europa"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Fobos Marsın, Titan Saturnun, Europa Yupiterin peykidir."
+    },
+    {
+     "id": "kosm10",
+     "type": "truefalse",
+     "text": "Səs vakuumda (havasız mühitdə) yayıla bilir.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "f"
+     ],
+     "explanation": "Səs dalğası yayılmaq üçün mühit (hava, su, bərk cisim) tələb edir."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Elm",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-ai-esaslar",
+  "data": {
+   "title": "Süni intellektin əsasları",
+   "description": "AI, maşın öyrənməsi və böyük dil modelləri haqqında əsas anlayışlar.",
+   "coverEmoji": "🤖",
+   "coverColor": "#E8202A",
+   "tags": [
+    "AI",
+    "süni intellekt",
+    "LLM"
+   ],
+   "questions": [
+    {
+     "id": "ai-e01",
+     "type": "single",
+     "text": "\"AI\" qısaltması nəyi bildirir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Automated Internet"
+      },
+      {
+       "id": "b",
+       "text": "Advanced Interface"
+      },
+      {
+       "id": "c",
+       "text": "Artificial Intelligence (süni intellekt)"
+      },
+      {
+       "id": "d",
+       "text": "Analog Input"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "AI — insan intellektinə xas tapşırıqları yerinə yetirən sistemlərdir."
+    },
+    {
+     "id": "ai-e02",
+     "type": "single",
+     "text": "Maşın öyrənməsi (Machine Learning) nədir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kompüterlərin təmiri"
+      },
+      {
+       "id": "b",
+       "text": "Kompüterlərin məlumatlardan qanunauyğunluqlar öyrənməsi"
+      },
+      {
+       "id": "c",
+       "text": "Yalnız robotların hərəkəti"
+      },
+      {
+       "id": "d",
+       "text": "İnternetdə axtarış"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "ML-də qaydalar əl ilə yazılmır — model nümunələrdən öyrənir."
+    },
+    {
+     "id": "ai-e03",
+     "type": "single",
+     "text": "ChatGPT, Claude, Gemini kimi alətlər hansı növ modellərə aiddir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Böyük dil modelləri (LLM)"
+      },
+      {
+       "id": "b",
+       "text": "Şəkil redaktorları"
+      },
+      {
+       "id": "c",
+       "text": "Cədvəl proqramları"
+      },
+      {
+       "id": "d",
+       "text": "Antivirus proqramları"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "LLM-lər böyük həcmdə mətn üzərində öyrədilmiş modellərdir."
+    },
+    {
+     "id": "ai-e04",
+     "type": "single",
+     "text": "AI-ın inandırıcı görünən, amma uydurma cavab verməsi necə adlanır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kompilyasiya"
+      },
+      {
+       "id": "b",
+       "text": "Şifrələmə"
+      },
+      {
+       "id": "c",
+       "text": "Keşləmə"
+      },
+      {
+       "id": "d",
+       "text": "Halüsinasiya"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Ona görə vacib faktları həmişə etibarlı mənbədən yoxlayın."
+    },
+    {
+     "id": "ai-e05",
+     "type": "truefalse",
+     "text": "Promptun (sorğunun) keyfiyyəti AI cavabının keyfiyyətinə təsir edir.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Aydın məqsəd, kontekst və nümunə vermək nəticəni xeyli yaxşılaşdırır."
+    },
+    {
+     "id": "ai-e06",
+     "type": "truefalse",
+     "text": "Məxfi şirkət məlumatlarını istənilən ictimai AI alətinə yükləmək həmişə təhlükəsizdir.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "f"
+     ],
+     "explanation": "Şirkət siyasətini və alətin məlumat şərtlərini əvvəlcədən yoxlayın."
+    },
+    {
+     "id": "ai-e07",
+     "type": "single",
+     "text": "Neyron şəbəkələr ideyasını ilk növbədə nədən götürüb?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "İnsan beyninin neyronlarından"
+      },
+      {
+       "id": "b",
+       "text": "Elektrik şəbəkəsindən"
+      },
+      {
+       "id": "c",
+       "text": "Yol xəritəsindən"
+      },
+      {
+       "id": "d",
+       "text": "Telefon şəbəkəsindən"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Süni neyronlar bioloji neyronların sadələşdirilmiş modelidir."
+    },
+    {
+     "id": "ai-e08",
+     "type": "single",
+     "text": "Turing testi nəyi yoxlamaq üçün təklif olunub?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kompüterin sürətini"
+      },
+      {
+       "id": "b",
+       "text": "Batareya ömrünü"
+      },
+      {
+       "id": "c",
+       "text": "İnternet sürətini"
+      },
+      {
+       "id": "d",
+       "text": "Maşının danışıqda insandan seçilməz olub-olmadığını"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Alan Turinq bu testi 1950-ci ildə təklif edib."
+    },
+    {
+     "id": "ai-e09",
+     "type": "single",
+     "text": "Hansı nümunə gündəlik həyatda AI istifadəsinə aiddir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kağız kitab oxumaq"
+      },
+      {
+       "id": "b",
+       "text": "Əl ilə hesablama"
+      },
+      {
+       "id": "c",
+       "text": "Spam məktubların avtomatik süzülməsi"
+      },
+      {
+       "id": "d",
+       "text": "Mexaniki saat"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Spam filtrləri məktubları öyrənilmiş nümunələr əsasında təsnif edir."
+    },
+    {
+     "id": "ai-e10",
+     "type": "truefalse",
+     "text": "Modelin öyrədildiyi məlumatlarda qərəz (bias) varsa, cavablarında da qərəz ola bilər.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Məlumatın keyfiyyəti və müxtəlifliyi ədalətli nəticə üçün vacibdir."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Süni intellekt",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-reqemsal-tehlukesizlik",
+  "data": {
+   "title": "Rəqəmsal təhlükəsizlik",
+   "description": "Şifrələr, fişinq və onlayn təhlükəsizlik vərdişləri.",
+   "coverEmoji": "🔐",
+   "coverColor": "#16A34A",
+   "tags": [
+    "kibertəhlükəsizlik",
+    "şifrə",
+    "fişinq"
+   ],
+   "questions": [
+    {
+     "id": "reqe01",
+     "type": "single",
+     "text": "Hansı şifrə ən güclüdür?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "123456"
+      },
+      {
+       "id": "b",
+       "text": "aysel1990"
+      },
+      {
+       "id": "c",
+       "text": "password"
+      },
+      {
+       "id": "d",
+       "text": "Mavi-Qatar!Bulud7-Səma"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Uzun, təsadüfi sözlərdən ibarət ifadələr həm güclü, həm yadda qalandır."
+    },
+    {
+     "id": "reqe02",
+     "type": "single",
+     "text": "Fişinq (phishing) nədir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Balıq tutma oyunu"
+      },
+      {
+       "id": "b",
+       "text": "Faylları sıxma üsulu"
+      },
+      {
+       "id": "c",
+       "text": "Saxta məktub və ya saytla məlumat oğurlamaq cəhdi"
+      },
+      {
+       "id": "d",
+       "text": "Antivirus növü"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Göndəricini və keçid ünvanını həmişə diqqətlə yoxlayın."
+    },
+    {
+     "id": "reqe03",
+     "type": "single",
+     "text": "İki faktorlu autentifikasiya (2FA) nəyi təmin edir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "İki fərqli şifrə yazmağı"
+      },
+      {
+       "id": "b",
+       "text": "Şifrədən əlavə ikinci təsdiq addımını"
+      },
+      {
+       "id": "c",
+       "text": "İki cihazda eyni anda girişi"
+      },
+      {
+       "id": "d",
+       "text": "Şifrənin iki dəfə uzanmasını"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Şifrə oğurlansa belə, ikinci addım olmadan hesaba giriş çətinləşir."
+    },
+    {
+     "id": "reqe04",
+     "type": "truefalse",
+     "text": "Bankdan zəng edən \"əməkdaşa\" SMS ilə gələn təsdiq kodunu demək olar.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "f"
+     ],
+     "explanation": "Bank heç vaxt SMS kodunu soruşmur — bu, fırıldaqçılıq əlamətidir."
+    },
+    {
+     "id": "reqe05",
+     "type": "single",
+     "text": "Ünvanında \"https\" və kilid işarəsi olan sayt nəyi göstərir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Saytın mütləq dövlətə məxsus olduğunu"
+      },
+      {
+       "id": "b",
+       "text": "Saytda virus ola bilməyəcəyini"
+      },
+      {
+       "id": "c",
+       "text": "Saytın pulsuz olduğunu"
+      },
+      {
+       "id": "d",
+       "text": "Bağlantının şifrələndiyini"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Kilid yalnız bağlantının şifrələndiyini göstərir — saxta saytlar da https istifadə edə bilər."
+    },
+    {
+     "id": "reqe06",
+     "type": "single",
+     "text": "Proqram yeniləmələrini nə üçün vaxtında quraşdırmaq lazımdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Ekran daha parlaq olur"
+      },
+      {
+       "id": "b",
+       "text": "İnternet pulsuz olur"
+      },
+      {
+       "id": "c",
+       "text": "Təhlükəsizlik boşluqları bağlanır"
+      },
+      {
+       "id": "d",
+       "text": "Fayllar avtomatik silinir"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Yeniləmələr çox vaxt məlum boşluqları aradan qaldırır."
+    },
+    {
+     "id": "reqe07",
+     "type": "single",
+     "text": "İctimai Wi-Fi şəbəkəsində nəyə diqqət etmək lazımdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Şifrələri hamı ilə paylaşmaq"
+      },
+      {
+       "id": "b",
+       "text": "Bank kimi həssas əməliyyatlardan çəkinmək və ya VPN istifadə etmək"
+      },
+      {
+       "id": "c",
+       "text": "Antivirusu söndürmək"
+      },
+      {
+       "id": "d",
+       "text": "Bütün qovluqları paylaşıma açmaq"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Açıq şəbəkələrdə trafiki başqaları izləyə bilər."
+    },
+    {
+     "id": "reqe08",
+     "type": "truefalse",
+     "text": "Eyni şifrəni bütün saytlarda istifadə etmək təhlükəsizdir.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "f"
+     ],
+     "explanation": "Bir saytdan sızan şifrə ilə digər hesablarınıza da giriş edilə bilər."
+    },
+    {
+     "id": "reqe09",
+     "type": "single",
+     "text": "Tanımadığınız göndəricidən gələn \".exe\" əlavəsi ilə nə etmək lazımdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Dərhal açmaq"
+      },
+      {
+       "id": "b",
+       "text": "Dostlara göndərmək"
+      },
+      {
+       "id": "c",
+       "text": "Masaüstünə köçürüb sonra açmaq"
+      },
+      {
+       "id": "d",
+       "text": "Açmamaq və IT/təhlükəsizlik komandasına bildirmək"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "İcra olunan fayllar zərərli proqram daşıya bilər."
+    },
+    {
+     "id": "reqe10",
+     "type": "single",
+     "text": "Şifrə meneceri nə üçün istifadə olunur?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "Şifrələri ekranda hamıya göstərmək"
+      },
+      {
+       "id": "b",
+       "text": "İnterneti sürətləndirmək"
+      },
+      {
+       "id": "c",
+       "text": "Hər sayt üçün unikal, güclü şifrələri təhlükəsiz saxlamaq"
+      },
+      {
+       "id": "d",
+       "text": "Spam göndərmək"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Yalnız bir əsas şifrəni yadda saxlamaq kifayət edir."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Rəqəmsal bacarıqlar",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-mentiq-hesab",
+  "data": {
+   "title": "Məntiq və hesab",
+   "description": "Faiz, ardıcıllıq, həndəsə və məntiq üzrə 10 sual.",
+   "coverEmoji": "🧮",
+   "coverColor": "#F59E0B",
+   "tags": [
+    "riyaziyyat",
+    "məntiq"
+   ],
+   "questions": [
+    {
+     "id": "ment01",
+     "type": "single",
+     "text": "200-ün 15%-i neçədir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "30"
+      },
+      {
+       "id": "b",
+       "text": "15"
+      },
+      {
+       "id": "c",
+       "text": "20"
+      },
+      {
+       "id": "d",
+       "text": "35"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "200 × 0,15 = 30."
+    },
+    {
+     "id": "ment02",
+     "type": "single",
+     "text": "Ardıcıllığı davam etdirin: 2, 4, 8, 16, …",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "24"
+      },
+      {
+       "id": "b",
+       "text": "20"
+      },
+      {
+       "id": "c",
+       "text": "18"
+      },
+      {
+       "id": "d",
+       "text": "32"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Hər ədəd əvvəlkinin iki mislidir."
+    },
+    {
+     "id": "ment03",
+     "type": "single",
+     "text": "Ən kiçik sadə ədəd hansıdır?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "1"
+      },
+      {
+       "id": "b",
+       "text": "0"
+      },
+      {
+       "id": "c",
+       "text": "2"
+      },
+      {
+       "id": "d",
+       "text": "3"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "1 sadə ədəd sayılmır; 2 həm də yeganə cüt sadə ədəddir."
+    },
+    {
+     "id": "ment04",
+     "type": "single",
+     "text": "Tərəfləri 5 sm və 8 sm olan düzbucaqlının sahəsi nə qədərdir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "26 sm²"
+      },
+      {
+       "id": "b",
+       "text": "40 sm²"
+      },
+      {
+       "id": "c",
+       "text": "13 sm²"
+      },
+      {
+       "id": "d",
+       "text": "80 sm²"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Sahə = en × uzunluq = 5 × 8 = 40."
+    },
+    {
+     "id": "ment05",
+     "type": "single",
+     "text": "7 × 8 = ?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "56"
+      },
+      {
+       "id": "b",
+       "text": "54"
+      },
+      {
+       "id": "c",
+       "text": "48"
+      },
+      {
+       "id": "d",
+       "text": "63"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "7 × 8 = 56."
+    },
+    {
+     "id": "ment06",
+     "type": "single",
+     "text": "Üçbucağın daxili bucaqlarının cəmi neçə dərəcədir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "90°"
+      },
+      {
+       "id": "b",
+       "text": "360°"
+      },
+      {
+       "id": "c",
+       "text": "270°"
+      },
+      {
+       "id": "d",
+       "text": "180°"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "İstənilən müstəvi üçbucağında bu cəm 180°-dir."
+    },
+    {
+     "id": "ment07",
+     "type": "single",
+     "text": "Qiyməti 50 manat olan məhsula 20% endirim edilib. Yeni qiymət nə qədərdir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "30 manat"
+      },
+      {
+       "id": "b",
+       "text": "45 manat"
+      },
+      {
+       "id": "c",
+       "text": "40 manat"
+      },
+      {
+       "id": "d",
+       "text": "10 manat"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "50-nin 20%-i 10 manatdır: 50 − 10 = 40."
+    },
+    {
+     "id": "ment08",
+     "type": "single",
+     "text": "√144 = ?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "14"
+      },
+      {
+       "id": "b",
+       "text": "12"
+      },
+      {
+       "id": "c",
+       "text": "11"
+      },
+      {
+       "id": "d",
+       "text": "72"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "12 × 12 = 144."
+    },
+    {
+     "id": "ment09",
+     "type": "single",
+     "text": "Saat düz 3:00-da əqrəblər arasındakı bucaq neçə dərəcədir?",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "a",
+       "text": "90°"
+      },
+      {
+       "id": "b",
+       "text": "45°"
+      },
+      {
+       "id": "c",
+       "text": "120°"
+      },
+      {
+       "id": "d",
+       "text": "180°"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Siferblatda hər saat arası 30°-dir: 3 × 30° = 90°."
+    },
+    {
+     "id": "ment10",
+     "type": "truefalse",
+     "text": "Hər tək ədəd sadə ədəddir.",
+     "timeLimit": 20,
+     "points": "standard",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "f"
+     ],
+     "explanation": "Məsələn, 9 təkdir, amma 3 × 3-ə bölünür."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Riyaziyyat",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ }
+]

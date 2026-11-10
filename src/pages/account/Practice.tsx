@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Award, CheckCircle2, Clock, RotateCcw, Trophy, XCircle } from 'lucide-react'
-import { loadCatalogItem, saveAttempt, useAccount, type CatalogItem } from '../../lib/account'
+import { createPortal } from 'react-dom'
+import { ArrowLeft, ArrowRight, Award, CheckCircle2, Clock, Flag, RotateCcw, Trophy, X, XCircle } from 'lucide-react'
+import { loadCatalogItem, reportQuiz, saveAttempt, useAccount, type CatalogItem, type ReportReason } from '../../lib/account'
 import { toPublic } from '../../lib/gameEngine'
 import { evaluateAnswer, SCORED_TYPES } from '../../lib/scoring'
 import { LOCALE, t } from '../../i18n/az'
@@ -28,11 +29,13 @@ export default function Practice() {
   if (loading) return <Shell><div className="m-auto"><Spinner /></div></Shell>
   if (!user) return <Navigate to={`/start?next=/learn/${quizId}`} replace />
   if (item === undefined) return <Shell><div className="m-auto"><Spinner /></div></Shell>
+  // gizlədilmiş / yoxlamadakı quiz yalnız müəllifinə açılır
+  if (item && (item.hidden || item.status === 'review') && item.publishedBy !== user.uid) return <Shell><div className="glass m-auto max-w-md p-8 text-center"><p className="mb-4">{A.notFound}</p><Link to="/learn" className="btn btn-primary"><ArrowLeft />{A.toCatalog}</Link></div></Shell>
   if (item === null) return <Shell><div className="glass m-auto max-w-md p-8 text-center"><p className="mb-4">{A.notFound}</p><Link to="/learn" className="btn btn-primary"><ArrowLeft />{A.toCatalog}</Link></div></Shell>
-  return <Shell title={item.title}><Run key={round} item={item} uid={user.uid} onRetry={() => setRound((r) => r + 1)} /></Shell>
+  return <Shell title={item.title} report={<ReportButton quizId={item.id} />}><Run key={round} item={item} uid={user.uid} onRetry={() => setRound((r) => r + 1)} /></Shell>
 }
 
-function Shell({ children, title }: { children: React.ReactNode; title?: string }) {
+function Shell({ children, title, report }: { children: React.ReactNode; title?: string; report?: React.ReactNode }) {
   return (
     <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-white">
       <FuturisticBg floor={false} intensity={0.5} />
@@ -40,6 +43,7 @@ function Shell({ children, title }: { children: React.ReactNode; title?: string 
         <Link to="/learn" className="btn btn-ghost btn-icon" aria-label={A.toCatalog}><ArrowLeft className="h-4 w-4" /></Link>
         <Logo size={28} />
         {title && <span className="ml-2 truncate text-sm font-semibold text-white/65">{title}</span>}
+        {report && <span className="ml-auto">{report}</span>}
       </header>
       <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6">{children}</main>
     </div>
@@ -186,4 +190,51 @@ function CertButton({ item, score, correct, total }: { item: CatalogItem; score:
     } finally { setBusy(false) }
   }
   return <button className="btn btn-ghost w-full" disabled={busy || !name} onClick={() => void make()}><Award />{A.certificate}</button>
+}
+
+/** Tələbə şikayəti: səbəb + qeyd. 3 şikayətdən sonra quiz avtomatik gizlədilir və moderatora düşür. */
+function ReportButton({ quizId }: { quizId: string }) {
+  const M = t.mod
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState<ReportReason>('language')
+  const [note, setNote] = useState('')
+  const [state, setState] = useState<'idle' | 'busy' | 'ok' | 'already' | 'error'>('idle')
+  const send = async () => {
+    setState('busy')
+    try { setState(await reportQuiz(quizId, reason, note)) } catch { setState('error') }
+  }
+  return (
+    <>
+      <button className="btn btn-ghost btn-sm" onClick={() => { setOpen(true); setState('idle') }}><Flag className="h-4 w-4" />{M.report}</button>
+      {open && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="rep-title" onClick={() => setOpen(false)}>
+          <div className="w-full max-w-md rounded-3xl bg-white p-5 text-ink shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <h2 id="rep-title" className="text-lg font-bold">{M.reportTitle}</h2>
+              <button className="btn btn-ghost-dark btn-icon -m-1" aria-label={t.app.close} onClick={() => setOpen(false)}><X /></button>
+            </div>
+            {state === 'ok' || state === 'already' ? (
+              <p className="py-4 text-center font-semibold text-green-700">{state === 'ok' ? M.thanks : M.already}</p>
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  {(Object.keys(M.reasons) as ReportReason[]).map((r) => (
+                    <label key={r} className="flex cursor-pointer items-center gap-3 rounded-xl border border-line px-3 py-2.5 has-[:checked]:border-brand has-[:checked]:bg-red-50">
+                      <input type="radio" name="reason" value={r} checked={reason === r} onChange={() => setReason(r)} />
+                      <span>{M.reasons[r]}</span>
+                    </label>
+                  ))}
+                </div>
+                <label className="mt-3 block text-sm font-semibold" htmlFor="rep-note">{M.note}</label>
+                <textarea id="rep-note" className="input mt-1 h-20 w-full" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
+                {state === 'error' && <p role="alert" className="mt-2 text-sm text-red-700">{t.app.error}</p>}
+                <button className="btn btn-primary mt-4 w-full" disabled={state === 'busy'} onClick={() => void send()}>{M.send}</button>
+              </>
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
+  )
 }

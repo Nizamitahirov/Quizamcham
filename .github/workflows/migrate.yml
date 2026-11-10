@@ -64,4 +64,5 @@ jobs:
         run: |
           ssh "$SSH_USER@$SSH_HOST" 'cd /opt/jabr/deploy && docker compose up -d api >/dev/null 2>&1 && docker compose exec -T api node dist/import.js' < "$RUNNER_TEMP/dump.ndjson"
           rm -f "$RUNNER_TEMP/dump.ndjson"
+          ssh "$SSH_USER@$SSH_HOST" 'cd /opt/jabr/deploy && docker compose exec -T api node dist/seed.js'
           ssh "$SSH_USER@$SSH_HOST" 'curl -fsS http://localhost/api/health'

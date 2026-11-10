@@ -14,7 +14,7 @@ import { initializeApp } from '../../src/lib/jdb/app'
 const BASE = process.env.JABR_TEST_URL ?? 'http://127.0.0.1:3100'
 let env: RulesTestEnvironment
 beforeAll(async () => { env = await initializeTestEnvironment(); await env.clearFirestore() })
-const until = async (fn: () => boolean, ms = 3000) => { const t = Date.now(); while (!fn()) { if (Date.now() - t > ms) throw new Error('timeout'); await new Promise((r) => setTimeout(r, 20)) } }
+const until = async (fn: () => boolean | Promise<boolean>, ms = 3000) => { const t = Date.now(); while (!(await fn())) { if (Date.now() - t > ms) throw new Error('timeout'); await new Promise((r) => setTimeout(r, 20)) } }
 
 describe('dəyərlər və yazılar', () => {
   it('serverTimestamp, arrayUnion, deleteField, nöqtəli yollar, batch', async () => {
@@ -95,3 +95,42 @@ describe('giriş', () => {
   })
 })
 async function setPersistenceNone() { /* node mühitində localStorage yoxdur — yaddaşda qalır */ }
+
+describe('moderasiya (yalnız Jabr serveri)', () => {
+  const q3 = (text = 'Sual?') => [1, 2, 3].map((i) => ({ id: `m${i}`, type: 'single', text: `${text} ${i}`, options: [{ id: 'a', text: 'Bəli' }, { id: 'b', text: 'Xeyr' }], correct: ['a'] }))
+  beforeAll(async () => {
+    await env.clearFirestore()
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const d = ctx.firestore()
+      await setDoc(doc(d, 'admins', 'mt1'), { email: 'm@x.az', role: 'trainer' })
+      await setDoc(doc(d, 'quizzes', 'mq'), { title: 'M', ownerUid: 'mt1' })
+    })
+  })
+  const tr = () => env.authenticatedContext('mt1', { email: 'm@x.az', firebase: { sign_in_provider: 'password' } }).firestore()
+  it('söyüş, əlaqə məlumatı və keyfiyyət problemi olan quiz dərc olunmur; təmiz quiz dərc olunur', async () => {
+    const bad = [
+      { title: 'Yaxşı başlıq', questions: q3('siktir') },
+      { title: 'Zəng edin +994 50 123 45 67', questions: q3() },
+      { title: 'Ok', questions: q3() },
+      { title: 'Yaxşı başlıq', questions: q3().slice(0, 2) },
+    ]
+    for (const b of bad) {
+      await expect(setDoc(doc(tr(), 'catalog', 'mq'), { ...b, publishedBy: 'mt1', status: 'live' })).rejects.toMatchObject({ code: 'failed-precondition' })
+    }
+    await setDoc(doc(tr(), 'catalog', 'mq'), { title: 'Yaxşı başlıq', questions: q3(), publishedBy: 'mt1', status: 'live' })
+    // server "hasImages" sahəsini özü hesablayır (klient yalan deyə bilməz)
+    await expect(setDoc(doc(tr(), 'catalog', 'mq'), { title: 'Yaxşı başlıq', questions: [{ ...q3()[0], imageUrl: 'data:image/png;base64,AA' }, ...q3().slice(1)], publishedBy: 'mt1', status: 'live', hasImages: false }))
+      .rejects.toMatchObject({ code: 'permission-denied' })
+  })
+  it('3 şikayətdən sonra quiz avtomatik gizlədilir', async () => {
+    for (const u of ['s1', 's2', 's3']) {
+      const db = env.authenticatedContext(u, { email: `${u}@gmail.com`, firebase: { sign_in_provider: 'google.com' } }).firestore()
+      await setDoc(doc(db, 'reports', `mq_${u}`), { uid: u, quizId: 'mq', reason: 'language', note: '', at: serverTimestamp() })
+    }
+    let hidden = false
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await until(async () => { hidden = (await getDoc(doc(ctx.firestore(), 'catalog', 'mq'))).get('hidden') === true; return hidden }, 3000)
+    })
+    expect(hidden).toBe(true)
+  })
+})
