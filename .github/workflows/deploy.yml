@@ -52,3 +52,12 @@ jobs:
           # domen yoxdursa: pulsuz ara ünvan <ip>.sslip.io (HTTPS ilə)
           host="${SITE_HOST:-${SSH_HOST//./-}.sslip.io}"
           ssh "$SSH_USER@$SSH_HOST" "SITE_HOST='$host' bash /opt/jabr/deploy/up.sh"
+      - name: HTTPS ünvanı xaricdən yoxla
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SITE_HOST: ${{ vars.SITE_HOST }}
+        run: |
+          host="${SITE_HOST:-${SSH_HOST//./-}.sslip.io}"; host="${host%%,*}"
+          # ilk dəfə sertifikat alınması bir az çəkə bilər
+          for i in $(seq 1 30); do curl -fsS "https://$host/api/health" && exit 0; sleep 5; done
+          echo "HTTPS hələ cavab vermir: $host"; exit 1
