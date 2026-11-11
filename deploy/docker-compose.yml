@@ -28,6 +28,8 @@ services:
       BREVO_API_KEY: ${BREVO_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-noreply@jabr.az}
       PUBLIC_URL: ${PUBLIC_URL:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
     depends_on:
       db:
         condition: service_healthy

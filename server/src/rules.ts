@@ -98,6 +98,15 @@ class Ctx {
     return g(d, 'source', 'team') === 'signup' && g(d, 'plan', '') === 'institution' ? this.uid : ''
   }
   async freeHost() { return (await this.selfServe()) && !(await this.planOk()) }
+  /** Plan pillələri: oyunda iştirakçı limiti (firestore.rules → playerCap ilə eyni). */
+  async playerCap() {
+    if (!(await this.selfServe())) return 100000
+    if (!(await this.planOk())) return 10
+    const d = await this.me()
+    if (g(d, 'source', 'team') === 'org') return 1000
+    if (this.time < ms(g(d, 'licenseUntil', { __t: 0 }))) { const p = g(d, 'plan', 'pro'); return p === 'trainer' ? 50 : inList(p, ['business', 'institution']) ? 1000 : 200 }
+    return 200
+  }
   async can(p: string) {
     if (this.isSuper()) return true
     if (!(await this.isAdmin())) return false
@@ -350,7 +359,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
     if (op === 'create') {
       const d = nd()
       return (await c.can('console')) && keysOnly(d, ['uid', 'email', 'plan', 'seats', 'from', 'until', 'amount', 'currency', 'note', 'by', 'at'])
-        && f(d, 'by') === c.uid && isReq(f(d, 'at'), now) && inList(f(d, 'plan'), ['pro', 'institution', 'revoked'])
+        && f(d, 'by') === c.uid && isReq(f(d, 'at'), now) && inList(f(d, 'plan'), ['trainer', 'pro', 'business', 'institution', 'revoked'])
         && isNum(f(d, 'amount')) && (f(d, 'amount') as number) >= 0 && str(g(d, 'note', ''), 300)
     }
     return c.isSuper()
@@ -361,7 +370,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
       const d = nd()
       return c.registered() && keysOnly(d, ['uid', 'email', 'name', 'phone', 'organization', 'plan', 'seats', 'message', 'status', 'createdAt'])
         && f(d, 'uid') === c.uid && f(d, 'status') === 'new' && isReq(f(d, 'createdAt'), now)
-        && inList(f(d, 'plan'), ['trainer', 'institution', 'custom'])
+        && inList(f(d, 'plan'), ['trainer', 'pro', 'business', 'institution', 'event', 'custom'])
         && str(f(d, 'name'), 80) && str(f(d, 'phone'), 30) && str(g(d, 'message', ''), 1000) && str(g(d, 'organization', ''), 120)
     }
     if (op === 'update') return (await c.can('console')) && onlyAffected(nd(), rd(), ['status', 'note', 'updatedAt'])
@@ -389,12 +398,11 @@ async function evaluate(c: Ctx): Promise<boolean> {
     const manage = async () => (await c.isAdmin()) && ((await ok(() => f(rd(), 'hostUid') === c.uid)) || (await c.isOwner()) || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid))
     if (op === 'create') return (await c.can('runGames')) && f(nd(), 'hostUid') === c.uid
       && inList(g(nd(), 'orgId', ''), ['', await c.orgOf()])
-      && (!(await c.freeHost()) || (g(f(nd(), 'settings'), 'maxPlayers', 200) as number) <= 10)
+      && (g(f(nd(), 'settings'), 'maxPlayers', 200) as number) <= (await c.playerCap())
     if (op === 'update') {
       if (!(await manage())) return false
-      if (!(await c.freeHost())) return true
       const nm = g(f(nd(), 'settings'), 'maxPlayers', 200) as number
-      return nm <= 10 || nm <= (g(f(rd(), 'settings'), 'maxPlayers', 200) as number)
+      return nm <= (await c.playerCap()) || nm <= (g(f(rd(), 'settings'), 'maxPlayers', 200) as number)
     }
     return manage()
   }

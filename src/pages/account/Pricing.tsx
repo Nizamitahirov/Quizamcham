@@ -8,13 +8,13 @@ import { Logo } from '../../components/Brand'
 import { LangSwitch } from '../../components/LangSwitch'
 
 const A = t.acct
-type PlanKey = 'trainer' | 'institution' | 'custom'
+type PlanKey = 'trainer' | 'pro' | 'business' | 'institution' | 'event' | 'custom'
 
 /** Planlar, qiymətlər (konsoldan idarə olunur), lisenziya müraciəti və birbaşa əlaqə. */
 export default function Pricing() {
   const { user, profile } = useAccount()
   const [prices, setPrices] = useState<PricePlan[] | null>(null)
-  const [plan, setPlan] = useState<PlanKey>('trainer')
+  const [plan, setPlan] = useState<PlanKey>('pro')
   const [f, setF] = useState({ name: '', phone: '', organization: '', seats: '', message: '' })
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
@@ -49,9 +49,10 @@ export default function Pricing() {
           <h1 className="text-4xl font-black sm:text-5xl">{A.pricingTitle}</h1>
           <p className="mt-3 text-white/65">{A.pricingSub}</p>
         </div>
-        <section className="grid gap-4 lg:grid-cols-3">
-          {(['student', 'trainer', 'institution'] as const).map((k) => {
-            const p = A.plans[k], pr = price(k), hot = k === 'trainer'
+        {/* Təlimçi planları — iştirakçı sayına görə (host ödəyir, iştirakçı heç vaxt) */}
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {(['free', 'trainer', 'pro', 'business'] as const).map((k) => {
+            const p = A.plans[k], pr = price(k), hot = k === 'pro'
             return (
               <div key={k} className={`relative flex flex-col gap-4 p-6 ${hot ? 'glass-strong gradient-border' : 'glass'}`}>
                 {hot && <span className="chip absolute -top-3 left-6 bg-white text-ink"><Sparkles className="h-3.5 w-3.5 text-brand" />{A.popular}</span>}
@@ -60,15 +61,35 @@ export default function Pricing() {
                   <p className="text-sm text-white/60">{p.desc}</p>
                 </div>
                 <div className="font-display text-3xl font-black">
-                  {k === 'student' ? (pr?.price || A.free) : pr?.price ? <>{pr.price}<span className="text-base font-semibold text-white/55"> {pr.period}</span></> : <span className="text-xl">{A.priceOnRequest}</span>}
+                  {pr?.price ? <>{pr.price}<span className="text-base font-semibold text-white/55"> {pr.period}</span></> : <span className="text-xl">{A.priceOnRequest}</span>}
                 </div>
                 <ul className="flex flex-1 flex-col gap-2">
                   {p.feats.map((x) => <li key={x} className="flex items-start gap-2 text-sm text-white/80"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />{x}</li>)}
                 </ul>
+                {k === 'free'
+                  ? <Link to={user ? '/admin' : '/start'} className="btn btn-ghost w-full">{A.start}</Link>
+                  : <a href="#request" onClick={() => setPlan(k)} className={`btn w-full ${hot ? 'btn-primary' : 'btn-ghost'}`}>{A.getLicense}</a>}
+                {k !== 'free' && <p className="text-center text-xs text-white/50">{A.freeTrial}</p>}
+              </div>
+            )
+          })}
+        </section>
+        <section className="grid gap-4 lg:grid-cols-3">
+          {(['student', 'institution', 'event'] as const).map((k) => {
+            const p = A.plans[k], pr = price(k)
+            return (
+              <div key={k} className="glass flex flex-col gap-3 p-6">
+                <div className="flex items-baseline justify-between gap-3">
+                  <h2 className="text-xl font-black">{p.title}</h2>
+                  <span className="font-display text-xl font-black">{k === 'student' ? (pr?.price || A.free) : pr?.price ? <>{pr.price}<span className="text-sm font-semibold text-white/55"> {pr.period}</span></> : <span className="text-sm font-semibold text-white/70">{A.priceOnRequest}</span>}</span>
+                </div>
+                <p className="text-sm text-white/60">{p.desc}</p>
+                <ul className="flex flex-1 flex-col gap-1.5">
+                  {p.feats.map((x) => <li key={x} className="flex items-start gap-2 text-sm text-white/80"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />{x}</li>)}
+                </ul>
                 {k === 'student'
                   ? <Link to={user ? '/learn' : '/start?next=/learn'} className="btn btn-ghost w-full">{A.start}</Link>
-                  : <a href="#request" onClick={() => setPlan(k)} className={`btn w-full ${hot ? 'btn-primary' : 'btn-ghost'}`}>{A.getLicense}</a>}
-                {k !== 'student' && <p className="text-center text-xs text-white/50">{A.freeTrial}</p>}
+                  : <a href="#request" onClick={() => setPlan(k)} className="btn btn-ghost w-full">{A.getLicense}</a>}
               </div>
             )
           })}
@@ -94,7 +115,7 @@ export default function Pricing() {
                   <div>
                     <span className="label-dark">{A.plan}</span>
                     <div className="flex flex-wrap gap-2">
-                      {(['trainer', 'institution', 'custom'] as PlanKey[]).map((k) => (
+                      {(['trainer', 'pro', 'business', 'institution', 'event', 'custom'] as PlanKey[]).map((k) => (
                         <button key={k} type="button" aria-pressed={plan === k} onClick={() => setPlan(k)} className={`rounded-xl border px-3 py-2 text-sm font-semibold ${plan === k ? 'border-transparent' : 'border-white/15 bg-white/5 text-white/75'}`} style={plan === k ? { background: 'var(--grad)' } : undefined}>
                           {k === 'custom' ? A.planCustom : A.plans[k].title}
                         </button>

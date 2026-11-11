@@ -43,6 +43,18 @@ jobs:
           rsync -az --delete dist/ "$SSH_USER@$SSH_HOST:/opt/jabr/web/"
           rsync -az --delete --exclude node_modules --exclude dist server/ "$SSH_USER@$SSH_HOST:/opt/jabr/server/"
           rsync -az --exclude .env deploy/ "$SSH_USER@$SSH_HOST:/opt/jabr/deploy/"
+      - name: Server sirləri (.env) — GitHub Secrets-dən, stdin ilə (loglarda görünmür)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          for name in GROQ_API_KEY BREVO_API_KEY; do
+            val="${!name}"; [ -n "$val" ] || continue
+            printf '%s' "$val" | ssh "$SSH_USER@$SSH_HOST" "v=\$(cat); f=/opt/jabr/deploy/.env; grep -v '^$name=' \$f > \$f.tmp || true; printf '%s=%s\n' '$name' \"\$v\" >> \$f.tmp; chmod 600 \$f.tmp; mv \$f.tmp \$f"
+            echo "$name → .env"
+          done
       - name: Xidmətləri qaldır
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}

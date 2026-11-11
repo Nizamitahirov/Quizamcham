@@ -8,6 +8,7 @@
 import Fastify, { type FastifyReply } from 'fastify'
 import { authFrom, authRoutes, bearer, migrateAuth, testHeader } from './auth.js'
 import { realtimeRoutes, realtimeStats } from './realtime.js'
+import { aiRoutes, migrateAi } from './ai.js'
 import { clearAll, commit, DbError, getDoc, migrate, pool, runQuery, type Query, type Write } from './store.js'
 
 const PORT = Number(process.env.PORT ?? 3000)
@@ -17,7 +18,8 @@ const startedAt = new Date()
 const STATUS: Record<string, number> = { 'permission-denied': 403, 'not-found': 404, 'invalid-argument': 400, 'failed-precondition': 412, unauthenticated: 401 }
 app.setErrorHandler((e: Error & { statusCode?: number; code?: string }, _req, reply: FastifyReply) => {
   if (e instanceof DbError) return reply.code(STATUS[e.code] ?? 400).send({ code: e.code, message: e.message })
-  if (e.code?.startsWith('auth/')) return reply.code(e.statusCode ?? 400).send({ code: e.code, message: e.message })
+  if (e.code?.startsWith('auth/') || e.code?.startsWith('ai-') || e.code === 'plan-required') return reply.code(e.statusCode ?? 400).send({ code: e.code, message: e.message })
+  if (e.code && e.statusCode && ['unauthenticated', 'permission-denied', 'invalid-argument'].includes(e.code)) return reply.code(e.statusCode).send({ code: e.code, message: e.message })
   if (e.statusCode && e.statusCode < 500) return reply.code(e.statusCode).send({ code: 'invalid-argument', message: e.message })
   app.log.error(e)
   return reply.code(500).send({ code: 'internal', message: 'internal error' })
@@ -46,6 +48,7 @@ if (process.env.ALLOW_TEST_AUTH === '1') {
 }
 
 authRoutes(app)
+aiRoutes(app)
 await realtimeRoutes(app)
 
 const shutdown = async () => { await app.close(); await pool.end(); process.exit(0) }
@@ -54,4 +57,5 @@ process.on('SIGINT', shutdown)
 
 await migrate()
 await migrateAuth()
+await migrateAi()
 await app.listen({ port: PORT, host: process.env.HOST ?? '0.0.0.0' })

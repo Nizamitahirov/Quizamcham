@@ -77,7 +77,7 @@ export type AdminState = {
 }
 
 const NONE: Perms = effectivePerms(null, null, undefined)
-const NO_PLAN: PlanInfo = { selfServe: false, licensed: false, endsAt: null, active: true, free: false }
+const NO_PLAN: PlanInfo = { selfServe: false, licensed: false, endsAt: null, active: true, free: false, tier: 'free', trial: false, players: 10 }
 const NO_ORG: OrgInfo = { role: null, id: '', seats: 0 }
 
 /**

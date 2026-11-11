@@ -247,7 +247,7 @@ export const CONTACT = { phone: '+994997777009', phoneLabel: '+994 99 777 70 09'
 export type LeadStatus = 'new' | 'contacted' | 'won' | 'lost'
 export interface LicenseRequest {
   id: string; uid: string; email: string; name: string; phone: string; organization?: string
-  plan: 'trainer' | 'institution' | 'custom'; seats?: string; message?: string; status: LeadStatus; note?: string; createdAt?: Timestamp
+  plan: 'trainer' | 'pro' | 'business' | 'institution' | 'event' | 'custom'; seats?: string; message?: string; status: LeadStatus; note?: string; createdAt?: Timestamp
 }
 
 export async function requestLicense(r: Omit<LicenseRequest, 'id' | 'uid' | 'status' | 'createdAt' | 'note'>) {
@@ -257,11 +257,15 @@ export async function requestLicense(r: Omit<LicenseRequest, 'id' | 'uid' | 'sta
   })
 }
 
-export interface PricePlan { key: 'student' | 'trainer' | 'institution'; price: string; period: string }
+export interface PricePlan { key: 'student' | 'free' | 'trainer' | 'pro' | 'business' | 'institution' | 'event'; price: string; period: string }
 export const DEFAULT_PRICES: PricePlan[] = [
   { key: 'student', price: '0 ₼', period: '' },
-  { key: 'trainer', price: '', period: '' },
+  { key: 'free', price: '0 ₼', period: '' },
+  { key: 'trainer', price: '15 ₼', period: '/ay' },
+  { key: 'pro', price: '35 ₼', period: '/ay' },
+  { key: 'business', price: '79 ₼', period: '/ay' },
   { key: 'institution', price: '', period: '' },
+  { key: 'event', price: '199 ₼', period: '' },
 ]
 export async function loadPricing(): Promise<PricePlan[]> {
   const s = await getDoc(doc(db, 'settings', 'pricing')).catch(() => null)
@@ -313,8 +317,8 @@ export async function loadConsole(): Promise<ConsoleData> {
   }
 }
 
-export interface LicenseRecord { id: string; uid: string; email: string; plan: 'pro' | 'institution' | 'revoked'; seats: number; from?: Timestamp; until?: Timestamp; amount: number; currency: string; note?: string; by: string; at?: Timestamp }
-export interface LicenseInput { plan: 'pro' | 'institution'; seats: number; until: Date; amount: number; note?: string }
+export interface LicenseRecord { id: string; uid: string; email: string; plan: 'trainer' | 'pro' | 'business' | 'institution' | 'revoked'; seats: number; from?: Timestamp; until?: Timestamp; amount: number; currency: string; note?: string; by: string; at?: Timestamp }
+export interface LicenseInput { plan: 'trainer' | 'pro' | 'business' | 'institution'; seats: number; until: Date; amount: number; note?: string }
 
 /** Lisenziya ver/yenilə: üzvlük sənədi + tarixçə qeydi (məbləğ — gəlir hesabatı üçün). */
 export async function grantLicense(uid: string, email: string, l: LicenseInput) {

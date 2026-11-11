@@ -35,10 +35,10 @@ export default function QuizList() {
   const filtered = useMemo(() => (items ?? []).filter((x) => `${x.title} ${x.description} ${(x.tags ?? []).join(' ')}`.toLocaleLowerCase('az-AZ').includes(q.toLocaleLowerCase('az-AZ')) && (!tag || (x.tags ?? []).includes(tag))), [items, q, tag])
   const allTags = useMemo(() => [...new Set((items ?? []).flatMap((x) => x.tags ?? []))].sort(), [items])
 
-  const importData = async (raw: unknown) => {
+  const importData = async (raw: unknown, fromAi = false) => {
     const { quiz, questions } = parseQuizJson(raw)
     const id = await createQuiz(user!.uid, quiz, questions)
-    nav(`/admin/quiz/${id}`)
+    nav(`/admin/quiz/${id}`, fromAi ? { state: { ai: true } } : undefined)
   }
   const onFile = async (f: File | undefined) => {
     if (!f) return
