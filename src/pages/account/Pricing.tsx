@@ -55,7 +55,7 @@ export default function Pricing() {
             const p = A.plans[k], pr = price(k), hot = k === 'pro'
             return (
               <div key={k} className={`relative flex flex-col gap-4 p-6 ${hot ? 'glass-strong gradient-border' : 'glass'}`}>
-                {hot && <span className="chip absolute -top-3 left-6 bg-white text-ink"><Sparkles className="h-3.5 w-3.5 text-brand" />{A.popular}</span>}
+                {hot && <span className="chip absolute -top-3 left-6 bg-white text-onlight shadow-lg"><Sparkles className="h-3.5 w-3.5 text-brand" />{A.popular}</span>}
                 <div>
                   <h2 className="text-2xl font-black">{p.title}</h2>
                   <p className="text-sm text-white/60">{p.desc}</p>

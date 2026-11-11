@@ -29,7 +29,7 @@ export default function GameReport() {
     void getDoc(doc(db, 'games', gameId)).then((s) => setGame(s.exists() ? ({ ...(s.data() as Game), id: s.id }) : null))
     void loadReport(gameId).then(setR).catch(() => setDenied(true))
   }, [gameId, tick])
-  if (denied) return <div className="mx-auto max-w-3xl p-8"><p className="card p-6 text-sm font-semibold text-amber-800">{t.admin.noAccess}</p></div>
+  if (denied) return <div className="mx-auto max-w-3xl p-8"><p className="card p-6 text-sm font-semibold text-amber-300">{t.admin.noAccess}</p></div>
   if (!r || !game) return <div className="p-10"><Spinner /></div>
   const pct = (x: number) => `${Math.round(x * 100)}%`
   return (
@@ -123,7 +123,7 @@ export default function GameReport() {
                   {Object.entries(s.distribution).sort((a, b) => b[1] - a[1]).slice(0, 15).map(([k, n]) => <span key={k} className="rounded-lg bg-surface px-2 py-1 text-sm">{k} ×{n}</span>)}
                 </div>
               )}
-              {s.mostWrong && <p className="mt-3 text-sm text-red-700"><b>{t.games.mostWrong}:</b> {s.mostWrong}</p>}
+              {s.mostWrong && <p className="mt-3 text-sm text-red-300"><b>{t.games.mostWrong}:</b> {s.mostWrong}</p>}
               {s.q.type === 'open' && <AiGradeOpen question={s.q.text} answers={Object.keys(s.distribution)} />}
             </div>
           )

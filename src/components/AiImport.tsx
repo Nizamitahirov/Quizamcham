@@ -66,8 +66,8 @@ export function AiImport({ open, onClose, onImport }: { open: boolean; onClose: 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {(['material', 'topic', 'json'] as Tab[]).map((k) => (
           <button key={k} type="button" aria-pressed={tab === k} onClick={() => { setTab(k); setErr('') }}
-            className={`rounded-xl px-3 py-2 text-sm font-semibold ${tab === k ? 'bg-ink text-white' : 'bg-surface text-[#4A4E69] hover:bg-line'}`}>
-            {A.tabs[k]}{k === 'material' && <span className="ml-1.5 rounded-full bg-green-100 px-1.5 py-0.5 text-[10px] font-bold text-green-700">{A.recommended}</span>}
+            className={`rounded-xl px-3 py-2 text-sm font-semibold ${tab === k ? 'bg-raised2 text-fg ring-1 ring-line-strong' : 'text-muted hover:bg-white/[.04] hover:text-fg'}`}>
+            {A.tabs[k]}{k === 'material' && <span className="ml-1.5 rounded-full bg-green-500/15 px-1.5 py-0.5 text-[10px] font-bold text-green-300">{A.recommended}</span>}
           </button>
         ))}
         {quota && tab !== 'json' && (
@@ -84,11 +84,11 @@ export function AiImport({ open, onClose, onImport }: { open: boolean; onClose: 
             <div><label className="label">{t.admin.aiTopic}</label><input className="input" placeholder={t.admin.aiTopicPh} value={topic} onChange={(e) => setTopic(e.target.value)} /></div>
             <div><label className="label">{t.admin.aiCount}</label><input type="number" min={3} max={30} className="input" value={count} onChange={(e) => setCount(Math.max(3, Math.min(30, Number(e.target.value) || 10)))} /></div>
           </div>
-          <pre className="scrollbar-thin mt-3 max-h-32 overflow-auto whitespace-pre-wrap rounded-xl bg-surface p-3 text-xs text-[#4A4E69]">{prompt}</pre>
+          <pre className="scrollbar-thin mt-3 max-h-32 overflow-auto whitespace-pre-wrap rounded-xl bg-surface p-3 text-xs text-fg2">{prompt}</pre>
           <button className="btn btn-soft mt-2" onClick={() => void navigator.clipboard.writeText(prompt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000) }, () => {})}>{copied ? <><Check />{t.admin.aiCopied}</> : <><ClipboardCopy />{t.admin.aiCopy}</>}</button>
           <label className="label mt-4">{t.admin.aiPaste}</label>
           <textarea className="input min-h-36 font-mono text-xs" value={json} onChange={(e) => setJson(e.target.value)} placeholder='{ "title": "…", "questions": [ … ] }' />
-          {err && <p className="mt-2 text-sm font-semibold text-red-600" role="alert">{err}</p>}
+          {err && <p className="mt-2 text-sm font-semibold text-red-300" role="alert">{err}</p>}
           <div className="mt-4 flex justify-end"><button className="btn btn-primary" disabled={!json.trim() || busy} onClick={() => void doImport()}><Upload />{t.admin.aiImport}</button></div>
         </>
       ) : (
@@ -112,7 +112,7 @@ export function AiImport({ open, onClose, onImport }: { open: boolean; onClose: 
             <>
               <label className="label">{t.admin.aiTopic}</label>
               <input className="input" placeholder={t.admin.aiTopicPh} value={topic} maxLength={300} onChange={(e) => setTopic(e.target.value)} />
-              <p className="mt-2 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{A.topicWarn}</p>
+              <p className="mt-2 flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-300"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{A.topicWarn}</p>
             </>
           )}
           <div className="mt-4 grid gap-3 sm:grid-cols-3">
@@ -131,12 +131,12 @@ export function AiImport({ open, onClose, onImport }: { open: boolean; onClose: 
           <p className="label mt-3">{A.types}</p>
           <div className="flex flex-wrap gap-2">
             {TYPES.map((k) => (
-              <label key={k} className="flex cursor-pointer items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm has-[:checked]:border-brand has-[:checked]:bg-red-50">
+              <label key={k} className="flex cursor-pointer items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm has-[:checked]:border-brand has-[:checked]:bg-red-500/10">
                 <input type="checkbox" checked={types.includes(k)} onChange={(e) => setTypes((x) => (e.target.checked ? [...x, k] : x.filter((y) => y !== k)))} />{t.types[k]}
               </label>
             ))}
           </div>
-          {err && <p className="mt-3 text-sm font-semibold text-red-600" role="alert">{err}{err === A.errors['ai-quota'] && <Link to="/pricing" className="ml-2 underline">{t.premium.upgrade}</Link>}</p>}
+          {err && <p className="mt-3 text-sm font-semibold text-red-300" role="alert">{err}{err === A.errors['ai-quota'] && <Link to="/pricing" className="ml-2 underline">{t.premium.upgrade}</Link>}</p>}
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
             <p className="flex items-center gap-1.5 text-xs text-muted"><Sparkles className="h-3.5 w-3.5" />{A.reviewNote}</p>
             <button className="btn btn-primary" disabled={!canGen} onClick={() => void generate()}>

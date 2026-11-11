@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/dialogs'
 import { useCallback, useEffect, useState } from 'react'
 import { fmtDateTime } from '../../lib/format'
 import { useOutletContext } from 'react-router-dom'
@@ -23,7 +24,7 @@ export default function Games() {
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">
       <PageHeader title={t.games.title} />
-      {msg && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800" role="status">{msg}</p>}
+      {msg && <p className="mb-4 rounded-xl bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300" role="status">{msg}</p>}
       {!rows ? <Spinner /> : rows.length === 0 ? <p className="card p-8 text-center text-muted">{t.games.empty}</p> : (
         <>
         {/* telefon: kartlar (cədvəl dar ekranda sağa sürüşürdü) */}
@@ -35,12 +36,12 @@ export default function Games() {
                   <div className="break-words font-bold">{g.title}</div>
                   <div className="mt-0.5 text-xs text-muted">{g.createdAt ? fmtDateTime(g.createdAt.toDate()) : ''} · PIN <span className="font-mono">{g.pin}</span> · {g.playerCount ?? 0} {t.games.players.toLowerCase()}</div>
                 </div>
-                <span className={`chip shrink-0 ${g.phase === 'finished' ? 'bg-surface text-[#4A4E69]' : 'bg-green-100 text-green-700'}`}>{g.phase ? t.games.phases[g.phase] : ''}</span>
+                <span className={`chip shrink-0 ${g.phase === 'finished' ? 'bg-surface text-fg2' : 'bg-green-500/15 text-green-300'}`}>{g.phase ? t.games.phases[g.phase] : ''}</span>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 {g.phase !== 'finished' && <Link className="btn btn-soft btn-sm" to={`/host/${g.id}`}><MonitorPlay />{t.games.host}</Link>}
                 <Link className="btn btn-secondary btn-sm" to={`/admin/games/${g.id}`}><BarChart3 />{t.games.open}</Link>
-                <button className="btn btn-ghost-dark btn-sm btn-icon ml-auto text-red-600" aria-label={t.games.delete} onClick={async () => { if (confirm(`${t.games.delete}?`)) { try { await deleteGame(g.id, g.pin); void logAudit('game_deleted', { target: g.id, details: { pin: g.pin } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
+                <button className="btn btn-ghost-dark btn-sm btn-icon ml-auto text-red-300" aria-label={t.games.delete} onClick={async () => { if ((await confirmDialog({ title: `${t.games.delete}?`, danger: true }))) { try { await deleteGame(g.id, g.pin); void logAudit('game_deleted', { target: g.id, details: { pin: g.pin } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
               </div>
             </li>
           ))}
@@ -57,11 +58,11 @@ export default function Games() {
                   <td className="p-3 font-bold">{g.title}</td>
                   <td className="p-3 font-mono">{g.pin}</td>
                   <td className="p-3">{g.playerCount ?? 0}</td>
-                  <td className="p-3"><span className={`chip ${g.phase === 'finished' ? 'bg-surface text-[#4A4E69]' : 'bg-green-100 text-green-700'}`}>{g.phase ? t.games.phases[g.phase] : ''}</span></td>
+                  <td className="p-3"><span className={`chip ${g.phase === 'finished' ? 'bg-surface text-fg2' : 'bg-green-500/15 text-green-300'}`}>{g.phase ? t.games.phases[g.phase] : ''}</span></td>
                   <td className="flex flex-wrap justify-end gap-2 p-3">
                     {g.phase !== 'finished' && <Link className="btn btn-soft btn-sm" to={`/host/${g.id}`}><MonitorPlay />{t.games.host}</Link>}
                     <Link className="btn btn-secondary btn-sm" to={`/admin/games/${g.id}`}><BarChart3 />{t.games.open}</Link>
-                    <button className="btn btn-ghost-dark btn-sm btn-icon text-red-600" onClick={async () => { if (confirm(`${t.games.delete}?`)) { try { await deleteGame(g.id, g.pin); void logAudit('game_deleted', { target: g.id, details: { pin: g.pin } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
+                    <button className="btn btn-ghost-dark btn-sm btn-icon text-red-300" onClick={async () => { if ((await confirmDialog({ title: `${t.games.delete}?`, danger: true }))) { try { await deleteGame(g.id, g.pin); void logAudit('game_deleted', { target: g.id, details: { pin: g.pin } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
                   </td>
                 </tr>
               ))}

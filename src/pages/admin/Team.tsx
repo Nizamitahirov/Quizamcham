@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { AlertTriangle, Ban, Check, Copy, Crown, KeyRound, Lock, Minus, RotateCcw, Save, ShieldCheck, ShieldAlert, SlidersHorizontal, Trash2, UserCog, UserPlus, Users, X } from 'lucide-react'
@@ -14,14 +15,14 @@ type Assignable = Exclude<Role, 'super'>
 const roleLabel = (r: Role) => (r === 'super' ? T.super : r === 'admin' ? T.admin : T.trainer)
 
 function RoleChip({ role }: { role: Role }) {
-  const cls = role === 'super' ? 'chip-brand' : role === 'admin' ? 'bg-ink text-white' : 'bg-surface text-[#4A4E69]'
+  const cls = role === 'super' ? 'chip-brand' : role === 'admin' ? 'chip-info' : 'chip-muted'
   return <span className={`chip whitespace-nowrap ${cls}`}>{role === 'super' && <Crown className="h-3.5 w-3.5" />}{roleLabel(role)}</span>
 }
 
 function Toggle({ on, onChange, disabled, label }: { on: boolean; onChange?: (v: boolean) => void; disabled?: boolean; label: string }) {
   return (
     <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled} onClick={() => onChange?.(!on)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:cursor-not-allowed ${on ? '' : 'bg-slate-300'} ${disabled ? 'opacity-60' : ''}`}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:cursor-not-allowed ${on ? '' : 'bg-white/15'} ${disabled ? 'opacity-60' : ''}`}
       style={on ? { background: 'var(--grad)' } : undefined}>
       <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? 'left-[1.375rem]' : 'left-0.5'}`} />
     </button>
@@ -52,7 +53,7 @@ export default function Team() {
     return (
       <div className="mx-auto max-w-3xl p-4 sm:p-8">
         <PageHeader title={T.title} sub={T.sub} />
-        <p className="card flex items-center gap-2 p-4 text-sm font-semibold text-amber-800"><ShieldAlert className="h-4 w-4" />{t.access.noPerm}</p>
+        <p className="card flex items-center gap-2 p-4 text-sm font-semibold text-amber-300"><ShieldAlert className="h-4 w-4" />{t.access.noPerm}</p>
       </div>
     )
   }
@@ -67,7 +68,7 @@ export default function Team() {
   return (
     <div className="mx-auto max-w-[1440px] p-4 sm:p-8">
       <PageHeader title={T.title} sub={T.sub} />
-      {msg && <p className={`mb-4 rounded-xl px-4 py-3 text-sm font-semibold ${msg.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700'}`} role="status">{msg.text}</p>}
+      {msg && <p className={`mb-4 rounded-xl px-4 py-3 text-sm font-semibold ${msg.ok ? 'bg-green-500/10 text-green-300' : 'bg-red-500/10 text-red-300'}`} role="status">{msg.text}</p>}
 
       <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi icon={Users} label={T.kpi.total} value={stats.total} />
@@ -107,7 +108,7 @@ export default function Team() {
 function Kpi({ icon: Icon, label, value, sub, warn }: { icon: typeof Users; label: string; value: number; sub?: string; warn?: boolean }) {
   return (
     <div className="card flex items-center gap-4 p-4">
-      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${warn ? 'bg-amber-50 text-amber-700' : 'text-brand'}`} style={warn ? undefined : { background: 'var(--grad-soft)' }}><Icon className="h-5 w-5" /></span>
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${warn ? 'bg-amber-500/10 text-amber-300' : 'text-brand'}`} style={warn ? undefined : { background: 'var(--grad-soft)' }}><Icon className="h-5 w-5" /></span>
       <div className="min-w-0">
         <div className="font-display text-2xl font-black leading-none tabular-nums">{value}</div>
         <div className="mt-1 truncate text-xs font-semibold text-muted" title={sub}>{label}</div>
@@ -124,16 +125,16 @@ function MemberRow({ r, me, access, open, onTogglePerms, run }: {
   const can = canManageMember(me.role, me.user?.uid, r)
   const overrides = Object.keys(r.perms ?? {}).length
   return (
-    <li className={r.disabled ? 'bg-slate-50/60' : ''}>
+    <li className={r.disabled ? 'opacity-60' : ''}>
       <div className="flex flex-wrap items-center gap-3 px-5 py-3.5">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-white" style={{ background: r.disabled ? '#9CA3AF' : 'var(--grad)' }}>{(r.name || r.email)[0]?.toUpperCase()}</span>
         <div className="min-w-[10rem] flex-1">
           <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
             <span className="truncate">{r.name || r.email.split('@')[0]}</span>
             {r.uid === me.user?.uid && <span className="font-normal text-muted">({T.you})</span>}
-            {r.disabled && <span className="chip bg-red-50 text-red-700"><Ban className="h-3 w-3" />{T.restricted}</span>}
-            {!r.disabled && r.mustChangePassword && <span className="chip bg-amber-50 text-amber-800">{T.pendingPassword}</span>}
-            {overrides > 0 && <span className="chip bg-blue-50 text-blue-800"><SlidersHorizontal className="h-3 w-3" />{T.overrides(overrides)}</span>}
+            {r.disabled && <span className="chip bg-red-500/10 text-red-300"><Ban className="h-3 w-3" />{T.restricted}</span>}
+            {!r.disabled && r.mustChangePassword && <span className="chip bg-amber-500/10 text-amber-300">{T.pendingPassword}</span>}
+            {overrides > 0 && <span className="chip bg-blue-500/10 text-blue-300"><SlidersHorizontal className="h-3 w-3" />{T.overrides(overrides)}</span>}
           </div>
           <div className="truncate text-xs text-muted">{r.email}</div>
         </div>
@@ -147,11 +148,11 @@ function MemberRow({ r, me, access, open, onTogglePerms, run }: {
               <button className={`btn btn-ghost-dark btn-icon btn-sm ${open ? 'bg-surface' : ''}`} title={T.personal} aria-label={T.personal} aria-expanded={open} onClick={onTogglePerms}><SlidersHorizontal /></button>
             )}
             <button className="btn btn-ghost-dark btn-icon btn-sm" title={T.reset} aria-label={T.reset}
-              onClick={() => { if (confirm(T.resetConfirm(r.email))) void run(() => sendReset(r), T.resetSent(r.email)) }}><KeyRound /></button>
-            <button className={`btn btn-ghost-dark btn-icon btn-sm ${r.disabled ? 'text-green-700' : 'text-amber-700'}`} title={r.disabled ? T.unrestrict : T.restrict} aria-label={r.disabled ? T.unrestrict : T.restrict}
-              onClick={() => { if (r.disabled || confirm(T.restrictConfirm(r.email))) void run(() => setRestricted(r, !r.disabled)) }}>{r.disabled ? <ShieldCheck /> : <Ban />}</button>
-            <button className="btn btn-ghost-dark btn-icon btn-sm text-red-600" title={T.remove} aria-label={T.remove}
-              onClick={() => { if (confirm(T.removeConfirm(r.email))) void run(() => removeMember(r)) }}><Trash2 /></button>
+              onClick={async () => { if ((await confirmDialog({ title: T.resetConfirm(r.email) }))) void run(() => sendReset(r), T.resetSent(r.email)) }}><KeyRound /></button>
+            <button className={`btn btn-ghost-dark btn-icon btn-sm ${r.disabled ? 'text-green-300' : 'text-amber-300'}`} title={r.disabled ? T.unrestrict : T.restrict} aria-label={r.disabled ? T.unrestrict : T.restrict}
+              onClick={async () => { if (r.disabled || (await confirmDialog({ title: T.restrictConfirm(r.email), danger: true }))) void run(() => setRestricted(r, !r.disabled)) }}>{r.disabled ? <ShieldCheck /> : <Ban />}</button>
+            <button className="btn btn-ghost-dark btn-icon btn-sm text-red-300" title={T.remove} aria-label={T.remove}
+              onClick={async () => { if ((await confirmDialog({ title: T.removeConfirm(r.email), danger: true }))) void run(() => removeMember(r)) }}><Trash2 /></button>
           </div>
         ) : r.role === 'super' ? <span className="flex items-center gap-1 text-xs font-semibold text-muted"><Lock className="h-3.5 w-3.5" />{T.protected}</span> : null}
       </div>
@@ -185,7 +186,7 @@ function PersonalPerms({ r, access, onClose, run }: { r: AdminRow; access: Acces
           const def = roleDefault(role, access, k)
           const v = draft[k] === undefined ? 'inherit' : draft[k] ? 'allow' : 'deny'
           return (
-            <div key={k} className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-white px-3 py-2">
+            <div key={k} className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-panel px-3 py-2">
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold">{T.perms[k]}</div>
                 <div className="text-[11px] text-muted">{T.roleSays(def)}</div>
@@ -226,11 +227,11 @@ function AddMember({ superAdmin, onAdded }: { superAdmin: boolean; onAdded: () =
           ? <Field label={T.role}><Segmented value={newRole} options={[{ value: 'trainer', label: T.trainer }, { value: 'admin', label: T.admin }]} onChange={setNewRole} /></Field>
           : <p className="text-xs text-muted">{T.role}: <b>{T.trainer}</b></p>}
         <button className="btn btn-primary mt-auto" disabled={busy}><UserPlus />{T.add}</button>
-        {err && <p className="text-sm font-semibold text-red-600" role="alert">{err}</p>}
+        {err && <p className="text-sm font-semibold text-red-300" role="alert">{err}</p>}
         {created && (
-          <div className="rounded-xl bg-green-50 p-3 text-sm text-green-900">
+          <div className="rounded-xl bg-green-500/10 p-3 text-sm text-green-300">
             <p className="mb-2">{T.created}</p>
-            <div className="flex items-center gap-2 rounded-lg bg-white p-2 font-mono text-xs"><span className="flex-1 truncate">{created.email} · {created.password}</span>
+            <div className="flex items-center gap-2 rounded-lg bg-panel p-2 font-mono text-xs"><span className="flex-1 truncate">{created.email} · {created.password}</span>
               <button type="button" className="btn btn-ghost-dark btn-icon btn-sm" aria-label="Copy" onClick={() => void navigator.clipboard.writeText(`${created.email}\n${created.password}`)}><Copy /></button></div>
           </div>
         )}
@@ -257,7 +258,7 @@ function RolePermissions({ editable, access, onSaved, className = '' }: { editab
   }
   const cell = (on: boolean, onChange?: (v: boolean) => void, label = '') => (
     <td className="px-3 py-3 text-center">
-      <div className="flex justify-center">{onChange ? <Toggle on={on} onChange={onChange} disabled={!editable} label={label} /> : on ? <Check className="h-4 w-4 text-green-600" aria-label="✓" /> : <Minus className="h-4 w-4 text-slate-300" aria-label="—" />}</div>
+      <div className="flex justify-center">{onChange ? <Toggle on={on} onChange={onChange} disabled={!editable} label={label} /> : on ? <Check className="h-4 w-4 text-green-300" aria-label="✓" /> : <Minus className="h-4 w-4 text-slate-300" aria-label="—" />}</div>
     </td>
   )
   return (
@@ -268,7 +269,7 @@ function RolePermissions({ editable, access, onSaved, className = '' }: { editab
           <button className="btn btn-primary btn-sm" disabled={!dirty || busy} onClick={() => void save()}><Save />{T.save}</button>
         </div>
       ) : undefined} bodyClassName="p-0">
-      {err && <p className="mx-5 mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{err}</p>}
+      {err && <p className="mx-5 mt-4 rounded-xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300">{err}</p>}
       {/* Telefon: hər icazə ayrıca kart, rol açarları altında */}
       <div className="divide-y divide-line md:hidden">
         {PERM_GROUPS.map((g) => (
@@ -279,7 +280,7 @@ function RolePermissions({ editable, access, onSaved, className = '' }: { editab
                 <div className="font-semibold">{T.perms[k]}</div>
                 <div className="text-xs text-muted">{T.permDesc[k]}</div>
                 <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold">
-                  <span className="flex items-center gap-1.5 text-muted"><Check className="h-4 w-4 text-green-600" />{T.super}</span>
+                  <span className="flex items-center gap-1.5 text-muted"><Check className="h-4 w-4 text-green-300" />{T.super}</span>
                   <label className="flex items-center gap-2">{T.admin}<Toggle on={!!draft.admin[k]} disabled={!editable} label={`${T.admin}: ${T.perms[k]}`} onChange={(v) => setDraft((d) => ({ ...d, admin: { ...d.admin, [k]: v } }))} /></label>
                   <label className="flex items-center gap-2">{T.trainer}<Toggle on={!!draft.trainer[k]} disabled={!editable} label={`${T.trainer}: ${T.perms[k]}`} onChange={(v) => setDraft((d) => ({ ...d, trainer: { ...d.trainer, [k]: v } }))} /></label>
                 </div>

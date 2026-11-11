@@ -111,7 +111,7 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
         </div>
         {myAwards.length > 0 && (
           <div className="relative flex flex-wrap justify-center gap-2 pt-1">
-            {myAwards.map((a) => <span key={a.key} className="chip bg-yellow-300 font-black text-ink">{t.awards[a.key]}</span>)}
+            {myAwards.map((a) => <span key={a.key} className="chip bg-yellow-300 font-black text-onlight">{t.awards[a.key]}</span>)}
           </div>
         )}
       </motion.div>

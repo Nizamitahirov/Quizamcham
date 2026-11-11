@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/dialogs'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useOutletContext } from 'react-router-dom'
 import { Ban, Building2, Copy, KeyRound, ShieldCheck, Trash2, UserPlus, Users } from 'lucide-react'
@@ -22,7 +23,7 @@ export default function OrgTeam() {
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null)
   const reload = useCallback(() => { if (org.role === 'owner') void listOrgMembers(org.id).then(setRows).catch(() => setRows([])) }, [org.role, org.id])
   useEffect(reload, [reload])
-  if (org.role !== 'owner') return <div className="mx-auto max-w-3xl p-8"><p className="card p-6 text-sm font-semibold text-amber-800">{t.access.noPerm}</p></div>
+  if (org.role !== 'owner') return <div className="mx-auto max-w-3xl p-8"><p className="card p-6 text-sm font-semibold text-amber-300">{t.access.noPerm}</p></div>
   const used = rows?.length ?? 0
   const full = used >= org.seats
   const act = async (fn: () => Promise<unknown>, ok?: string) => { setMsg(null); try { await fn(); if (ok) setMsg({ ok: true, text: ok }) } catch { setMsg({ ok: false, text: T.errors.failed }) } reload() }
@@ -38,7 +39,7 @@ export default function OrgTeam() {
   return (
     <div className="mx-auto max-w-[1440px] p-4 sm:p-8">
       <PageHeader title={O.title} sub={O.sub}><Link to="/pricing#request" className="btn btn-secondary">{O.moreSeats}</Link></PageHeader>
-      {msg && <p className={`mb-4 rounded-xl px-4 py-3 text-sm font-semibold ${msg.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700'}`} role="status">{msg.text}</p>}
+      {msg && <p className={`mb-4 rounded-xl px-4 py-3 text-sm font-semibold ${msg.ok ? 'bg-green-500/10 text-green-300' : 'bg-red-500/10 text-red-300'}`} role="status">{msg.text}</p>}
       <div className="card mb-4 flex flex-wrap items-center gap-4 p-5">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl text-brand" style={{ background: 'var(--grad-soft)' }}><Building2 /></span>
         <div className="min-w-0 flex-1">
@@ -58,15 +59,15 @@ export default function OrgTeam() {
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-white" style={{ background: m.disabled ? '#9CA3AF' : 'var(--grad)' }}>{(m.name || m.email)[0]?.toUpperCase()}</span>
                   <div className="min-w-[10rem] flex-1">
                     <div className="flex flex-wrap items-center gap-2 text-sm font-bold"><span className="truncate">{m.name || m.email.split('@')[0]}</span>
-                      {m.disabled && <span className="chip bg-red-50 text-red-700"><Ban className="h-3 w-3" />{T.restricted}</span>}
-                      {!m.disabled && m.mustChangePassword && <span className="chip bg-amber-50 text-amber-800">{T.pendingPassword}</span>}</div>
+                      {m.disabled && <span className="chip bg-red-500/10 text-red-300"><Ban className="h-3 w-3" />{T.restricted}</span>}
+                      {!m.disabled && m.mustChangePassword && <span className="chip bg-amber-500/10 text-amber-300">{T.pendingPassword}</span>}</div>
                     <div className="truncate text-xs text-muted">{m.email}</div>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button className="btn btn-ghost-dark btn-icon btn-sm" title={T.reset} aria-label={T.reset} onClick={() => { if (confirm(T.resetConfirm(m.email))) void act(() => resetOrgMember(m), T.resetSent(m.email)) }}><KeyRound /></button>
-                    <button className={`btn btn-ghost-dark btn-icon btn-sm ${m.disabled ? 'text-green-700' : 'text-amber-700'}`} title={m.disabled ? T.unrestrict : T.restrict} aria-label={m.disabled ? T.unrestrict : T.restrict}
-                      onClick={() => { if (m.disabled || confirm(T.restrictConfirm(m.email))) void act(() => setOrgMemberDisabled(m, !m.disabled)) }}>{m.disabled ? <ShieldCheck /> : <Ban />}</button>
-                    <button className="btn btn-ghost-dark btn-icon btn-sm text-red-600" title={T.remove} aria-label={T.remove} onClick={() => { if (confirm(T.removeConfirm(m.email))) void act(() => removeOrgMember(m)) }}><Trash2 /></button>
+                    <button className="btn btn-ghost-dark btn-icon btn-sm" title={T.reset} aria-label={T.reset} onClick={async () => { if ((await confirmDialog({ title: T.resetConfirm(m.email) }))) void act(() => resetOrgMember(m), T.resetSent(m.email)) }}><KeyRound /></button>
+                    <button className={`btn btn-ghost-dark btn-icon btn-sm ${m.disabled ? 'text-green-300' : 'text-amber-300'}`} title={m.disabled ? T.unrestrict : T.restrict} aria-label={m.disabled ? T.unrestrict : T.restrict}
+                      onClick={async () => { if (m.disabled || (await confirmDialog({ title: T.restrictConfirm(m.email), danger: true }))) void act(() => setOrgMemberDisabled(m, !m.disabled)) }}>{m.disabled ? <ShieldCheck /> : <Ban />}</button>
+                    <button className="btn btn-ghost-dark btn-icon btn-sm text-red-300" title={T.remove} aria-label={T.remove} onClick={async () => { if ((await confirmDialog({ title: T.removeConfirm(m.email), danger: true }))) void act(() => removeOrgMember(m)) }}><Trash2 /></button>
                   </div>
                 </li>
               ))}
@@ -77,12 +78,12 @@ export default function OrgTeam() {
           <form onSubmit={add} className="flex flex-1 flex-col gap-3">
             <Field label={T.email}><input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={full} /></Field>
             <Field label={T.name}><input className="input" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} disabled={full} /></Field>
-            {full && <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">{O.full}</p>}
+            {full && <p className="rounded-xl bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-300">{O.full}</p>}
             <button className="btn btn-primary mt-auto" disabled={busy || full || !admin.plan.active}><UserPlus />{O.add}</button>
             {created && (
-              <div className="rounded-xl bg-green-50 p-3 text-sm text-green-900">
+              <div className="rounded-xl bg-green-500/10 p-3 text-sm text-green-300">
                 <p className="mb-2">{O.created}</p>
-                <div className="flex items-center gap-2 rounded-lg bg-white p-2 font-mono text-xs"><span className="flex-1 truncate">{created.email} · {created.password}</span>
+                <div className="flex items-center gap-2 rounded-lg bg-panel p-2 font-mono text-xs"><span className="flex-1 truncate">{created.email} · {created.password}</span>
                   <button type="button" className="btn btn-ghost-dark btn-icon btn-sm" aria-label="Copy" onClick={() => void navigator.clipboard.writeText(`${created.email}\n${created.password}`)}><Copy /></button></div>
               </div>
             )}

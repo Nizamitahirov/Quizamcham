@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fmtTime } from '../../lib/format'
 import { Link, useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom'
@@ -165,8 +166,8 @@ export default function QuizEditor() {
     commit(quiz, next, [c.id])
     setSel(c.id)
   }
-  const delQ = (q: Question) => {
-    if (!confirm(t.editor.deleteQ)) return
+  const delQ = async (q: Question) => {
+    if (!(await confirmDialog({ title: t.editor.deleteQ, danger: true }))) return
     removed.current.push(q.id)
     dirty.current.delete(q.id)
     const i = questions.findIndex((x) => x.id === q.id)
@@ -197,14 +198,14 @@ export default function QuizEditor() {
       <div className="card mb-4 flex flex-wrap items-center gap-2 p-3">
         <Link to="/admin/quizzes" className="btn btn-ghost-dark btn-icon" aria-label={t.app.back}><ArrowLeft /></Link>
         <input className="input w-14 px-1 text-center text-2xl" aria-label={t.editor.coverEmoji} value={quiz.coverEmoji} maxLength={4} onChange={(e) => setQuizField({ coverEmoji: e.target.value })} />
-        <input type="color" aria-label={t.editor.coverColor} className="h-[46px] w-12 cursor-pointer rounded-xl border border-line bg-white p-1" value={quiz.coverColor} onChange={(e) => setQuizField({ coverColor: e.target.value })} />
+        <input type="color" aria-label={t.editor.coverColor} className="h-[46px] w-12 cursor-pointer rounded-xl border border-line bg-panel p-1" value={quiz.coverColor} onChange={(e) => setQuizField({ coverColor: e.target.value })} />
         <input className="input min-w-48 flex-1 text-base font-bold" aria-label={t.editor.title} placeholder={t.editor.title} value={quiz.title} maxLength={80} onChange={(e) => setQuizField({ title: e.target.value })} />
         <div className="flex flex-wrap items-center gap-1">
           <button className="btn btn-ghost-dark btn-icon" title={t.editor.preview} disabled={!current} onClick={() => setShowPreview(true)}><Eye /></button>
           <button className="btn btn-ghost-dark btn-icon" title={t.editor.exportJson} onClick={() => download(`${quiz.title || 'quiz'}.json`, JSON.stringify(quizToJson(quiz, questions), null, 2), 'application/json')}><Download /></button>
           <button className="btn btn-ghost-dark btn-icon" title={t.editor.undo} disabled={!undoCount} onClick={undo}><Undo2 /></button>
         </div>
-        <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-600' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
+        <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-300' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
           {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' && savedAt ? <CheckCircle2 className="h-4 w-4" /> : state === 'error' ? <AlertTriangle className="h-4 w-4" /> : null}{status}
         </span>
         {owner && quiz.ownerUid === admin.user?.uid && <CoEditors quizId={quiz.id} initial={quiz.editors ?? []} onChange={(editors) => setQuiz((x) => (x ? { ...x, editors } : x))} />}
@@ -212,7 +213,7 @@ export default function QuizEditor() {
           <PublishButton quizId={quiz.id} trusted={!!admin.perms.console} author={admin.user?.displayName || admin.user?.email?.split('@')[0] || ''} />
         )}
         {!readOnly && admin.perms.share && (
-          <button className={`btn ${quiz.shared ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={t.admin.shareHint} aria-pressed={!!quiz.shared}
+          <button className={`btn ${quiz.shared ? 'btn-secondary text-green-300' : 'btn-ghost-dark'}`} title={t.admin.shareHint} aria-pressed={!!quiz.shared}
             onClick={async () => {
               const next = !quiz.shared
               try { await setQuizShared(quiz.id, next); setQuiz((q) => (q ? { ...q, shared: next } : q)); void logAudit(next ? 'quiz_shared' : 'quiz_unshared', { target: quiz.id, details: { title: quiz.title } }) } catch { /* icazə yoxdur */ }
@@ -224,7 +225,7 @@ export default function QuizEditor() {
         </button>
       </div>
       {readOnly && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-300">
           <Lock className="h-4 w-4" /><span className="flex-1">{t.admin.readOnly}</span>
           <button className="btn btn-secondary btn-sm" onClick={async () => { const id = await duplicateQuiz(quiz.id, user!.uid, t.admin.copySuffix); if (id) nav(`/admin/quiz/${id}`) }}><Copy />{t.admin.makeCopy}</button>
         </div>
@@ -237,10 +238,10 @@ export default function QuizEditor() {
             onBlur={(e) => setQuizField({ tags: [...new Set(e.target.value.split(',').map((x) => x.trim()).filter(Boolean))].slice(0, 8) })} />
         </div>
       </div>
-      {errCount > 0 && <p className="mb-3 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700"><AlertTriangle className="h-4 w-4" />{t.editor.issues(errCount)}</p>}
+      {errCount > 0 && <p className="mb-3 flex items-center gap-2 rounded-xl bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-300"><AlertTriangle className="h-4 w-4" />{t.editor.issues(errCount)}</p>}
 
       {aiBanner && (
-        <div className="mb-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+        <div className="mb-3 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-300" role="status">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0" /><span className="flex-1">{t.ai.banner}</span>
           <button className="text-xs font-bold underline" onClick={() => setAiBanner(false)}>{t.app.close}</button>
         </div>
@@ -273,7 +274,7 @@ function SortRow({ q, i, active, hasErr, onSelect, onDup, onDel, onCopy }: { q: 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: q.id })
   return (
     <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : undefined }}
-      className={`group flex items-center gap-2 rounded-xl border bg-white p-2 transition ${active ? 'border-brand shadow-[0_0_0_3px_rgba(232,32,42,.12)]' : 'border-line hover:border-[#d5d8e6]'} ${isDragging ? 'shadow-xl' : ''}`}>
+      className={`group flex items-center gap-2 rounded-xl border bg-panel p-2 transition ${active ? 'border-brand shadow-[0_0_0_3px_rgba(232,32,42,.12)]' : 'border-line hover:border-line-strong'} ${isDragging ? 'shadow-xl' : ''}`}>
       <button className="cursor-grab touch-none text-muted" {...attributes} {...listeners} aria-label="↕"><GripVertical className="h-4 w-4" /></button>
       <button className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={onSelect}>
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${active ? 'text-white' : 'bg-surface text-muted'}`} style={active ? { background: 'var(--grad)' } : undefined}>{i + 1}</span>
@@ -286,7 +287,7 @@ function SortRow({ q, i, active, hasErr, onSelect, onDup, onDel, onCopy }: { q: 
       <div className="hidden gap-1 group-hover:flex">
         <button className="rounded-lg p-1.5 text-muted hover:bg-surface" onClick={onDup} title={t.editor.duplicate}><Copy className="h-4 w-4" /></button>
         <button className="rounded-lg p-1.5 text-muted hover:bg-surface" onClick={onCopy} title={t.copyQ.button}><FolderInput className="h-4 w-4" /></button>
-        <button className="rounded-lg p-1.5 text-red-600 hover:bg-red-50" onClick={onDel} title={t.editor.delete}><Trash2 className="h-4 w-4" /></button>
+        <button className="rounded-lg p-1.5 text-red-300 hover:bg-red-500/10" onClick={onDel} title={t.editor.delete}><Trash2 className="h-4 w-4" /></button>
       </div>
     </li>
   )
@@ -366,7 +367,7 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
           }} />
         </div>
         {q.imageUrl && /^(https:\/\/|data:image\/)/.test(q.imageUrl) && (
-          imgErr ? <p className="mt-1 text-sm text-red-600">{t.editor.imageBad}</p>
+          imgErr ? <p className="mt-1 text-sm text-red-300">{t.editor.imageBad}</p>
             : <img src={q.imageUrl} alt="" onError={() => setImgErr(true)} className="mt-2 max-h-40 rounded-xl object-contain" />
         )}
       </div>
@@ -374,7 +375,7 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
       {hasOptions && (
         <div>
           <span className="label">{t.editor.options}</span>
-          {q.type === 'order' && <p className="mb-2 text-sm text-slate-500">{t.editor.orderHint}</p>}
+          {q.type === 'order' && <p className="mb-2 text-sm text-muted">{t.editor.orderHint}</p>}
           <div className="grid gap-2 sm:grid-cols-2">
             {q.options.map((o, i) => {
               const ok = q.correct.includes(o.id)
@@ -386,7 +387,7 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
                   <input className="input min-h-10 flex-1 py-1" aria-label={t.editor.option(i + 1)} placeholder={t.editor.option(i + 1)} value={o.text} maxLength={90} disabled={q.type === 'truefalse'} onChange={(e) => setOpt(o.id, e.target.value)} />
                   {canMark && (
                     <button type="button" onClick={() => toggleCorrect(o.id)} aria-pressed={ok} title={t.editor.markCorrect}
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white text-lg font-black ${ok ? 'bg-white text-green-700' : 'text-white/70'}`}>✓</button>
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white text-lg font-black ${ok ? 'bg-panel text-green-300' : 'text-white/70'}`}>✓</button>
                   )}
                   {q.type !== 'truefalse' && q.options.length > 2 && (
                     <button type="button" onClick={() => delOpt(o.id)} className="shrink-0 px-1 text-white/80 hover:text-white" aria-label={t.app.delete}>✕</button>
@@ -426,12 +427,12 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
         </div>
       )}
 
-      {q.type === 'slide' && <p className="text-sm text-slate-500">{t.editor.slideHint}</p>}
+      {q.type === 'slide' && <p className="text-sm text-muted">{t.editor.slideHint}</p>}
 
       {q.type === 'match' && (
         <div>
           <span className="label">{t.editor.pairs}</span>
-          <p className="mb-2 text-sm text-slate-500">{t.editor.pairsHint}</p>
+          <p className="mb-2 text-sm text-muted">{t.editor.pairsHint}</p>
           <div className="flex flex-col gap-2">
             {q.options.map((o, i) => (
               <div key={o.id} className="flex items-center gap-2">
@@ -439,7 +440,7 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
                 <input className="input min-h-10 flex-1 py-1" aria-label={t.editor.pairLeft(i + 1)} placeholder={t.editor.pairLeft(i + 1)} value={o.text} maxLength={60} onChange={(e) => set({ options: q.options.map((x) => (x.id === o.id ? { ...x, text: e.target.value } : x)) })} />
                 <span className="text-muted" aria-hidden>⇄</span>
                 <input className="input min-h-10 flex-1 py-1" aria-label={t.editor.pairRight(i + 1)} placeholder={t.editor.pairRight(i + 1)} value={o.pair ?? ''} maxLength={60} onChange={(e) => set({ options: q.options.map((x) => (x.id === o.id ? { ...x, pair: e.target.value } : x)) })} />
-                {q.options.length > 2 && <button type="button" className="px-1 text-red-600" aria-label={t.app.delete} onClick={() => set({ options: q.options.filter((x) => x.id !== o.id) })}>✕</button>}
+                {q.options.length > 2 && <button type="button" className="px-1 text-red-300" aria-label={t.app.delete} onClick={() => set({ options: q.options.filter((x) => x.id !== o.id) })}>✕</button>}
               </div>
             ))}
           </div>
@@ -451,9 +452,9 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
         const { display, answers } = parseBlanks(q.text)
         return (
           <div className="rounded-xl bg-surface p-3 text-sm">
-            <p className="text-slate-600">{t.editor.fillHint}</p>
+            <p className="text-muted">{t.editor.fillHint}</p>
             <p className="mt-2"><b>{t.editor.fillPreview}:</b> {display || '—'}</p>
-            {answers.length > 0 && <p className="mt-1 text-slate-600">{answers.map((a, i) => `${i + 1}) ${a.join(' / ')}`).join(' · ')}</p>}
+            {answers.length > 0 && <p className="mt-1 text-muted">{answers.map((a, i) => `${i + 1}) ${a.join(' / ')}`).join(' · ')}</p>}
           </div>
         )
       })()}
@@ -469,7 +470,7 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
       </div>
 
       {errors.length > 0 && (
-        <ul className="rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">{errors.map((e) => <li key={e}>⚠ {e}</li>)}</ul>
+        <ul className="rounded-xl bg-red-500/10 p-3 text-sm font-bold text-red-300">{errors.map((e) => <li key={e}>⚠ {e}</li>)}</ul>
       )}
     </section>
   )
@@ -478,11 +479,11 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
 /** Şəkil üzərində düzgün sahəni seçmək: şəklə klik → mərkəz, sürgü → radius. */
 function HotspotEditor({ q, onChange }: { q: Question; onChange: (h: NonNullable<Question['hotspot']>) => void }) {
   const h = q.hotspot ?? { x: 50, y: 50, r: 10 }
-  if (!q.imageUrl) return <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">{t.editor.errors.needImage}</p>
+  if (!q.imageUrl) return <p className="rounded-xl bg-amber-500/10 p-3 text-sm font-semibold text-amber-300">{t.editor.errors.needImage}</p>
   return (
     <div>
       <span className="label">{t.editor.hotspotArea}</span>
-      <p className="mb-2 text-sm text-slate-500">{t.editor.hotspotHint}</p>
+      <p className="mb-2 text-sm text-muted">{t.editor.hotspotHint}</p>
       <div className="relative inline-block max-w-full cursor-crosshair select-none overflow-hidden rounded-xl"
         onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); onChange({ ...h, x: Math.round(((e.clientX - r.left) / r.width) * 1000) / 10, y: Math.round(((e.clientY - r.top) / r.height) * 1000) / 10 }) }}>
         <img src={q.imageUrl} alt="" className="block max-h-80 max-w-full" draggable={false} />
@@ -612,11 +613,11 @@ function CoEditors({ quizId, initial, onChange }: { quizId: string; initial: str
               <input className="input flex-1" type="email" placeholder={F.emailPh} value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void add() }} aria-label={F.emailPh} />
               <button className="btn btn-primary" onClick={() => void add()}>{F.add}</button>
             </div>
-            {err && <p className="text-sm text-red-600" role="alert">{err}</p>}
+            {err && <p className="text-sm text-red-300" role="alert">{err}</p>}
             {list.length === 0 ? <p className="text-sm text-muted">{F.none}</p> : (
               <ul className="flex flex-col gap-1.5">{list.map((e) => (
                 <li key={e} className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm"><span className="min-w-0 flex-1 truncate">{e}</span>
-                  <button className="text-xs font-semibold text-red-600" onClick={() => void save(list.filter((x) => x !== e))}>{F.remove}</button></li>
+                  <button className="text-xs font-semibold text-red-300" onClick={() => void save(list.filter((x) => x !== e))}>{F.remove}</button></li>
               ))}</ul>
             )}
           </div>
@@ -650,7 +651,7 @@ function PublishButton({ quizId, author, trusted }: { quizId: string; author: st
   if (meta === undefined) return null
   const on = !!meta
   const pub = async () => {
-    if (!on && !confirm(t.mod.confirm)) return
+    if (!on && !(await confirmDialog({ title: t.mod.confirm }))) return
     setBusy(true); setErr(''); setIssues([])
     try {
       const status = await publishToCatalog(quizId, author, { category, level }, { trusted, unlisted })
@@ -674,24 +675,24 @@ function PublishButton({ quizId, author, trusted }: { quizId: string; author: st
       <label className="flex items-center gap-1.5 text-xs font-semibold text-muted" title={t.mod.unlistedHint}>
         <input type="checkbox" checked={unlisted} onChange={(e) => setUnlisted(e.target.checked)} />{t.mod.unlisted}
       </label>
-      <button className={`btn ${on ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={err || t.acct.publishHint} disabled={busy} onClick={() => void pub()}>
+      <button className={`btn ${on ? 'btn-secondary text-green-300' : 'btn-ghost-dark'}`} title={err || t.acct.publishHint} disabled={busy} onClick={() => void pub()}>
         <BookOpenCheck />{on ? t.acct.update : t.mod.makePublic}
       </button>
-      {meta?.hidden ? <span className="rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-700" title={t.mod.hiddenHint}>{t.mod.hidden}</span>
-        : meta?.status === 'review' ? <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800" title={t.mod.reviewHint}>{t.mod.review}</span>
-        : on ? <span className="rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700">{t.mod.publicNow}</span> : null}
-      {on && <button className="btn btn-ghost-dark btn-icon text-red-600" title={t.acct.unpublish} aria-label={t.acct.unpublish} disabled={busy}
-        onClick={() => { if (confirm(`${t.acct.unpublish}?`)) { setBusy(true); void unpublish(quizId).then(() => setMeta(null)).finally(() => setBusy(false)) } }}><X /></button>}
-      {err && <span className="text-xs font-semibold text-red-600" role="alert">{err}</span>}
+      {meta?.hidden ? <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-300" title={t.mod.hiddenHint}>{t.mod.hidden}</span>
+        : meta?.status === 'review' ? <span className="rounded-full bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-300" title={t.mod.reviewHint}>{t.mod.review}</span>
+        : on ? <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-semibold text-green-300">{t.mod.publicNow}</span> : null}
+      {on && <button className="btn btn-ghost-dark btn-icon text-red-300" title={t.acct.unpublish} aria-label={t.acct.unpublish} disabled={busy}
+        onClick={async () => { if ((await confirmDialog({ title: `${t.acct.unpublish}?`, danger: true }))) { setBusy(true); void unpublish(quizId).then(() => setMeta(null)).finally(() => setBusy(false)) } }}><X /></button>}
+      {err && <span className="text-xs font-semibold text-red-300" role="alert">{err}</span>}
       {issues.length > 0 && (
-        <div role="alert" className="absolute right-0 top-12 z-40 w-[min(92vw,26rem)] rounded-2xl border border-red-200 bg-white p-4 text-left text-sm text-ink shadow-xl">
+        <div role="alert" className="absolute right-0 top-12 z-40 w-[min(92vw,26rem)] rounded-2xl border border-red-500/25 bg-panel p-4 text-left text-sm text-ink shadow-xl">
           <div className="mb-2 flex items-start justify-between gap-2">
-            <strong className="text-red-700">{t.mod.title}</strong>
+            <strong className="text-red-300">{t.mod.title}</strong>
             <button className="btn btn-ghost-dark btn-icon -m-1" aria-label={t.app.close} onClick={() => setIssues([])}><X /></button>
           </div>
           <ul className="max-h-72 space-y-2 overflow-auto">
             {issues.map((i, k) => { const x = issueText(i); return (
-              <li key={k} className="rounded-xl bg-red-50 px-3 py-2">
+              <li key={k} className="rounded-xl bg-red-500/10 px-3 py-2">
                 <div className="font-semibold">{x.where}</div>
                 <div className="text-muted">{x.what}{x.match && <> — «<span className="font-mono">{x.match}</span>»</>}</div>
               </li>

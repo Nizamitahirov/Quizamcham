@@ -71,6 +71,13 @@ export async function addTask(cid: string, t: Omit<ClassTask, 'id' | 'createdAt'
   return ref.id
 }
 export const deleteTask = (cid: string, tid: string) => deleteDoc(doc(db, 'classes', cid, 'tasks', tid))
+export const updateTask = (cid: string, tid: string, patch: { dueAt?: Timestamp | null; note?: string; title?: string }) =>
+  updateDoc(doc(db, 'classes', cid, 'tasks', tid), Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)))
+/** Sinif kartları üçün: tələbə və tapşırıq sayı. */
+export async function classCounts(cid: string): Promise<{ members: number; tasks: number }> {
+  const [m, tk] = await Promise.all([getDocs(collection(db, 'classes', cid, 'members')).catch(() => null), getDocs(collection(db, 'classes', cid, 'tasks')).catch(() => null)])
+  return { members: m?.size ?? 0, tasks: tk?.size ?? 0 }
+}
 export async function listResults(cid: string): Promise<ClassResult[]> {
   const s = await getDocs(collection(db, 'classes', cid, 'results'))
   return s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ClassResult, 'id'>) }))
@@ -158,5 +165,10 @@ export async function courseProgressAll(courseId: string, memberUids: string[]):
     if (s?.exists()) out.set(u, s.data() as CourseProgress)
   }))
   return out
+}
+/** Kurs sahibi üçün: bütün tələbələrin irəliləyişi. */
+export async function listCourseProgress(courseId: string): Promise<CourseProgress[]> {
+  const s = await getDocs(collection(db, 'courses', courseId, 'progress'))
+  return s.docs.map((d) => d.data() as CourseProgress)
 }
 export const dueLabel = (t?: Timestamp | null) => (t ? t.toDate() : null)

@@ -99,7 +99,7 @@ export default function Profile() {
               <Field label={t.profile.newPw}><input className="input" type="password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} /></Field>
               <button className="btn btn-secondary" disabled={!cur || !pw} onClick={() => void changePw()}>{t.profile.changePw}</button>
             </div>
-            {pwMsg && <p className={`mt-3 text-sm font-semibold ${pwMsg.ok ? 'text-ok' : 'text-red-600'}`}>{pwMsg.text}</p>}
+            {pwMsg && <p className={`mt-3 text-sm font-semibold ${pwMsg.ok ? 'text-ok' : 'text-red-300'}`}>{pwMsg.text}</p>}
           </Section>
         </div>
       </div>

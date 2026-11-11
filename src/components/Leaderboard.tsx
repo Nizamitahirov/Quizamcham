@@ -31,7 +31,7 @@ export function Leaderboard({ entries, highlight, big, max = 10 }: { entries: Le
             className={`relative flex items-center gap-3 overflow-hidden rounded-2xl border px-4 ${big ? 'py-3 text-3xl' : 'py-2.5 text-base'} ${me ? 'border-transparent text-white' : 'border-white/10 bg-white/[.06] text-white backdrop-blur'}`}
             style={me ? { background: 'var(--grad)', boxShadow: 'var(--glow)' } : undefined}
           >
-            <span className={`font-display flex shrink-0 items-center justify-center rounded-xl font-black ${big ? 'h-14 w-14 text-2xl' : 'h-9 w-9 text-sm'} ${e.rank > 3 ? 'bg-white/10' : 'text-ink'}`} style={e.rank <= 3 ? { background: MEDAL[e.rank - 1] } : undefined}>
+            <span className={`font-display flex shrink-0 items-center justify-center rounded-xl font-black ${big ? 'h-14 w-14 text-2xl' : 'h-9 w-9 text-sm'} ${e.rank > 3 ? 'bg-white/10' : 'text-onlight'}`} style={e.rank <= 3 ? { background: MEDAL[e.rank - 1] } : undefined}>
               {e.rank}
             </span>
             <Avatar avatar={e.avatar} size={big ? 56 : 36} />

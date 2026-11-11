@@ -73,7 +73,7 @@ export default function Start() {
               <div className="mb-3 flex items-center gap-3">
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: 'var(--grad)' }}><c.icon className="h-5 w-5" /></span>
                 <h2 className="text-xl font-black">{c.title}</h2>
-                {c.badge && <span className="chip ml-auto bg-white text-ink">{c.badge}</span>}
+                {c.badge && <span className="chip chip-brand ml-auto">{c.badge}</span>}
               </div>
               <ul className="flex flex-col gap-2">
                 {c.pts.map((p) => <li key={p} className="flex items-start gap-2 text-white/80"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />{p}</li>)}
@@ -88,7 +88,7 @@ export default function Start() {
           </div>
           {checking ? <div className="py-6"><Spinner /></div> : (
             <>
-              <button className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white text-base font-bold text-ink shadow-lg transition hover:bg-white/90 disabled:opacity-60" disabled={busy} onClick={() => void google()}>
+              <button className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white text-base font-bold text-onlight shadow-lg transition hover:bg-white/90 disabled:opacity-60" disabled={busy} onClick={() => void google()}>
                 <GoogleIcon />{busy ? A.googleBusy : A.google}
               </button>
               {err && <p className="rounded-xl bg-red-500/15 px-3 py-2 text-center text-sm font-semibold text-red-200" role="alert">{err}</p>}

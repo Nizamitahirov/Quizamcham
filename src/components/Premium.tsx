@@ -1,4 +1,4 @@
-import { Crown } from 'lucide-react'
+import { Check, Crown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAdmin } from '../firebase/auth'
 import { FEATURES, hasFeature, type Feature, type Tier } from '../lib/roles'
@@ -21,23 +21,30 @@ export function PremiumBadge({ feature, compact = false, className = '' }: { fea
   const label = t.premium.requires(TIER_NAME(tier))
   return (
     <Link to="/pricing" onClick={(e) => e.stopPropagation()} title={label} aria-label={label}
-      className={`inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 hover:bg-amber-200 ${className}`}>
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-400/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-300 transition hover:bg-amber-500/20 ${className}`}>
       <Crown className="h-3 w-3" />{!compact && TIER_NAME(tier)}
     </Link>
   )
 }
 
-/** Kilidli bölmənin yerinə göstərilən izah kartı. */
+/** Kilidli bölmənin yerinə göstərilən təklif kartı: hansı plan lazımdır və o plan nə verir. */
 export function LockedCard({ feature, title, children }: { feature: Feature; title: string; children?: React.ReactNode }) {
   const tier = FEATURES[feature] as Tier
+  const feats = (t.acct.plans[tier]?.feats ?? []).slice(0, 5)
   return (
-    <div className="card flex flex-col items-start gap-3 p-6">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Crown className="h-5 w-5" /></span>
-      <div>
-        <h3 className="text-lg font-bold">{title}</h3>
-        <p className="mt-1 text-sm text-muted">{children ?? t.premium.locked(TIER_NAME(tier))}</p>
+    <div className="card hairline-top relative grid gap-6 overflow-hidden p-6 sm:p-8 md:grid-cols-[1fr_auto] md:items-center">
+      <span className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--grad)' }} />
+      <div className="relative">
+        <span className="chip chip-warn mb-3"><Crown className="h-3 w-3" />{t.premium.requires(TIER_NAME(tier))}</span>
+        <h3 className="font-sans text-xl font-semibold">{title}</h3>
+        <p className="mt-1 text-sm text-fg2">{children ?? t.premium.locked(TIER_NAME(tier))}</p>
+        {feats.length > 0 && (
+          <ul className="mt-4 grid gap-1.5 text-sm text-fg2 sm:grid-cols-2">
+            {feats.map((f) => <li key={f} className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />{f}</li>)}
+          </ul>
+        )}
       </div>
-      <Link to="/pricing" className="btn btn-primary btn-sm"><Crown />{t.premium.upgrade}</Link>
+      <Link to="/pricing" className="btn btn-primary relative"><Crown />{t.premium.upgrade}</Link>
     </div>
   )
 }

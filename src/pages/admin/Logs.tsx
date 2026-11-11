@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Bug, RefreshCw, ScrollText, Search, Trash2 } from 'lucide-react'
 import { t } from '../../i18n/az'
@@ -24,10 +25,10 @@ export default function Logs() {
 }
 
 const ACTION_TONE: Record<string, string> = {
-  member_restricted: 'bg-red-50 text-red-700', member_removed: 'bg-red-50 text-red-700', quiz_deleted: 'bg-red-50 text-red-700',
-  game_deleted: 'bg-red-50 text-red-700', data_cleanup: 'bg-red-50 text-red-700', logs_cleared: 'bg-red-50 text-red-700',
-  member_created: 'bg-green-50 text-green-800', member_unrestricted: 'bg-green-50 text-green-800',
-  member_role: 'bg-amber-50 text-amber-800', password_reset_sent: 'bg-amber-50 text-amber-800', settings_saved: 'bg-amber-50 text-amber-800', sounds_saved: 'bg-amber-50 text-amber-800',
+  member_restricted: 'bg-red-500/10 text-red-300', member_removed: 'bg-red-500/10 text-red-300', quiz_deleted: 'bg-red-500/10 text-red-300',
+  game_deleted: 'bg-red-500/10 text-red-300', data_cleanup: 'bg-red-500/10 text-red-300', logs_cleared: 'bg-red-500/10 text-red-300',
+  member_created: 'bg-green-500/10 text-green-300', member_unrestricted: 'bg-green-500/10 text-green-300',
+  member_role: 'bg-amber-500/10 text-amber-300', password_reset_sent: 'bg-amber-500/10 text-amber-300', settings_saved: 'bg-amber-500/10 text-amber-300', sounds_saved: 'bg-amber-500/10 text-amber-300',
 }
 
 function AuditLog() {
@@ -55,7 +56,7 @@ function AuditLog() {
       {!rows ? <Spinner /> : shown.length === 0 ? <p className="text-sm text-muted">{L.empty}</p> : (
         <div className="scrollbar-thin max-h-[65vh] overflow-auto">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="sticky top-0 bg-white text-left text-xs uppercase tracking-wide text-muted">
+            <thead className="sticky top-0 bg-panel text-left text-xs uppercase tracking-wide text-muted">
               <tr><th className="py-2 pr-3 font-semibold">{L.when}</th><th className="py-2 pr-3 font-semibold">{L.who}</th><th className="py-2 pr-3 font-semibold">{L.what}</th><th className="py-2 font-semibold">{L.target}</th></tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -63,7 +64,7 @@ function AuditLog() {
                 <tr key={r.id} className="align-top">
                   <td className="whitespace-nowrap py-2.5 pr-3 tabular-nums text-muted">{r.at ? fmtDateTime(r.at.toDate()) : '…'}</td>
                   <td className="py-2.5 pr-3 font-medium">{r.actorEmail || r.actor}</td>
-                  <td className="py-2.5 pr-3"><span className={`chip ${ACTION_TONE[r.action] ?? 'bg-surface text-[#4A4E69]'}`}>{L.actions[r.action] ?? r.action}</span></td>
+                  <td className="py-2.5 pr-3"><span className={`chip ${ACTION_TONE[r.action] ?? 'bg-surface text-fg2'}`}>{L.actions[r.action] ?? r.action}</span></td>
                   <td className="py-2.5 text-muted">
                     {r.targetEmail || r.target || '—'}
                     {r.details && Object.keys(r.details).length > 0 && <div className="mt-0.5 text-xs">{Object.entries(r.details).map(([k, v]) => `${k}: ${String(v)}`).join(' · ')}</div>}
@@ -83,18 +84,18 @@ function ErrorLog() {
   const [rows, setRows] = useState<Awaited<ReturnType<typeof listErrors>> | null>(null)
   const load = useCallback(() => { setRows(null); void listErrors(200).then(setRows).catch(() => setRows([])) }, [])
   useEffect(load, [load])
-  const clear = async () => { if (!confirm(D.clearErrors + '?')) return; await clearErrors(); void logAudit('logs_cleared'); load() }
+  const clear = async () => { if (!(await confirmDialog({ title: D.clearErrors + '?', danger: true }))) return; await clearErrors(); void logAudit('logs_cleared'); load() }
   return (
     <Section icon={Bug} title={L.errors} actions={
       <div className="flex gap-2">
         <button className="btn btn-ghost-dark btn-sm" onClick={load}><RefreshCw />{L.refresh}</button>
-        {!!rows?.length && <button className="btn btn-ghost-dark btn-sm text-red-600" onClick={() => void clear()}><Trash2 />{D.clearErrors}</button>}
+        {!!rows?.length && <button className="btn btn-ghost-dark btn-sm text-red-300" onClick={() => void clear()}><Trash2 />{D.clearErrors}</button>}
       </div>}>
       {!rows ? <Spinner /> : rows.length === 0 ? <p className="text-sm text-muted">{D.noErrors}</p> : (
         <ul className="scrollbar-thin flex max-h-[65vh] flex-col gap-2 overflow-auto">
           {rows.map((r) => (
             <li key={r.id} className="rounded-xl bg-surface p-3 text-xs">
-              <div className="font-bold text-red-700">{r.message}</div>
+              <div className="font-bold text-red-300">{r.message}</div>
               <div className="mt-1 break-all text-muted">{(r.at ? fmtDateTime(r.at.toDate()) : '')} · {r.url} · {r.context}</div>
             </li>
           ))}

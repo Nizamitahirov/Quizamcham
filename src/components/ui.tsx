@@ -1,15 +1,17 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useRouteError } from 'react-router-dom'
 import { logError } from '../lib/errorLog'
 import { t } from '../i18n/az'
+import { Switch } from './kit'
 
 export function Spinner({ label = t.app.loading }: { label?: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 p-8" role="status">
-      <span className="h-10 w-10 animate-spin rounded-full border-4 border-current/20 border-t-orange-500" style={{ borderColor: 'rgba(127,127,150,.25)', borderTopColor: '#FF5A1F' }} />
-      <span className="text-sm opacity-70">{label}</span>
+      <span className="h-8 w-8 animate-spin rounded-full border-[3px]" style={{ borderColor: 'rgba(255,255,255,.1)', borderTopColor: '#FF5A1F' }} />
+      <span className="text-sm text-muted">{label}</span>
     </div>
   )
 }
@@ -48,31 +50,36 @@ export function Toggle({ checked, onChange, label }: { checked: boolean; onChang
   return (
     <label className="flex min-h-12 cursor-pointer items-center justify-between gap-3">
       <span className="text-sm font-semibold">{label}</span>
-      <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className={`relative h-7 w-12 shrink-0 rounded-full transition ${checked ? '' : 'bg-slate-300'}`} style={checked ? { background: 'var(--grad)' } : undefined}>
-        <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition ${checked ? 'left-[1.4rem]' : 'left-0.5'}`} />
-      </button>
+      <Switch checked={checked} onChange={onChange} label={label} />
     </label>
   )
 }
 
-export function Modal({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean }) {
+export function Modal({ open, onClose, title, children, wide, sub }: { open: boolean; onClose: () => void; title: string; children: ReactNode; wide?: boolean; sub?: string }) {
   useEffect(() => {
     if (!open) return
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { window.removeEventListener('keydown', h); document.body.style.overflow = prev }
   }, [open, onClose])
   if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0A0B16]/60 p-4 backdrop-blur-sm" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
-      <motion.div initial={{ scale: 0.94, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} className={`card max-h-[90dvh] w-full ${wide ? 'max-w-3xl' : 'max-w-lg'} overflow-auto p-6`} style={{ boxShadow: 'var(--shadow-lg)' }} onClick={(e) => e.stopPropagation()}>
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold">{title}</h2>
-          <button type="button" className="btn btn-ghost-dark btn-icon" onClick={onClose} aria-label={t.app.close}><X /></button>
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }} role="dialog" aria-modal="true" aria-label={title}>
+      <motion.div initial={{ y: 30, opacity: 0, scale: 0.98 }} animate={{ y: 0, opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        className={`card flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-b-none sm:rounded-b-[var(--radius)] ${wide ? 'sm:max-w-3xl' : 'sm:max-w-lg'}`} style={{ boxShadow: 'var(--shadow-lg)' }}>
+        <div className="flex items-start gap-3 border-b border-line px-6 py-4">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-bold leading-snug">{title}</h2>
+            {sub && <p className="mt-0.5 text-sm text-muted">{sub}</p>}
+          </div>
+          <button type="button" className="btn btn-ghost-dark btn-icon btn-sm -mr-2" onClick={onClose} aria-label={t.app.close}><X /></button>
         </div>
-        {children}
+        <div className="overflow-y-auto px-6 py-5 scrollbar-thin">{children}</div>
       </motion.div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -80,22 +87,23 @@ export function RouteError() {
   const err = useRouteError()
   useEffect(() => { logError(err, 'route') }, [err])
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-night p-6 text-center text-white">
-      <div className="text-6xl">😵</div>
+    <div className="bg-app flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/15 text-3xl">😵</span>
       <p className="text-xl font-extrabold">{t.app.error}</p>
       <button className="btn btn-secondary" onClick={() => window.location.reload()}>↻</button>
     </div>
   )
 }
 
-export function PageHeader({ title, sub, children }: { title: string; sub?: string; children?: ReactNode }) {
+export function PageHeader({ title, sub, children, eyebrow }: { title: string; sub?: string; children?: ReactNode; eyebrow?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end gap-3">
+    <div className="mb-6 flex flex-wrap items-end gap-3 sm:mb-8">
       <div className="mr-auto min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
-        {sub && <p className="mt-1 text-sm text-muted">{sub}</p>}
+        {eyebrow && <div className="mb-2">{eyebrow}</div>}
+        <h1 className="break-words text-[26px] font-extrabold leading-tight tracking-tight sm:text-[32px]">{title}</h1>
+        {sub && <p className="mt-1.5 max-w-2xl text-sm text-muted sm:text-[15px]">{sub}</p>}
       </div>
-      {children}
+      {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
     </div>
   )
 }

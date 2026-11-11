@@ -13,7 +13,7 @@ export function QuestionIntro({ preview, total, big }: { preview: Preview; total
       <motion.div initial={{ scale: 0, rotate: -10 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 16 }}
         className={`chip chip-dark ${big ? 'px-6 py-2 text-2xl' : ''}`}>
         <Timer className={big ? 'h-6 w-6' : 'h-4 w-4'} /> {t.game.questionOf(preview.index + 1, total)} · {t.types[preview.type]}
-        {preview.points === 'double' && <span className="ml-1 rounded-full bg-yellow-300 px-2 text-ink">2x</span>}
+        {preview.points === 'double' && <span className="ml-1 rounded-full bg-yellow-300 px-2 text-onlight">2x</span>}
       </motion.div>
       <motion.h2 initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.15 }}
         className={`font-display font-black leading-tight ${big ? 'max-w-6xl text-7xl' : 'text-[28px]'}`}>

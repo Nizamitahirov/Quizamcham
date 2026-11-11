@@ -21,7 +21,7 @@ export default function Login() {
   const [show, setShow] = useState(false)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  if (admin.loading) return <div className="flex min-h-dvh items-center justify-center bg-surface text-ink"><Spinner /></div>
+  if (admin.loading) return <div className="flex min-h-dvh items-center justify-center bg-app"><Spinner /></div>
   if (admin.isAdmin) return <Navigate to="/admin" replace />
   const google = async () => {
     setBusy(true); setErr('')
@@ -44,7 +44,7 @@ export default function Login() {
     }
   }
   return (
-    <div className="grid min-h-dvh bg-surface text-ink lg:grid-cols-2">
+    <div className="grid min-h-dvh bg-app lg:grid-cols-2">
       <div className="noise relative hidden flex-col justify-between overflow-hidden bg-night p-12 text-white lg:flex">
         <FuturisticBg />
         <div className="relative"><Logo size={44} sub="Live quiz platform" /></div>
@@ -82,11 +82,11 @@ export default function Login() {
                 </button>
               </div>
             </div>
-            {err && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700" role="alert">{err}</p>}
+            {err && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300" role="alert">{err}</p>}
             <button className="btn btn-primary w-full" disabled={busy}>{busy ? t.admin.signingIn : <><LogIn />{t.admin.signIn}</>}</button>
             <div className="flex items-center gap-3 text-xs font-semibold uppercase tracking-wider text-muted"><span className="h-px flex-1 bg-line" />{t.admin.or}<span className="h-px flex-1 bg-line" /></div>
             <button type="button" className="btn btn-secondary w-full" disabled={busy} onClick={() => void google()}><GoogleIcon />{t.acct.google}</button>
-            <p className="text-center text-sm text-muted">{t.admin.noAccount} <Link to="/start" className="font-bold text-red-700 hover:underline">{t.acct.signUp} · {t.acct.freeTrial}</Link></p>
+            <p className="text-center text-sm text-muted">{t.admin.noAccount} <Link to="/start" className="font-bold text-red-300 hover:underline">{t.acct.signUp} · {t.acct.freeTrial}</Link></p>
           </div>
           <p className="mt-6 flex items-center gap-2 text-xs text-muted"><CheckCircle2 className="h-4 w-4 text-ok" />{t.admin.secureLogin}</p>
         </motion.form>
