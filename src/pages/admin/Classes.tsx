@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
-import { ArrowLeft, Archive, BookOpen, ClipboardList, Copy, GraduationCap, Plus, Trash2, Users } from 'lucide-react'
+import { ArrowLeft, Archive, BookOpen, ClipboardList, Copy, Download, GraduationCap, Plus, Trash2, Users } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { fmtDate } from '../../lib/format'
 import { listCatalog, type CatalogItem } from '../../lib/account'
@@ -9,7 +9,7 @@ import {
   addTask, archiveClass, courseProgressAll, createClass, deleteClass, deleteTask, listMembers, listMyClasses, listMyCourses, listResults, listTasks, loadClass, removeMember,
   type ClassResult, type ClassRow, type ClassTask, type Course, type Member, type TaskKind,
 } from '../../lib/classes'
-import { LockedCard, useFeature } from '../../components/Premium'
+import { LockedCard, PremiumBadge, useFeature } from '../../components/Premium'
 import { PageHeader, Spinner } from '../../components/ui'
 import { Section } from '../../components/kit'
 import type { AdminState } from '../../firebase/auth'
@@ -219,7 +219,11 @@ function ResultsTab({ members, tasks, results }: { members: Member[]; tasks: Cla
   }, [members, tasks])
   const byKey = useMemo(() => new Map(results.map((r) => [`${r.uid}_${r.taskId}`, r])), [results])
   if (!members.length || !cols.length) return <p className="card p-6 text-sm text-muted">{!members.length ? C.noMembers : C.noTasks}</p>
+  const cell = (m: Member, c: ClassTask) => c.kind === 'course' ? `${courseProg.get(c.id)?.get(m.uid) ?? 0}/${courseLen.get(c.id) ?? 0}` : byKey.get(`${m.uid}_${c.id}`)?.pct ?? ''
+  const excel = () => void import('../../lib/xlsx').then((x) => x.downloadXlsx('jabr-class-results.xlsx', [{ name: C.tabs.results, rows: [[C.student, ...cols.map((c) => c.title)], ...members.map((m) => [m.name, ...cols.map((c) => cell(m, c))])] }]))
   return (
+    <>
+    <div className="mb-2 flex justify-end"><ExcelOrLock onClick={excel} /></div>
     <div className="card overflow-x-auto">
       <table className="w-full text-left text-sm">
         <thead className="bg-surface text-[11px] uppercase tracking-wider text-muted">
@@ -243,5 +247,11 @@ function ResultsTab({ members, tasks, results }: { members: Member[]; tasks: Cla
         </tbody>
       </table>
     </div>
+    </>
   )
+}
+
+function ExcelOrLock({ onClick }: { onClick: () => void }) {
+  const ok = useFeature('excel')
+  return ok ? <button className="btn btn-secondary btn-sm" onClick={onClick}><Download />Excel</button> : <span className="flex items-center gap-1 text-xs text-muted">Excel <PremiumBadge feature="excel" /></span>
 }

@@ -1,7 +1,7 @@
 import {
   collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, serverTimestamp, setDoc, updateDoc, where, writeBatch, limit as qLimit,
 } from 'firebase/firestore'
-import { db } from './config'
+import { auth, db } from './config'
 import type { AppSettings, Question, Quiz, SoundClip, SoundSettings, TrainerProfile } from '../types'
 import { DEFAULT_APP_SETTINGS, convertType, uid6, withDefaults } from '../lib/defaults'
 
@@ -17,6 +17,8 @@ export async function listQuizzes(ownerScope?: string, withLibrary = true, orgSc
       getDocs(query(collection(db, 'quizzes'), where('ownerUid', '==', ownerScope))),
       ...(withLibrary ? [getDocs(query(collection(db, 'quizzes'), where('shared', '==', true)))] : []),
       ...(orgScope ? [getDocs(query(collection(db, 'quizzes'), where('orgId', '==', orgScope)))] : []),
+      // birgə redaktə üçün mənimlə paylaşılanlar
+      ...(auth.currentUser?.email ? [getDocs(query(collection(db, 'quizzes'), where('editors', 'array-contains', auth.currentUser.email.toLowerCase()))).catch(() => ({ docs: [] }))] : []),
     ])).flatMap((s) => s.docs)
     : (await getDocs(query(collection(db, 'quizzes'), orderBy('updatedAt', 'desc')))).docs
   const seen = new Set<string>()
@@ -42,6 +44,8 @@ export function normalizeQuiz(q: Partial<Quiz> & { id: string }): Quiz {
     shared: q.shared === true,
     orgId: q.orgId || undefined,
     tags: q.tags ?? [],
+    folder: q.folder || undefined,
+    editors: Array.isArray(q.editors) ? q.editors : [],
     createdAt: q.createdAt,
     updatedAt: q.updatedAt,
   }
@@ -285,3 +289,9 @@ export async function deleteGame(gameId: string, pin?: string) {
 }
 
 export const touchQuiz = (quizId: string) => updateDoc(doc(db, 'quizzes', quizId), { updatedAt: serverTimestamp() })
+
+/** Həmmüəllifləri yeniləyir (yalnız sahib). */
+export const setQuizEditors = (quizId: string, emails: string[]) =>
+  updateDoc(doc(db, 'quizzes', quizId), { editors: [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))].slice(0, 20) })
+/** Qovluq (boş — qovluqsuz). */
+export const setQuizFolder = (quizId: string, folder: string) => updateDoc(doc(db, 'quizzes', quizId), { folder: folder.trim().slice(0, 40) })

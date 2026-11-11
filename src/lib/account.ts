@@ -436,3 +436,19 @@ export async function upgradeToTrainer(user: User, profile: UserProfile, type: '
   await saveProfile(user.uid, { name, title: extra.position ?? '', org: extra.organization ?? '', email: user.email ?? '' }).catch(() => {})
   void track('upgrade_to_trainer', { type })
 }
+
+// ======================= Kataloq reytinqi =======================
+export async function rateQuiz(quizId: string, stars: number) {
+  const uid = auth.currentUser?.uid ?? ''
+  await setDoc(doc(db, 'ratings', `${quizId}_${uid}`), { uid, quizId, stars: Math.max(1, Math.min(5, Math.round(stars))), at: serverTimestamp() })
+}
+export async function myRating(quizId: string): Promise<number> {
+  const s = await getDoc(doc(db, 'ratings', `${quizId}_${auth.currentUser?.uid ?? ''}`)).catch(() => null)
+  return s?.exists() ? Number(s.get('stars')) || 0 : 0
+}
+/** Bütün quizlərin orta qiymətləri (server hesablayır). */
+export async function ratingStats(): Promise<Map<string, { avg: number; count: number }>> {
+  const s = await getDocs(collection(db, 'ratingStats')).catch(() => null)
+  return new Map((s?.docs ?? []).map((d) => [d.id, { avg: Number(d.get('avg')) || 0, count: Number(d.get('count')) || 0 }]))
+}
+

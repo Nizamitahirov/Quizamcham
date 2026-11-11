@@ -197,6 +197,7 @@ export async function commit(caller: Caller, writes: Write[]): Promise<{ time: n
   }
   for (const a of applied) changes.emit('change', a)
   for (const a of applied) if (a.data && a.path.startsWith('reports/')) void autoHide(String(a.data.quizId ?? '')).catch(() => {})
+  for (const a of applied) if (a.data && a.path.startsWith('ratings/')) void rateStats(String(a.data.quizId ?? '')).catch(() => {})
   return { time: now }
 }
 
@@ -215,3 +216,20 @@ async function autoHide(quizId: string) {
   if (!cur || cur.hidden === true) return
   await commit({ auth: null, bypass: true }, [{ op: 'update', path: `catalog/${quizId}`, data: { hidden: true, hiddenReason: 'reports', hiddenAt: { __sv: 'ts' } } }])
 }
+
+/** Reytinq dəyişəndə quizin orta qiyməti yenidən hesablanır (ratingStats/{quizId}). */
+const rateQueue = new Map<string, Promise<void>>()
+function rateStats(quizId: string): Promise<void> {
+  if (!quizId) return Promise.resolve()
+  // eyni quiz üçün hesablamalar ardıcıl gedir — köhnə nəticə yenisinin üstünə yazılmasın
+  const next = (rateQueue.get(quizId) ?? Promise.resolve()).then(() => rateStatsNow(quizId), () => rateStatsNow(quizId))
+  rateQueue.set(quizId, next)
+  void next.finally(() => { if (rateQueue.get(quizId) === next) rateQueue.delete(quizId) }).catch(() => {})
+  return next
+}
+async function rateStatsNow(quizId: string) {
+  const r = await pool.query<{ n: string; s: string }>("select count(*) n, coalesce(sum((data->>'stars')::int), 0) s from docs where parent = 'ratings' and data->>'quizId' = $1", [quizId])
+  const n = Number(r.rows[0].n), sum = Number(r.rows[0].s)
+  await commit({ auth: null, bypass: true }, [{ op: 'set', path: `ratingStats/${quizId}`, data: { count: n, sum, avg: n ? Math.round((sum / n) * 10) / 10 : 0 } }])
+}
+

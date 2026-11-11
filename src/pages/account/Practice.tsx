@@ -128,6 +128,7 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
         </div>
         <p className="text-white/65">{correct}/{total}</p>
         {p >= 70 && <CertButton item={item} score={score} correct={correct} total={total} />}
+        <RateQuiz quizId={item.id} />
         <div className="flex w-full flex-col gap-2 sm:flex-row">
           <button className="btn btn-primary btn-lg flex-1" onClick={onRetry}><RotateCcw />{A.retry}</button>
           {ctx.courseId
@@ -253,3 +254,25 @@ function ReportButton({ quizId }: { quizId: string }) {
     </>
   )
 }
+
+/** Quizi qiymətləndir (1–5 ulduz) — kataloqda orta qiymət göstərilir. */
+function RateQuiz({ quizId }: { quizId: string }) {
+  const [stars, setStars] = useState(0)
+  const [hover, setHover] = useState(0)
+  const [saved, setSaved] = useState(false)
+  useEffect(() => { void import('../../lib/account').then((m) => m.myRating(quizId)).then(setStars).catch(() => {}) }, [quizId])
+  const rate = (n: number) => { setStars(n); setSaved(false); void import('../../lib/account').then((m) => m.rateQuiz(quizId, n)).then(() => setSaved(true)).catch(() => {}) }
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <p className="text-sm text-white/65">{t.rating.ask}</p>
+      <div className="flex gap-1" role="radiogroup" aria-label={t.rating.ask} onMouseLeave={() => setHover(0)}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} type="button" role="radio" aria-checked={stars === n} aria-label={t.rating.stars(n)} onMouseEnter={() => setHover(n)} onClick={() => rate(n)}
+            className={`text-3xl transition ${(hover || stars) >= n ? 'text-yellow-300' : 'text-white/25'}`}>★</button>
+        ))}
+      </div>
+      {saved && <p className="text-xs text-green-300" role="status">{t.rating.thanks}</p>}
+    </div>
+  )
+}
+

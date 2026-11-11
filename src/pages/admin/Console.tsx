@@ -78,18 +78,21 @@ export default function Console() {
     licensed: rows.filter((r) => r.status === 'licensed').length,
     leads: data.leads.filter((l) => l.status === 'new').length,
   }
-  const exportCsv = () => {
+  const exportCsv = (xlsx = false) => {
     const keys = ['email', 'firstName', 'lastName', 'phone', 'type', 'country', 'city', 'sector', 'position', 'organization', 'orgType', 'orgSize', 'seats', 'goal', 'institution', 'field', 'level', 'year', 'interests', 'source', 'marketing']
     const body = rows.map((r) => [...keys.map((key) => { const v = r.raw[key]; return Array.isArray(v) ? v.join('; ') : v == null ? '' : String(v) }),
       C.status[r.status], r.endsAt ? fmtDate(r.endsAt) : '', r.joined ? fmtDateTime(r.joined) : '', r.quizzes, r.games, r.attempts])
-    download(`jabr-users-${new Date().toISOString().slice(0, 10)}.csv`, '﻿' + toCsv([[...keys, 'status', 'plan_ends', 'joined', 'quizzes', 'games', 'attempts'], ...body]))
+    const table = [[...keys, 'status', 'plan_ends', 'joined', 'quizzes', 'games', 'attempts'], ...body]
+    if (xlsx) return void import('../../lib/xlsx').then((m) => m.downloadXlsx(`jabr-users-${new Date().toISOString().slice(0, 10)}.xlsx`, [{ name: 'Users', rows: table as (string | number)[][] }]))
+    download(`jabr-users-${new Date().toISOString().slice(0, 10)}.csv`, '\ufeff' + toCsv(table))
   }
 
   return (
     <div className="mx-auto max-w-[1440px] p-4 sm:p-8">
       <PageHeader title={C.title} sub={C.sub}>
         <button className="btn btn-secondary" onClick={load}><RefreshCw />{C.refresh}</button>
-        <button className="btn btn-primary" onClick={exportCsv} disabled={!rows.length}><Download />{C.exportCsv}</button>
+        <button className="btn btn-secondary" onClick={() => exportCsv()} disabled={!rows.length}><Download />{C.exportCsv}</button>
+        <button className="btn btn-primary" onClick={() => exportCsv(true)} disabled={!rows.length}><Download />Excel</button>
       </PageHeader>
 
       <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">

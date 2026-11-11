@@ -3,7 +3,8 @@ import { fmtDateTime } from '../../lib/format'
 import { Link, useParams } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '../../firebase/config'
-import { loadReport, reportCsv, answerText, type GameReportData } from '../../lib/report'
+import { loadReport, reportCsv, reportRows, questionRows, answerText, type GameReportData } from '../../lib/report'
+import { PremiumBadge, useFeature } from '../../components/Premium'
 import { SCORED_TYPES } from '../../lib/scoring'
 import { download } from '../../lib/csv'
 import { t } from '../../i18n/az'
@@ -39,7 +40,8 @@ export default function GameReport() {
           <h1 className="text-2xl font-bold sm:text-3xl">{t.games.report}</h1>
           <p className="text-sm text-muted">{game.title} · PIN {game.pin} · {(game.createdAt ? fmtDateTime(game.createdAt.toDate()) : '')}</p>
         </div>
-        <button className="btn btn-primary" onClick={() => download(`jabr-${game.pin}.csv`, reportCsv(r))}><Download />{t.host.exportCsv}</button>
+        <button className="btn btn-secondary" onClick={() => download(`jabr-${game.pin}.csv`, reportCsv(r))}><Download />{t.host.exportCsv}</button>
+        <ExcelButton name={`jabr-${game.pin}`} sheets={() => [{ name: t.games.report, rows: reportRows(r) }, { name: t.games.questionStats, rows: questionRows(r) }]} />
       </div>
 
       {game.settings?.mode === 'assign' && game.phase === 'self' && <AssignmentPanel game={game} onGraded={() => setTick((x) => x + 1)} />}
@@ -130,3 +132,11 @@ export default function GameReport() {
     </div>
   )
 }
+
+/** Excel (.xlsx) ixracı — Təlimçi planı və yuxarı. */
+function ExcelButton({ name, sheets }: { name: string; sheets: () => import('../../lib/xlsx').Sheet[] }) {
+  const allowed = useFeature('excel')
+  if (!allowed) return <span className="btn btn-ghost-dark pointer-events-none opacity-70"><Download />Excel <PremiumBadge feature="excel" className="pointer-events-auto" /></span>
+  return <button className="btn btn-primary" onClick={() => void import('../../lib/xlsx').then((m) => m.downloadXlsx(`${name}.xlsx`, sheets()))}><Download />Excel</button>
+}
+
