@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/dialogs'
 import { useEffect, useState } from 'react'
 import { logAudit } from '../../lib/audit'
 import { Database, Download, Save, ShieldCheck, SlidersHorizontal, Trash2 } from 'lucide-react'
@@ -55,7 +56,7 @@ function DataSection() {
     try {
       const list = await oldGames(days)
       if (!list.length) { setMsg(D.none); return }
-      if (!confirm(D.cleanupConfirm(list.length))) return
+      if (!(await confirmDialog({ title: D.cleanupConfirm(list.length), danger: true }))) return
       const n = await cleanupGames(days)
       setMsg(D.cleaned(n)); void logAudit('data_cleanup', { details: { days, games: n } })
     } catch { setMsg(t.app.error) } finally { setBusy(false) }

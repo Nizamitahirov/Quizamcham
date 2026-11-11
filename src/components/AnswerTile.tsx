@@ -56,7 +56,7 @@ export function AnswerTile({ index, text, onClick, selected, dimmed, checked, co
       <span className={`relative flex shrink-0 items-center justify-center rounded-xl bg-black/20 ${big ? 'h-16 w-16' : 'h-11 w-11'}`}><Shape i={index} size={big ? 36 : 22} /></span>
       <span className="relative min-w-0 flex-1 leading-snug [overflow-wrap:break-word] [hyphens:auto]" lang="az">{text}</span>
       {checked !== undefined && (
-        <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-white ${checked ? 'bg-white text-ink' : ''}`} aria-hidden>
+        <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-white ${checked ? 'bg-white text-onlight' : ''}`} aria-hidden>
           {checked && <Check className="h-5 w-5" strokeWidth={3.5} />}
         </span>
       )}

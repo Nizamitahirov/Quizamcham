@@ -62,7 +62,7 @@ export function CsvImport({ open, onClose, onImport }: { open: boolean; onClose:
       {parsed && (
         <div className="mt-3 rounded-xl bg-surface p-3 text-sm">
           <p className="flex items-center gap-2 font-bold"><FileSpreadsheet className="h-4 w-4 text-brand" />{C.parsed(parsed.questions.length, parsed.errors.length)}</p>
-          {parsed.errors.slice(0, 6).map((e) => <p key={e.row} className="text-xs text-red-600">{C.errorRow(e.row, e.msg)}</p>)}
+          {parsed.errors.slice(0, 6).map((e) => <p key={e.row} className="text-xs text-red-300">{C.errorRow(e.row, e.msg)}</p>)}
         </div>
       )}
       <div className="mt-4 flex justify-end"><button className="btn btn-primary" disabled={!parsed?.questions.length || busy} onClick={() => void go()}><Upload />{C.import}</button></div>

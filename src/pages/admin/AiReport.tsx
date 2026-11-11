@@ -33,11 +33,11 @@ export function AiInsightsPanel({ title, r }: { title: string; r: GameReportData
           ? <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => void run()}>{busy ? <Loader2 className="animate-spin" /> : <Wand2 />}{data ? L.again : L.run}</button>
           : <PremiumBadge feature="aiInsights" />}
       </div>
-      {err && <p className="mt-3 text-sm font-semibold text-red-600" role="alert">{err}</p>}
+      {err && <p className="mt-3 text-sm font-semibold text-red-300" role="alert">{err}</p>}
       {data && (
         <div className="mt-4 grid gap-4 text-sm md:grid-cols-3">
           <p className="md:col-span-3">{data.summary}</p>
-          {([['strengths', 'text-green-700'], ['gaps', 'text-amber-700'], ['actions', 'text-brand']] as const).map(([k, c]) => (
+          {([['strengths', 'text-green-300'], ['gaps', 'text-amber-300'], ['actions', 'text-brand']] as const).map(([k, c]) => (
             <div key={k} className="rounded-xl bg-surface p-4">
               <h3 className={`mb-2 font-bold ${c}`}>{L[k]}</h3>
               <ul className="list-disc space-y-1 pl-4">{data[k].map((x) => <li key={x}>{x}</li>)}</ul>
@@ -72,13 +72,13 @@ export function AiGradeOpen({ question, answers }: { question: string; answers: 
           <label className="label" htmlFor={`rb-${question.length}`}>{L.rubric}</label>
           <textarea id={`rb-${question.length}`} className="input min-h-16 text-sm" maxLength={1000} placeholder={L.rubricPh} value={rubric} onChange={(e) => setRubric(e.target.value)} />
           <button className="btn btn-primary btn-sm mt-2" disabled={busy} onClick={() => void run()}>{busy ? <Loader2 className="animate-spin" /> : <Wand2 />}{L.gradeRun}</button>
-          {err && <p className="mt-2 text-sm font-semibold text-red-600" role="alert">{err}</p>}
+          {err && <p className="mt-2 text-sm font-semibold text-red-300" role="alert">{err}</p>}
           {res && (
             <ul className="mt-3 flex flex-col gap-2 text-sm">
               {res.sort((a, b) => b.score - a.score).map((g) => (
                 <li key={g.id} className="rounded-lg bg-surface p-2">
                   <div className="flex items-start justify-between gap-3"><span className="font-semibold">{answers[Number(g.id)]}</span>
-                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${g.score >= 70 ? 'bg-green-100 text-green-700' : g.score >= 40 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-700'}`}>{g.score}</span></div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${g.score >= 70 ? 'bg-green-500/15 text-green-300' : g.score >= 40 ? 'bg-amber-500/15 text-amber-300' : 'bg-red-500/15 text-red-300'}`}>{g.score}</span></div>
                   {g.feedback && <p className="mt-1 text-xs text-muted">{g.feedback}</p>}
                 </li>
               ))}

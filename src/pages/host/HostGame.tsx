@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { collection, onSnapshot, query, where, orderBy, Timestamp } from 'firebase/firestore'
@@ -273,8 +274,8 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
     else void once(`c-${i + 1}`, () => toCountdown(gameId, i + 1, questions[i + 1], game.settings))
   }, [game, questions, gameId, once])
 
-  const endGame = useCallback(() => {
-    if (!game || !questions || !confirm(t.host.endGameConfirm)) return
+  const endGame = useCallback(async () => {
+    if (!game || !questions || !(await confirmDialog({ title: t.host.endGameConfirm, danger: true }))) return
     void once('fin', () => finishGame(game, questions))
   }, [game, questions, once])
 
@@ -339,7 +340,7 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
       <main className="relative z-10 flex min-h-0 flex-1 flex-col">
         <AnimatePresence mode="wait">
           <motion.div key={game.phase + game.questionIndex} className="flex min-h-0 flex-1 flex-col" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-            {game.phase === 'lobby' && <HostLobby {...ctx} onKick={(p) => confirm(t.host.kickConfirm(`${p.firstName} ${p.lastName}`)) && void kickPlayer(gameId, p.uid)} />}
+            {game.phase === 'lobby' && <HostLobby {...ctx} onKick={async (p) => (await confirmDialog({ title: t.host.kickConfirm(`${p.firstName} ${p.lastName}`), danger: true })) && void kickPlayer(gameId, p.uid)} />}
             {game.phase === 'countdown' && game.preview && <div className="m-auto w-full"><QuestionIntro big preview={game.preview} total={game.totalQuestions} /></div>}
             {game.phase === 'question' && <HostQuestion {...ctx} />}
             {game.phase === 'reveal' && <HostReveal {...ctx} />}

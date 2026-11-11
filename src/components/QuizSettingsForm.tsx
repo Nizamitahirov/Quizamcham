@@ -66,7 +66,7 @@ export function SettingsForm({ s, onChange, maxPlayersCap }: { s: QuizSettings; 
       </Section>
 
       <Section icon={Music} title={S.music} sub={S.musicSub}
-        actions={<button type="button" role="switch" aria-checked={s.music.on} aria-label={S.music} onClick={() => onChange({ music: { ...s.music, on: !s.music.on } })} className={`relative h-7 w-12 shrink-0 rounded-full transition ${s.music.on ? '' : 'bg-slate-300'}`} style={s.music.on ? { background: 'var(--grad)' } : undefined}><span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${s.music.on ? 'left-[1.4rem]' : 'left-0.5'}`} /></button>}>
+        actions={<button type="button" role="switch" aria-checked={s.music.on} aria-label={S.music} onClick={() => onChange({ music: { ...s.music, on: !s.music.on } })} className={`relative h-7 w-12 shrink-0 rounded-full transition ${s.music.on ? '' : 'bg-white/15'}`} style={s.music.on ? { background: 'var(--grad)' } : undefined}><span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${s.music.on ? 'left-[1.4rem]' : 'left-0.5'}`} /></button>}>
         <div className={s.music.on ? '' : 'pointer-events-none opacity-40'}>
           <MusicPicker value={s.music.theme} onChange={(theme) => onChange({ music: { ...s.music, theme } })} />
           <label className="mt-4 flex items-center gap-3">
@@ -84,7 +84,7 @@ export function SettingsForm({ s, onChange, maxPlayersCap }: { s: QuizSettings; 
           </Field>
           <Field label={S.maxPlayers}>
             {maxPlayersCap ? (
-              <div className="flex min-h-11 flex-wrap items-center gap-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
+              <div className="flex min-h-11 flex-wrap items-center gap-3 rounded-xl bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
                 <span className="font-display text-lg font-black tabular-nums">{maxPlayersCap}</span>
                 <span className="flex-1">{t.acct.freeCapHint}</span>
                 <a href="/pricing#request" className="btn btn-primary btn-sm">{t.acct.getLicense}</a>

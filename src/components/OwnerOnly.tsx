@@ -11,7 +11,7 @@ export function OwnerOnly({ children, perm = 'settings' }: { children: ReactNode
   if (perms[perm]) return <>{children}</>
   return (
     <div className="mx-auto max-w-3xl p-4 sm:p-8">
-      <p className="card flex items-center gap-3 p-6 text-sm font-semibold text-amber-800"><ShieldAlert className="h-5 w-5 shrink-0" />{t.access.noPerm}</p>
+      <p className="card flex items-center gap-3 p-6 text-sm font-semibold text-amber-300"><ShieldAlert className="h-5 w-5 shrink-0" />{t.access.noPerm}</p>
     </div>
   )
 }

@@ -42,7 +42,7 @@ export function ForcePasswordChange({ user }: { user: User }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-night/80 p-4 backdrop-blur" role="dialog" aria-modal="true" aria-labelledby="pw-title">
-      <form onSubmit={save} className="w-full max-w-md rounded-3xl bg-white p-6 text-ink shadow-2xl sm:p-8">
+      <form onSubmit={save} className="w-full max-w-md rounded-3xl bg-panel p-6 text-ink shadow-2xl sm:p-8">
         <div className="mb-5 flex items-center justify-between">
           <Logo size={30} dark={false} />
           <button type="button" className="btn btn-ghost-dark btn-sm" onClick={() => void logout()}><LogOut className="h-4 w-4" />{t.admin.logout}</button>
@@ -60,8 +60,8 @@ export function ForcePasswordChange({ user }: { user: User }) {
           <label className="text-sm font-semibold">{A.pwRepeat}
             <input className="input mt-1" type="password" autoComplete="new-password" required value={pw2} onChange={(e) => setPw2(e.target.value)} />
           </label>
-          <p className={`text-xs ${pw && !strongEnough(pw) ? 'text-red-600' : 'text-muted'}`}>{A.pwRules}</p>
-          {err && <p className="rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-700" role="alert">{err}</p>}
+          <p className={`text-xs ${pw && !strongEnough(pw) ? 'text-red-300' : 'text-muted'}`}>{A.pwRules}</p>
+          {err && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300" role="alert">{err}</p>}
           <button className="btn btn-primary mt-1" disabled={busy}>{busy ? t.app.loading : A.pwSave}</button>
         </div>
       </form>

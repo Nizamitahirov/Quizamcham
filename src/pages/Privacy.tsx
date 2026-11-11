@@ -17,7 +17,7 @@ export default function Privacy() {
   const doc = docs.find((d) => d.id === id)!
   const Icon = ICON[id]
   return (
-    <div className="noise relative min-h-dvh overflow-hidden bg-night text-white print:bg-white print:text-black">
+    <div className="noise relative min-h-dvh overflow-hidden bg-night text-white print:bg-panel print:text-black">
       <FuturisticBg floor={false} intensity={0.5} />
       <header className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-6 print:hidden">
         <Link to="/" aria-label={t.app.home}><Logo size={32} /></Link>
@@ -34,7 +34,7 @@ export default function Privacy() {
             )
           })}
         </nav>
-        <article className="glass-strong p-5 sm:p-10 print:border-0 print:bg-white print:shadow-none">
+        <article className="glass-strong p-5 sm:p-10 print:border-0 print:bg-panel print:shadow-none">
           <div className="mb-6 flex flex-wrap items-start gap-3">
             <Icon className="h-8 w-8 shrink-0 text-orange-400 sm:h-9 sm:w-9" />
             <div className="min-w-0 basis-full sm:basis-0 sm:flex-1">

@@ -306,7 +306,7 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <span className="chip chip-dark">{t.game.questionOf(game.questionIndex + 1, game.totalQuestions)}</span>
-          {q.points === 'double' && <span className="chip ml-1 bg-yellow-300 text-ink">2x</span>}
+          {q.points === 'double' && <span className="chip ml-1 bg-yellow-300 text-onlight">2x</span>}
         </div>
         <TimerRing endsAt={game.questionEndsAt} total={q.timeLimit} pausedMs={game.pausedRemainingMs} onTick={setRemaining} />
       </div>
@@ -369,7 +369,7 @@ function RevealView({ game, player }: { game: Game; player: Player }) {
             {t.game.pointsPlus(r.points)}
           </motion.div>
           <div className="flex flex-wrap justify-center gap-2">
-            {r.power === 'double' && <span className="chip bg-yellow-300 text-ink">{t.power.doubled}</span>}
+            {r.power === 'double' && <span className="chip bg-yellow-300 text-onlight">{t.power.doubled}</span>}
             {r.streakBonus > 0 && <span className="chip chip-dark">{t.game.streakBonus(r.streakBonus)}</span>}
             {r.streak >= 2 && <span className="chip chip-dark"><Flame className="h-4 w-4 text-orange-400" />{streakText(r.streak)}</span>}
           </div>
@@ -383,7 +383,7 @@ function RevealView({ game, player }: { game: Game; player: Player }) {
         </>
       )}
       {r.answered && r.timeMs != null && !r.poll && <span className="chip chip-dark"><Clock className="h-3.5 w-3.5" />{t.game.answerTime(`${(r.timeMs / 1000).toFixed(2)} s`)}</span>}
-      {youFastest ? <span className="chip bg-yellow-300 font-black text-ink">{t.game.youFastest}</span>
+      {youFastest ? <span className="chip bg-yellow-300 font-black text-onlight">{t.game.youFastest}</span>
         : rv?.fastest && <span className="text-xs text-white/60">{t.game.fastest(rv.fastest.name, `${(rv.fastest.ms / 1000).toFixed(2)} s`)}</span>}
       {!r.poll && showCorrect && !r.correct && rv && (
         <div className="glass mt-1 w-full p-3 text-left">

@@ -70,7 +70,7 @@ function ClipEditor({ kind, clip, onSaved }: { kind: 'correct' | 'wrong'; clip: 
         {clip ? (
           <>
             <button className="btn btn-secondary btn-sm" onClick={() => playData(clip.data)}><Play />{S.listen}</button>
-            <button className="btn btn-ghost-dark btn-sm text-red-600" onClick={async () => { await saveSoundClip(kind, null); void logAudit('sounds_saved', { details: { kind, removed: true } }); onSaved(null) }}><Trash2 />{S.remove}</button>
+            <button className="btn btn-ghost-dark btn-sm text-red-300" onClick={async () => { await saveSoundClip(kind, null); void logAudit('sounds_saved', { details: { kind, removed: true } }); onSaved(null) }}><Trash2 />{S.remove}</button>
           </>
         ) : <button className="btn btn-secondary btn-sm" onClick={builtin}><Play />{S.builtin}</button>}
         <button className="btn btn-soft btn-sm" disabled={busy} onClick={() => fileRef.current?.click()}><Upload />{S.upload}</button>

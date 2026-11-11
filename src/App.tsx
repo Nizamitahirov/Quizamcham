@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { firebaseConfigured } from './firebase/config'
 import { OfflineBanner } from './components/ui'
+import { DialogHost } from './components/dialogs'
 import { t } from './i18n/az'
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
     <>
       <OfflineBanner />
       <Outlet />
+      <DialogHost />
     </>
   )
 }

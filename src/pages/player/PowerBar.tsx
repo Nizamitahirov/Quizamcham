@@ -39,7 +39,7 @@ export function PowerBar({ game, player, disabled, q: qProp, qi: qiProp }: { gam
               className={`relative flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-bold transition disabled:opacity-35 ${isActive ? 'border-transparent text-white' : 'border-white/12 bg-white/[.06] text-white'}`}
               style={isActive ? { background: p.bg, boxShadow: '0 0 20px -4px rgba(255,138,26,.7)' } : undefined}>
               <p.icon className="h-4 w-4" />{p.label}
-              {!isActive && <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black text-ink">{left}</span>}
+              {!isActive && <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[10px] font-black text-onlight">{left}</span>}
               {isActive && <span className="text-[10px] opacity-90">{canCancel ? '✕' : '✓'}</span>}
             </motion.button>
           )

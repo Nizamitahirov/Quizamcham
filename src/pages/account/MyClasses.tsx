@@ -1,37 +1,44 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { BookOpen, ClipboardList, Gamepad2, GraduationCap, LogIn, Play } from 'lucide-react'
+import { BookOpen, CalendarClock, CheckCircle2, ClipboardList, Gamepad2, GraduationCap, LogIn, LogOut, Play } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { fmtDate } from '../../lib/format'
-import { joinClass, leaveClass, listTasks, myMemberships, myResults, normCode, type ClassResult, type ClassTask, type Membership } from '../../lib/classes'
+import { joinClass, leaveClass, listTasks, loadClass, myMemberships, myResults, normCode, type ClassResult, type ClassTask, type Membership } from '../../lib/classes'
+import { confirmDialog, toast } from '../../components/dialogs'
+import { Progress } from '../../components/kit'
+import { SectionTitle } from '../../components/StudentShell'
 
 const C = t.cls
+const C2 = t.cls2
+const KIND_ICON = { practice: ClipboardList, course: BookOpen, game: Gamepad2 } as const
 
 /** Tələbə: siniflərim — kodla qoşulma (və ya ?join=KOD linki), tapşırıqlar və öz nəticələri. */
 export function MyClasses({ name, email }: { name: string; email: string }) {
   const [params, setParams] = useSearchParams()
   const [rows, setRows] = useState<Membership[] | null>(null)
+  const [names, setNames] = useState<Record<string, string>>({})
   const [tasks, setTasks] = useState<Record<string, ClassTask[]>>({})
   const [res, setRes] = useState<Record<string, ClassResult[]>>({})
   const [code, setCode] = useState('')
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const reload = useCallback(async () => {
     const m = await myMemberships().catch(() => [] as Membership[])
     setRows(m)
-    const tk: Record<string, ClassTask[]> = {}, rs: Record<string, ClassResult[]> = {}
+    const tk: Record<string, ClassTask[]> = {}, rs: Record<string, ClassResult[]> = {}, nm: Record<string, string> = {}
     await Promise.all(m.map(async (x) => {
       tk[x.classId] = await listTasks(x.classId).catch(() => [])
       rs[x.classId] = await myResults(x.classId).catch(() => [])
+      nm[x.classId] = (await loadClass(x.classId).catch(() => null))?.name ?? x.className
     }))
-    setTasks(tk); setRes(rs)
+    setTasks(tk); setRes(rs); setNames(nm)
   }, [])
   const join = useCallback(async (raw: string) => {
     const c = normCode(raw)
     if (c.length !== 6) return
-    setBusy(true); setMsg(null)
-    try { const r = await joinClass(c, name, email); setMsg({ ok: true, text: C.joined(r.name) }); setCode(''); await reload() }
-    catch { setMsg({ ok: false, text: C.notFound }) } finally { setBusy(false) }
+    setBusy(true); setErr('')
+    try { const r = await joinClass(c, name, email); toast(C.joined(r.name)); setCode(''); await reload() }
+    catch { setErr(C.notFound) } finally { setBusy(false) }
   }, [name, email, reload])
   useEffect(() => { void reload() }, [reload])
   // ?join=KOD — müəllimin paylaşdığı link
@@ -43,47 +50,72 @@ export function MyClasses({ name, email }: { name: string; email: string }) {
     void join(j)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  const leave = async (m: Membership) => { if (await confirmDialog({ title: `${C.leave}: ${names[m.classId] ?? m.className}?`, danger: true, ok: C.leave })) void leaveClass(m.classId).then(reload) }
 
+  const joinForm = (
+    <form className="flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); void join(code) }}>
+      <label className="sr-only" htmlFor="jc">{C.joinTitle}</label>
+      <input id="jc" className="input h-10 min-h-10 w-36 text-center font-mono uppercase tracking-[.3em] placeholder:tracking-normal" placeholder="ABC123" value={code} maxLength={8}
+        onChange={(e) => { setCode(normCode(e.target.value)); setErr('') }} aria-invalid={!!err} aria-describedby={err ? 'jc-err' : undefined} />
+      <button className="btn btn-primary btn-sm h-10" disabled={busy || code.length !== 6}><LogIn />{C.join}</button>
+    </form>
+  )
   return (
     <section>
-      <h2 className="mb-3 flex items-center gap-2 text-xl font-black"><GraduationCap className="h-5 w-5 text-orange-300" />{C.mine}</h2>
-      <form className="glass mb-4 flex flex-wrap items-center gap-2 p-4" onSubmit={(e) => { e.preventDefault(); void join(code) }}>
-        <label className="text-sm font-bold" htmlFor="jc">{C.joinTitle}</label>
-        <input id="jc" className="input-dark h-11 w-40 font-mono uppercase tracking-widest" placeholder={C.joinPh} value={code} maxLength={8} onChange={(e) => setCode(normCode(e.target.value))} />
-        <button className="btn btn-primary" disabled={busy || code.length !== 6}><LogIn />{C.join}</button>
-        {msg && <p role="status" className={`w-full text-sm font-semibold ${msg.ok ? 'text-green-300' : 'text-red-300'}`}>{msg.text}</p>}
-      </form>
+      <SectionTitle icon={GraduationCap} aside={joinForm}>{C.mine}</SectionTitle>
+      {err && <p id="jc-err" role="alert" className="-mt-2 mb-3 text-right text-sm font-medium text-red-300">{err}</p>}
+      {rows && rows.length === 0 && (
+        <div className="card flex flex-col items-center gap-2 border-dashed px-6 py-8 text-center">
+          <GraduationCap className="h-6 w-6 text-muted" />
+          <p className="text-sm text-muted">{C.joinTitle}: {C.joinPh}</p>
+        </div>
+      )}
       {rows && rows.length > 0 && (
         <div className="grid gap-4 lg:grid-cols-2">
-          {rows.map((m) => (
-            <div key={m.classId} className="glass flex flex-col gap-3 p-5">
-              <div className="flex items-center gap-2">
-                <h3 className="min-w-0 flex-1 break-words text-lg font-black">{m.className}</h3>
-                <button className="text-xs text-white/50 underline hover:text-white" onClick={() => { if (confirm(`${C.leave}?`)) void leaveClass(m.classId).then(reload) }}>{C.leave}</button>
+          {rows.map((m) => {
+            const list = tasks[m.classId] ?? []
+            const mine = res[m.classId] ?? []
+            const practice = list.filter((x) => x.kind === 'practice')
+            const doneN = practice.filter((x) => mine.some((r) => r.taskId === x.id)).length
+            return (
+              <div key={m.classId} className="card flex flex-col overflow-hidden">
+                <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-sans text-base font-semibold">{names[m.classId] ?? m.className}</h3>
+                    {practice.length > 0 && (
+                      <div className="mt-2 flex items-center gap-3"><Progress value={(doneN / practice.length) * 100} className="max-w-48 flex-1" /><span className="text-xs text-muted tabular">{C2.done(doneN, practice.length)}</span></div>
+                    )}
+                  </div>
+                  <button className="btn btn-ghost-dark btn-icon btn-sm hover:text-red-300" title={C.leave} aria-label={C.leave} onClick={() => void leave(m)}><LogOut /></button>
+                </div>
+                {list.length === 0 ? <p className="px-5 py-6 text-sm text-muted">{C.noTasks}</p> : (
+                  <ul className="divide-y divide-line">
+                    {list.map((x) => {
+                      const r = mine.find((y) => y.taskId === x.id)
+                      const Icon = KIND_ICON[x.kind]
+                      const late = !r && x.dueAt && x.dueAt.toMillis() < Date.now()
+                      const href = x.kind === 'practice' ? `/learn/${x.quizId}?class=${m.classId}&task=${x.id}` : x.kind === 'course' ? `/learn/course/${x.courseId}` : `/join?pin=${x.pin}`
+                      return (
+                        <li key={x.id} className="flex items-center gap-3 px-5 py-3">
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${r ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300' : 'border-line bg-white/[.03] text-orange-300'}`}>{r ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="break-words text-sm font-semibold">{x.title}</div>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                              {r ? <span className="chip chip-ok">{C.yourScore(r.pct)}</span>
+                                : late ? <span className="chip chip-bad"><CalendarClock className="h-3 w-3" />{C2.overdue}</span>
+                                : x.dueAt ? <span className="chip chip-muted"><CalendarClock className="h-3 w-3" />{fmtDate(x.dueAt.toDate())}</span> : null}
+                              {x.note && <span className="truncate text-muted">{x.note}</span>}
+                            </div>
+                          </div>
+                          <Link to={href} className={`btn btn-sm ${r ? 'btn-secondary' : 'btn-primary'}`}><Play className="fill-current" />{x.kind === 'course' ? C.openCourse : x.kind === 'game' ? C.openGame : r ? t.acct.again : C.start}</Link>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
               </div>
-              {(tasks[m.classId] ?? []).length === 0 ? <p className="text-sm text-white/55">{C.noTasks}</p> : (
-                <ul className="flex flex-col gap-2">
-                  {(tasks[m.classId] ?? []).map((x) => {
-                    const r = (res[m.classId] ?? []).find((y) => y.taskId === x.id)
-                    const Icon = x.kind === 'course' ? BookOpen : x.kind === 'game' ? Gamepad2 : ClipboardList
-                    const href = x.kind === 'practice' ? `/learn/${x.quizId}?class=${m.classId}&task=${x.id}`
-                      : x.kind === 'course' ? `/learn/course/${x.courseId}` : `/join?pin=${x.pin}`
-                    return (
-                      <li key={x.id} className="flex items-center gap-3 rounded-xl bg-white/5 p-3">
-                        <Icon className="h-5 w-5 shrink-0 text-orange-300" />
-                        <div className="min-w-0 flex-1">
-                          <div className="break-words text-sm font-bold">{x.title}</div>
-                          <div className="text-xs text-white/55">{C.kinds[x.kind]}{x.dueAt ? ` · ${C.dueAt(fmtDate(x.dueAt.toDate()))}` : ''}{r ? ` · ${C.yourScore(r.pct)}` : ''}</div>
-                          {x.note && <div className="text-xs text-white/55">{x.note}</div>}
-                        </div>
-                        <Link to={href} className="btn btn-primary btn-sm"><Play />{x.kind === 'course' ? C.openCourse : x.kind === 'game' ? C.openGame : C.start}</Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </section>

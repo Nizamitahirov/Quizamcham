@@ -224,18 +224,18 @@ function ReportButton({ quizId }: { quizId: string }) {
       <button className="btn btn-ghost btn-sm" onClick={() => { setOpen(true); setState('idle') }}><Flag className="h-4 w-4" />{M.report}</button>
       {open && createPortal(
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 p-4 sm:items-center" role="dialog" aria-modal="true" aria-labelledby="rep-title" onClick={() => setOpen(false)}>
-          <div className="w-full max-w-md rounded-3xl bg-white p-5 text-ink shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md rounded-3xl border border-line bg-panel p-5 text-ink shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-start justify-between gap-2">
               <h2 id="rep-title" className="text-lg font-bold">{M.reportTitle}</h2>
               <button className="btn btn-ghost-dark btn-icon -m-1" aria-label={t.app.close} onClick={() => setOpen(false)}><X /></button>
             </div>
             {state === 'ok' || state === 'already' ? (
-              <p className="py-4 text-center font-semibold text-green-700">{state === 'ok' ? M.thanks : M.already}</p>
+              <p className="py-4 text-center font-semibold text-green-300">{state === 'ok' ? M.thanks : M.already}</p>
             ) : (
               <>
                 <div className="space-y-1.5">
                   {(Object.keys(M.reasons) as ReportReason[]).map((r) => (
-                    <label key={r} className="flex cursor-pointer items-center gap-3 rounded-xl border border-line px-3 py-2.5 has-[:checked]:border-brand has-[:checked]:bg-red-50">
+                    <label key={r} className="flex cursor-pointer items-center gap-3 rounded-xl border border-line px-3 py-2.5 has-[:checked]:border-brand has-[:checked]:bg-red-500/10">
                       <input type="radio" name="reason" value={r} checked={reason === r} onChange={() => setReason(r)} />
                       <span>{M.reasons[r]}</span>
                     </label>
@@ -243,7 +243,7 @@ function ReportButton({ quizId }: { quizId: string }) {
                 </div>
                 <label className="mt-3 block text-sm font-semibold" htmlFor="rep-note">{M.note}</label>
                 <textarea id="rep-note" className="input mt-1 h-20 w-full" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} />
-                {state === 'error' && <p role="alert" className="mt-2 text-sm text-red-700">{t.app.error}</p>}
+                {state === 'error' && <p role="alert" className="mt-2 text-sm text-red-300">{t.app.error}</p>}
                 <button className="btn btn-primary mt-4 w-full" disabled={state === 'busy'} onClick={() => void send()}>{M.send}</button>
               </>
             )}

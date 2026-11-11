@@ -2,12 +2,17 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fmtDateTime } from '../../lib/format'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Eye, Lock, Bot, Copy, FileJson, FileSpreadsheet, Folder, FolderInput, LayoutTemplate, Pencil, Play, Plus, Search, Sparkles, Trash2, Library, Users } from 'lucide-react'
+import {
+  Bot, ChevronDown, Copy, Eye, FileJson, FileSpreadsheet, Folder, FolderInput, FolderOpen, Inbox, LayoutTemplate, Library, ListChecks, Lock, MoreHorizontal,
+  Pencil, Play, Plus, Search, Sparkles, Trash2, Users, X,
+} from 'lucide-react'
 import { createQuiz, deleteQuiz, duplicateQuiz, listQuizzes, loadQuiz, parseQuizJson, setQuizFolder } from '../../firebase/db'
 import { launchQuiz } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { t } from '../../i18n/az'
-import { PageHeader, Spinner } from '../../components/ui'
+import { PageHeader } from '../../components/ui'
+import { DropMenu, EmptyState } from '../../components/kit'
+import { confirmDialog, promptDialog, toast } from '../../components/dialogs'
 import { AiImport } from '../../components/AiImport'
 import { CsvImport, TemplateGallery } from '../../components/ImportModals'
 import type { AdminState } from '../../firebase/auth'
@@ -16,12 +21,15 @@ import { logAudit } from '../../lib/audit'
 import type { Quiz } from '../../types'
 import seed from '../../../seed/ai-pretest.json'
 
+const L = t.ql
+type Item = Quiz & { count: number }
+const NO_FOLDER = '\u0000none'
+
 export default function QuizList() {
   const admin = useOutletContext<AdminState>()
   const { user } = admin
   const nav = useNavigate()
-  const [items, setItems] = useState<(Quiz & { count: number })[] | null>(null)
-  const [msg, setMsg] = useState('')
+  const [items, setItems] = useState<Item[] | null>(null)
   const [q, setQ] = useState('')
   const [ai, setAi] = useState(false)
   const [tpl, setTpl] = useState(false)
@@ -33,9 +41,16 @@ export default function QuizList() {
 
   const reload = useCallback(() => { void listQuizzes(scopeUid(admin), admin.perms.library, orgScope(admin)).then(setItems).catch(() => setItems([])) }, [admin])
   useEffect(reload, [reload])
-  const filtered = useMemo(() => (items ?? []).filter((x) => `${x.title} ${x.description} ${(x.tags ?? []).join(' ')}`.toLocaleLowerCase('az-AZ').includes(q.toLocaleLowerCase('az-AZ')) && (!tag || (x.tags ?? []).includes(tag)) && (!folder || x.folder === folder)), [items, q, tag, folder])
+  const needle = q.toLocaleLowerCase('az-AZ')
+  const filtered = useMemo(() => (items ?? []).filter((x) => `${x.title} ${x.description} ${(x.tags ?? []).join(' ')}`.toLocaleLowerCase('az-AZ').includes(needle)
+    && (!tag || (x.tags ?? []).includes(tag)) && (!folder || (folder === NO_FOLDER ? !x.folder : x.folder === folder))), [items, needle, tag, folder])
   const allTags = useMemo(() => [...new Set((items ?? []).flatMap((x) => x.tags ?? []))].sort(), [items])
-  const folders = useMemo(() => [...new Set((items ?? []).map((x) => x.folder).filter(Boolean) as string[])].sort(), [items])
+  const folders = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const x of items ?? []) if (x.folder) m.set(x.folder, (m.get(x.folder) ?? 0) + 1)
+    return [...m].sort((a, b) => a[0].localeCompare(b[0]))
+  }, [items])
+  const owned = (x: Item) => isQuizOwner(admin, x.ownerUid, x.orgId)
 
   const importData = async (raw: unknown, fromAi = false) => {
     const { quiz, questions } = parseQuizJson(raw)
@@ -44,94 +59,166 @@ export default function QuizList() {
   }
   const onFile = async (f: File | undefined) => {
     if (!f) return
-    try { await importData(JSON.parse(await f.text())) } catch { setMsg(t.admin.importBad) }
+    try { await importData(JSON.parse(await f.text())) } catch { toast(t.admin.importBad, 'error') }
   }
   const launch = async (id: string) => {
     setBusyId(id)
-    setMsg('')
     try {
       const data = await loadQuiz(id)
-      if (!data?.questions.length) { setMsg(t.admin.noQuestions); return }
-      if (data.questions.some((x) => validateQuestion(x).length)) { setMsg(t.admin.cannotLaunch); return }
+      if (!data?.questions.length) { toast(t.admin.noQuestions, 'error'); return }
+      if (data.questions.some((x) => validateQuestion(x).length)) { toast(t.admin.cannotLaunch, 'error'); return }
       nav(await launchQuiz(id, user!.uid))
-    } catch {
-      setMsg(t.app.error)
-    } finally {
-      setBusyId(null)
-    }
+    } catch { toast(t.app.error, 'error') } finally { setBusyId(null) }
+  }
+  const newBlank = async () => nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`)
+  const move = async (x: Item) => {
+    const f = await promptDialog({ title: t.folders.move, body: L.moveHint, label: L.folderName, initial: x.folder ?? '', suggestions: folders.map(([n]) => n), maxLength: 40, allowEmpty: true })
+    if (f === null) return
+    await setQuizFolder(x.id, f).then(() => toast(L.moved)).catch(() => toast(t.app.error, 'error')); reload()
+  }
+  const renameFolder = async (name: string) => {
+    const f = await promptDialog({ title: L.renameFolder, label: L.folderName, initial: name, maxLength: 40 })
+    if (!f || f === name) return
+    await Promise.all((items ?? []).filter((x) => x.folder === name && owned(x)).map((x) => setQuizFolder(x.id, f))).catch(() => toast(t.app.error, 'error'))
+    setFolder(f); reload()
+  }
+  const deleteFolder = async (name: string) => {
+    if (!(await confirmDialog({ title: `${L.deleteFolder}: ${name}?`, body: L.deleteFolderBody, danger: true }))) return
+    await Promise.all((items ?? []).filter((x) => x.folder === name && owned(x)).map((x) => setQuizFolder(x.id, ''))).catch(() => toast(t.app.error, 'error'))
+    setFolder(null); reload()
+  }
+  const del = async (x: Item) => {
+    if (!(await confirmDialog({ title: t.admin.deleteConfirm(x.title), danger: true }))) return
+    try { await deleteQuiz(x.id); void logAudit('quiz_deleted', { target: x.id, details: { title: x.title } }); toast(L.deleted) } catch { toast(t.admin.deleteFailed, 'error') }
+    reload()
   }
   const fmt = (x: Quiz) => (x.updatedAt ? fmtDateTime(x.updatedAt.toDate()) : '')
+  const filtering = !!(q || tag || folder)
+
+  const folderNav = (
+    <nav className="flex flex-col gap-0.5" aria-label={L.folders}>
+      {([[null, t.folders.all, items?.length ?? 0, ListChecks], ...folders.map(([n, c]) => [n, n, c, Folder] as const), ...(folders.length ? [[NO_FOLDER, L.noFolder, (items ?? []).filter((x) => !x.folder).length, Inbox] as const] : [])] as const).map(([key, label, n, Icon]) => {
+        const on = folder === key
+        const real = key && key !== NO_FOLDER
+        return (
+          <div key={key ?? '_all'} className={`group flex items-center rounded-lg transition ${on ? 'bg-white/[.07] text-fg' : 'text-muted hover:bg-white/[.04] hover:text-fg'}`}>
+            <button className="flex min-w-0 flex-1 items-center gap-2.5 px-3 py-2 text-left text-[13.5px] font-medium" onClick={() => setFolder(key)}>
+              {on && real ? <FolderOpen className="h-4 w-4 shrink-0 text-orange-300" /> : <Icon className={`h-4 w-4 shrink-0 ${on ? 'text-orange-300' : ''}`} />}
+              <span className="truncate">{label}</span>
+              <span className="ml-auto text-xs tabular text-muted">{n}</span>
+            </button>
+            {real && (
+              <DropMenu label={L.more} btnClass="btn btn-ghost-dark btn-icon btn-sm mr-0.5 opacity-0 transition group-hover:opacity-100 focus:opacity-100" items={[
+                { label: L.renameFolder, icon: Pencil, onClick: () => void renameFolder(key) },
+                { label: L.deleteFolder, icon: Trash2, danger: true, onClick: () => void deleteFolder(key) },
+              ]}><MoreHorizontal /></DropMenu>
+            )}
+          </div>
+        )
+      })}
+    </nav>
+  )
 
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">
-      <PageHeader title={t.admin.quizzes} sub={items ? t.admin.questionsCount(items.length).replace('sual', 'quiz') : undefined}>
+      <PageHeader title={t.admin.quizzes} sub={items ? L.count(items.length) : undefined}>
         {admin.perms.createQuiz && <>
-          <button className="btn btn-secondary" onClick={() => setTpl(true)}><LayoutTemplate className="text-brand" />{t.templates.button}</button>
-          <button className="btn btn-secondary" onClick={() => setCsv(true)}><FileSpreadsheet className="text-brand" />{t.csv.button}</button>
-          <button className="btn btn-secondary" onClick={() => fileRef.current?.click()}><FileJson />{t.admin.importJson}</button>
-          <button className="btn btn-secondary" onClick={() => setAi(true)}><Bot className="text-brand" />AI</button>
-          <button className="btn btn-primary" onClick={async () => nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`)}><Plus />{t.admin.newQuiz}</button>
+          <button className="btn btn-soft" onClick={() => setAi(true)}><Bot />{t.admin.aiTitle}</button>
+          <DropMenu label={L.import} btnClass="btn btn-secondary" items={[
+            { label: t.templates.button, icon: LayoutTemplate, onClick: () => setTpl(true) },
+            { label: t.csv.button, icon: FileSpreadsheet, onClick: () => setCsv(true) },
+            { label: t.admin.importJson, icon: FileJson, onClick: () => fileRef.current?.click() },
+          ]}>{L.import}<ChevronDown className="opacity-60" /></DropMenu>
+          <button className="btn btn-primary" onClick={() => void newBlank()}><Plus />{t.admin.newQuiz}</button>
         </>}
         <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = '' }} />
       </PageHeader>
-      <div className="relative mb-6 max-w-md">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-        <input className="input pl-9" placeholder={t.admin.search} value={q} onChange={(e) => setQ(e.target.value)} />
-      </div>
-      {folders.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Folder className="h-4 w-4 text-muted" />
-          {[null, ...folders].map((f) => (
-            <button key={f ?? '_all'} className={`chip ${folder === f ? 'bg-ink text-white' : 'bg-white text-[#4A4E69] ring-1 ring-line'}`} onClick={() => setFolder(f)}>{f ?? t.folders.all}</button>
-          ))}
-        </div>
-      )}
-      {allTags.length > 0 && (
-        <div className="mb-5 flex flex-wrap gap-2">
-          {[null, ...allTags].map((tg) => (
-            <button key={tg ?? '_all'} className={`chip ${tag === tg ? 'text-white' : 'bg-white text-[#4A4E69] ring-1 ring-line'}`} style={tag === tg ? { background: 'var(--grad)' } : undefined} onClick={() => setTag(tg)}>{tg ?? t.tags.all}</button>
-          ))}
-        </div>
-      )}
-      {msg && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800" role="status">{msg}</p>}
-      {!items ? <Spinner /> : items.length === 0 ? (
-        <div className="card flex flex-col items-center gap-4 p-10 text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl text-white" style={{ background: 'var(--grad)' }}><Sparkles /></span>
-          <p className="max-w-sm text-muted">{t.admin.empty}</p>
-          <button className="btn btn-primary" onClick={() => void importData(seed)}><Sparkles />{t.admin.importSeed}</button>
-        </div>
+
+      {!items ? (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="skeleton h-64" />)}</div>
+      ) : items.length === 0 ? (
+        <EmptyState icon={Sparkles} title={t.admin.quizzes} text={t.admin.empty} action={
+          <div className="flex flex-wrap justify-center gap-2">
+            {admin.perms.createQuiz && <button className="btn btn-primary" onClick={() => setAi(true)}><Bot />{t.admin.aiTitle}</button>}
+            <button className="btn btn-secondary" onClick={() => void importData(seed)}><Sparkles />{t.admin.importSeed}</button>
+          </div>
+        } />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((x, i) => (
-            <motion.div key={x.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="card group flex flex-col overflow-hidden transition hover:-translate-y-0.5" style={{ boxShadow: 'var(--shadow)' }}>
-              <div className="relative flex h-28 items-end gap-3 overflow-hidden p-4 text-white" style={{ background: `linear-gradient(135deg, ${x.coverColor} 0%, #FF8A1A 130%)` }}>
-                <span className="pointer-events-none absolute -right-6 -top-6 text-[110px] leading-none opacity-20">{x.coverEmoji}</span>
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-3xl backdrop-blur">{x.coverEmoji}</span>
-                <span className="chip relative ml-auto bg-black/25 text-white">{t.admin.questionsCount(x.count)}</span>
+        <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
+          <aside className="hidden lg:block">
+            <p className="mb-2 px-3 text-[10.5px] font-semibold uppercase tracking-[.12em] text-muted/70">{L.folders}</p>
+            {folderNav}
+          </aside>
+          <div className="min-w-0">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <div className="relative min-w-52 flex-1 sm:max-w-sm">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                <input className="input pl-9" placeholder={t.admin.search} value={q} onChange={(e) => setQ(e.target.value)} aria-label={t.admin.search} />
               </div>
-              <div className="flex flex-1 flex-col gap-2 p-4">
-                <h2 className="line-clamp-1 text-base font-bold">{x.title || t.admin.untitled}</h2>
-                {x.description && <p className="line-clamp-2 text-sm text-muted">{x.description}</p>}
-                {(x.tags ?? []).length > 0 && <div className="flex flex-wrap gap-1">{x.tags!.map((tg) => <span key={tg} className="chip chip-brand">{tg}</span>)}</div>}
-                <p className="text-xs text-muted">{t.admin.lastEdit}: {fmt(x)}</p>
-                {!canManage(admin, x.ownerUid, x.orgId, x.editors) && <span className="chip self-start bg-surface text-[#4A4E69]"><Lock className="h-3 w-3" />{t.admin.locked}</span>}
-                {x.folder && <span className="chip self-start bg-surface text-[#4A4E69]"><Folder className="h-3 w-3" />{x.folder}</span>}
-                {x.ownerUid !== user?.uid && (x.editors ?? []).includes((user?.email ?? '').toLowerCase()) && <span className="chip self-start bg-blue-50 text-blue-800"><Users className="h-3 w-3" />{t.folders.coEdited}</span>}
-                {x.shared && <span className="chip self-start bg-green-50 text-green-800" title={t.admin.shareHint}><Library className="h-3 w-3" />{t.admin.shared}</span>}
-                <div className="mt-auto flex items-center gap-1 pt-2">
-                  <button className="btn btn-primary btn-sm flex-1" disabled={busyId === x.id || x.count === 0 || !admin.perms.runGames} onClick={() => void launch(x.id)}><Play className="fill-current" />{busyId === x.id ? t.admin.launching : t.admin.launch}</button>
-                  <button className="btn btn-ghost-dark btn-sm btn-icon" title={canManage(admin, x.ownerUid, x.orgId, x.editors) ? t.admin.edit : t.admin.view} onClick={() => nav(`/admin/quiz/${x.id}`)}>{canManage(admin, x.ownerUid, x.orgId, x.editors) ? <Pencil /> : <Eye />}</button>
-                  {isQuizOwner(admin, x.ownerUid, x.orgId) && <button className="btn btn-ghost-dark btn-sm btn-icon" title={t.folders.move} onClick={() => { const f = prompt(t.folders.prompt, x.folder ?? ''); if (f !== null) void setQuizFolder(x.id, f).then(reload) }}><FolderInput /></button>}
-                  <button className="btn btn-ghost-dark btn-sm btn-icon" title={t.admin.duplicate} onClick={async () => { await duplicateQuiz(x.id, user!.uid, t.admin.copySuffix); reload() }}><Copy /></button>
-                  {isQuizOwner(admin, x.ownerUid, x.orgId) && <button className="btn btn-ghost-dark btn-sm btn-icon text-red-600" title={t.app.delete} onClick={async () => { if (confirm(t.admin.deleteConfirm(x.title))) { try { await deleteQuiz(x.id); void logAudit('quiz_deleted', { target: x.id, details: { title: x.title } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>}
-                </div>
+              {filtering && <button className="btn btn-ghost-dark btn-sm" onClick={() => { setQ(''); setTag(null); setFolder(null) }}><X />{L.clear}</button>}
+            </div>
+            {folders.length > 0 && (
+              <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:hidden scrollbar-thin">
+                {[[null, t.folders.all] as const, ...folders.map(([n]) => [n, n] as const)].map(([k, label]) => (
+                  <button key={k ?? '_all'} className={`chip shrink-0 ${folder === k ? 'chip-brand' : 'chip-muted'}`} onClick={() => setFolder(k)}><Folder className="h-3 w-3" />{label}</button>
+                ))}
               </div>
-            </motion.div>
-          ))}
+            )}
+            {allTags.length > 0 && (
+              <div className="mb-5 flex flex-wrap gap-1.5">
+                {[null, ...allTags].map((tg) => (
+                  <button key={tg ?? '_all'} className={`chip ${tag === tg ? 'chip-brand' : 'chip-muted hover:text-fg'}`} onClick={() => setTag(tg)}>{tg ? `#${tg}` : t.tags.all}</button>
+                ))}
+              </div>
+            )}
+            {filtered.length === 0 ? (
+              <EmptyState icon={Search} title={L.nothing} action={<button className="btn btn-secondary btn-sm" onClick={() => { setQ(''); setTag(null); setFolder(null) }}>{L.clear}</button>} />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {filtered.map((x, i) => {
+                  const manage = canManage(admin, x.ownerUid, x.orgId, x.editors)
+                  const coEd = x.ownerUid !== user?.uid && (x.editors ?? []).includes((user?.email ?? '').toLowerCase())
+                  return (
+                    <motion.article key={x.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 12) * 0.025 }} className="card card-hover group flex flex-col overflow-hidden">
+                      <button className="relative flex h-24 items-center gap-3 overflow-hidden px-4 text-left" onClick={() => nav(`/admin/quiz/${x.id}`)} aria-label={x.title}
+                        style={{ background: `radial-gradient(120% 140% at 0% 0%, ${x.coverColor}55, transparent 60%), linear-gradient(180deg, rgba(255,255,255,.03), transparent)` }}>
+                        <span className="pointer-events-none absolute -right-3 -top-5 select-none text-[96px] leading-none opacity-[.13] transition group-hover:scale-110 group-hover:opacity-20">{x.coverEmoji}</span>
+                        <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 text-2xl shadow-lg" style={{ background: `${x.coverColor}33` }}>{x.coverEmoji}</span>
+                        <span className="relative ml-auto flex flex-col items-end gap-1">
+                          <span className="chip chip-muted bg-black/30 tabular">{t.admin.questionsCount(x.count)}</span>
+                        </span>
+                      </button>
+                      <div className="flex flex-1 flex-col gap-2 border-t border-line p-4">
+                        <h2 className="line-clamp-1 font-sans text-[15px] font-semibold">{x.title || t.admin.untitled}</h2>
+                        {x.description && <p className="line-clamp-2 text-sm text-muted">{x.description}</p>}
+                        <div className="flex flex-wrap gap-1">
+                          {x.folder && <span className="chip chip-muted"><Folder className="h-3 w-3" />{x.folder}</span>}
+                          {coEd && <span className="chip chip-info"><Users className="h-3 w-3" />{t.folders.coEdited}</span>}
+                          {x.shared && <span className="chip chip-ok" title={t.admin.shareHint}><Library className="h-3 w-3" />{t.admin.shared}</span>}
+                          {!manage && <span className="chip chip-muted"><Lock className="h-3 w-3" />{t.admin.locked}</span>}
+                          {(x.tags ?? []).slice(0, 3).map((tg) => <span key={tg} className="chip chip-brand">#{tg}</span>)}
+                        </div>
+                        <p className="mt-auto pt-1 text-xs text-muted">{t.admin.lastEdit}: {fmt(x)}</p>
+                      </div>
+                      <div className="flex items-center gap-1 border-t border-line p-2.5">
+                        <button className="btn btn-primary btn-sm flex-1" disabled={busyId === x.id || x.count === 0 || !admin.perms.runGames} onClick={() => void launch(x.id)}><Play className="fill-current" />{busyId === x.id ? t.admin.launching : t.admin.launch}</button>
+                        <button className="btn btn-ghost-dark btn-icon btn-sm" title={manage ? t.admin.edit : t.admin.view} aria-label={manage ? t.admin.edit : t.admin.view} onClick={() => nav(`/admin/quiz/${x.id}`)}>{manage ? <Pencil /> : <Eye />}</button>
+                        <DropMenu label={L.more} items={[
+                          { label: t.folders.move, icon: FolderInput, hidden: !owned(x), onClick: () => void move(x) },
+                          { label: t.admin.duplicate, icon: Copy, onClick: () => void duplicateQuiz(x.id, user!.uid, t.admin.copySuffix).then(() => { toast(L.duplicated); reload() }) },
+                          { label: t.app.delete, icon: Trash2, danger: true, hidden: !owned(x), onClick: () => void del(x) },
+                        ]}><MoreHorizontal /></DropMenu>
+                      </div>
+                    </motion.article>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
       <AiImport open={ai} onClose={() => setAi(false)} onImport={importData} />
-      <TemplateGallery open={tpl} onClose={() => setTpl(false)} onPick={async (raw) => { if (raw) await importData(raw); else nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`) }} />
+      <TemplateGallery open={tpl} onClose={() => setTpl(false)} onPick={async (raw) => { if (raw) await importData(raw); else await newBlank() }} />
       <CsvImport open={csv} onClose={() => setCsv(false)} onImport={async (title, qs) => nav(`/admin/quiz/${await createQuiz(user!.uid, { title }, qs)}`)} />
     </div>
   )

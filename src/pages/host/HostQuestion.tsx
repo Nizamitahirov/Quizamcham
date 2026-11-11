@@ -27,7 +27,7 @@ export function HostQuestion({ game, players, answered }: HostCtx) {
     <div className="flex min-h-0 flex-1 flex-col gap-6 p-8">
       <div className="flex items-start gap-8">
         <div className="flex-1">
-          <div className="chip chip-dark mb-3 text-lg">{t.game.questionOf(game.questionIndex + 1, game.totalQuestions)} · {t.types[q.type]}{q.points === 'double' && <span className="ml-2 rounded-full bg-yellow-300 px-2 text-ink">2x</span>}</div>
+          <div className="chip chip-dark mb-3 text-lg">{t.game.questionOf(game.questionIndex + 1, game.totalQuestions)} · {t.types[q.type]}{q.points === 'double' && <span className="ml-2 rounded-full bg-yellow-300 px-2 text-onlight">2x</span>}</div>
           <h1 className={`${fitText(q.text)} font-black leading-tight`}>{q.text}</h1>
         </div>
         <TimerRing endsAt={game.questionEndsAt} total={q.timeLimit} pausedMs={game.pausedRemainingMs} size={170} />
@@ -102,7 +102,7 @@ export function HostReveal({ game, questions }: HostCtx) {
         <div className="flex shrink-0 flex-col items-end gap-2">
           <span className="chip chip-dark text-lg">{t.host.answered(r.answeredCount, game.playerCount)}</span>
           {q.type !== 'poll' && r.correctCount != null && game.playerCount > 0 && <span className="chip bg-green-500/20 text-lg text-green-300"><Check className="h-5 w-5" />{t.host.correctPct(Math.round((r.correctCount / game.playerCount) * 100))}</span>}
-          {r.fastest && <span className="chip bg-yellow-300 text-lg text-ink"><Zap className="h-5 w-5" />{r.fastest.name} · {(r.fastest.ms / 1000).toFixed(2)} s</span>}
+          {r.fastest && <span className="chip bg-yellow-300 text-lg text-onlight"><Zap className="h-5 w-5" />{r.fastest.name} · {(r.fastest.ms / 1000).toFixed(2)} s</span>}
         </div>
       </div>
       {isChoice && (
@@ -160,7 +160,7 @@ export function HostReveal({ game, questions }: HostCtx) {
       {q.type === 'open' && (
         <div className="grid flex-1 grid-cols-4 content-start gap-4 overflow-auto">
           {(r.texts ?? []).map((x, i) => (
-            <motion.div key={i} initial={{ scale: 0, rotate: -5 }} animate={{ scale: 1, rotate: (i % 3) - 1 }} transition={{ delay: i * 0.04 }} className="rounded-2xl p-4 text-2xl font-bold text-ink shadow-xl" style={{ background: ['#FEF08A', '#BBF7D0', '#BFDBFE', '#FBCFE8'][i % 4] }}>{x}</motion.div>
+            <motion.div key={i} initial={{ scale: 0, rotate: -5 }} animate={{ scale: 1, rotate: (i % 3) - 1 }} transition={{ delay: i * 0.04 }} className="rounded-2xl p-4 text-2xl font-bold text-onlight shadow-xl" style={{ background: ['#FEF08A', '#BBF7D0', '#BFDBFE', '#FBCFE8'][i % 4] }}>{x}</motion.div>
           ))}
           {(r.texts ?? []).length === 0 && <p className="col-span-4 text-center text-3xl opacity-70">{t.host.nobodyAnswered}</p>}
         </div>

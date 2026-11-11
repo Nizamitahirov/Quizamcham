@@ -23,14 +23,14 @@ export default function ResetPassword() {
     setBusy(true)
     try { await confirmPasswordReset(auth, code, pw); setDone(true) } catch { setErr(t.resetPw.expired) } finally { setBusy(false) }
   }
-  const input = 'w-full rounded-xl border border-line bg-white px-4 py-3 text-ink outline-none focus:border-brand'
+  const input = 'w-full rounded-xl border border-line bg-panel px-4 py-3 text-ink outline-none focus:border-brand'
   return (
     <main className="flex min-h-dvh items-center justify-center bg-surface px-4 py-10 text-ink">
-      <div className="w-full max-w-sm rounded-3xl border border-line bg-white p-6 shadow-sm">
+      <div className="w-full max-w-sm rounded-3xl border border-line bg-panel p-6 shadow-sm">
         <div className="mb-6 flex justify-center"><Logo /></div>
         {done ? (
           <div className="text-center">
-            <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-green-600" aria-hidden />
+            <CheckCircle2 className="mx-auto mb-3 h-10 w-10 text-green-300" aria-hidden />
             <p className="mb-5">{t.resetPw.done}</p>
             <Link to="/admin/login" className="inline-block rounded-xl bg-brand px-5 py-3 font-semibold text-white">{t.resetPw.login}</Link>
           </div>
@@ -41,9 +41,9 @@ export default function ResetPassword() {
             <input id="rp1" type="password" autoComplete="new-password" placeholder={t.resetPw.pw} className={input} value={pw} onChange={(e) => setPw(e.target.value)} />
             <label className="sr-only" htmlFor="rp2">{t.resetPw.pw2}</label>
             <input id="rp2" type="password" autoComplete="new-password" placeholder={t.resetPw.pw2} className={input} value={pw2} onChange={(e) => setPw2(e.target.value)} />
-            {err && <p role="alert" className="text-sm text-red-700">{err}</p>}
+            {err && <p role="alert" className="text-sm text-red-300">{err}</p>}
             <button disabled={busy || !code} className="w-full rounded-xl bg-brand py-3 font-semibold text-white disabled:opacity-60">{t.resetPw.save}</button>
-            {!code && <p className="text-sm text-red-700">{t.resetPw.expired}</p>}
+            {!code && <p className="text-sm text-red-300">{t.resetPw.expired}</p>}
           </form>
         )}
       </div>

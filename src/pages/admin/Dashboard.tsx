@@ -74,7 +74,7 @@ export default function Dashboard() {
         </div>
       </motion.section>
 
-      {maint && <p className="mb-4 rounded-xl bg-green-50 px-4 py-2 text-sm font-semibold text-green-800" role="status">{maint}</p>}
+      {maint && <p className="mb-4 rounded-xl bg-green-500/10 px-4 py-2 text-sm font-semibold text-green-300" role="status">{maint}</p>}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((c, i) => (
           <motion.div key={c.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 * i }} className="card p-5">
@@ -102,7 +102,7 @@ export default function Dashboard() {
                       <span className="text-xs text-muted">{g.createdAt ? fmtDateTime(g.createdAt.toDate()) : ''} · PIN {g.pin}</span>
                     </span>
                     <span className="flex items-center gap-1 text-sm font-semibold text-muted"><Users className="h-4 w-4" />{g.playerCount ?? 0}</span>
-                    {g.phase !== 'finished' ? <span className="chip bg-green-100 text-green-700">{t.admin.live}</span> : g.stats && <span className="chip bg-surface text-[#4A4E69]">{Math.round((g.stats.avgAccuracy ?? 0) * 100)}%</span>}
+                    {g.phase !== 'finished' ? <span className="chip bg-green-500/15 text-green-300">{t.admin.live}</span> : g.stats && <span className="chip bg-surface text-fg2">{Math.round((g.stats.avgAccuracy ?? 0) * 100)}%</span>}
                   </Link>
                 </li>
               ))}

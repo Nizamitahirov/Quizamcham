@@ -27,7 +27,7 @@ test('uyğunlaşdırma, boşluq doldurma, şəkildə nöqtə və əminlik rejimi
   await host.getByRole('button', { name: 'Daxil ol' }).click()
   await host.waitForURL('**/admin')
   await host.goto('/admin/quizzes')
-  await host.getByRole('button', { name: 'AI', exact: true }).click()
+  await host.getByRole('button', { name: 'AI ilə sual yarat' }).first().click()
   await host.getByRole('button', { name: 'JSON', exact: true }).click()
   await host.locator('textarea.input').fill(JSON.stringify(QUIZ))
   await host.getByRole('button', { name: 'İdxal et' }).click()

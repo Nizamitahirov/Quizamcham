@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../components/dialogs'
 import { useEffect, useState } from 'react'
 import { fmtDateTime } from '../../lib/format'
 import { collection, getCountFromServer } from 'firebase/firestore'
@@ -21,7 +22,7 @@ export function AssignmentPanel({ game, onGraded }: { game: Game; onGraded: () =
       .then(([p, a]) => setCounts({ p: p.data().count, a: a.data().count })).catch(() => {})
   }, [game.id])
   const grade = async (auto = false) => {
-    if (!auto && !confirm(A.gradeConfirm)) return
+    if (!auto && !(await confirmDialog({ title: A.gradeConfirm }))) return
     setProgress(auto ? t.admin.expired : A.grading(0, counts?.p ?? 0))
     try {
       await gradeAssignment(game, await loadSecret(game.id), (d, n) => setProgress(A.grading(d, n)))
