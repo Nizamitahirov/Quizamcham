@@ -137,6 +137,8 @@ export interface CatalogItem {
   category?: string; level?: 'easy' | 'medium' | 'hard'
   /** review — şəkilli quiz admin təsdiqini gözləyir; hidden — şikayət/moderasiya ilə gizlədilib */
   status?: 'live' | 'review'; hidden?: boolean; hiddenReason?: string; hasImages?: boolean
+  /** yalnız link ilə (sinif/kurs üçün) — ictimai kataloqda göstərilmir */
+  unlisted?: boolean
 }
 
 /** Avtomatik məzmun yoxlamasından keçməyən dərc cəhdi. */
@@ -145,7 +147,7 @@ export class ModerationError extends Error {
 }
 
 /** Quizi kataloqa dərc edir (yalnız qiymətləndirilən suallar + slaydlar; tələbə limitsiz məşq edə bilir). */
-export async function publishToCatalog(quizId: string, author: string, meta: { category?: string; level?: 'easy' | 'medium' | 'hard' } = {}, opts: { trusted?: boolean } = {}) {
+export async function publishToCatalog(quizId: string, author: string, meta: { category?: string; level?: 'easy' | 'medium' | 'hard' } = {}, opts: { trusted?: boolean; unlisted?: boolean } = {}) {
   const data = await loadQuiz(quizId)
   if (!data) throw new Error('quiz-not-found')
   const questions = data.questions.filter((q) => SCORED_TYPES.has(q.type) || q.type === 'slide')
@@ -161,7 +163,7 @@ export async function publishToCatalog(quizId: string, author: string, meta: { c
   // şəkilləri avtomatik yoxlamaq mümkün deyil → super admin təsdiqləyənə qədər "review"
   const status = m.hasImages && !opts.trusted ? 'review' : 'live'
   try {
-    await setDoc(doc(db, 'catalog', quizId), { ...payload, hasImages: m.hasImages, status })
+    await setDoc(doc(db, 'catalog', quizId), { ...payload, hasImages: m.hasImages, status, unlisted: !!opts.unlisted })
   } catch (e) {
     const msg = (e as Error).message ?? ''
     if (msg.startsWith('moderation:')) throw new ModerationError(JSON.parse(msg.slice(11)) as ModIssue[])
@@ -179,15 +181,15 @@ export async function unpublish(quizId: string) {
 export async function isPublished(quizId: string) {
   return (await getDoc(doc(db, 'catalog', quizId)).catch(() => null))?.exists() ?? false
 }
-export async function catalogMeta(quizId: string): Promise<Pick<CatalogItem, 'category' | 'level' | 'status' | 'hidden'> | null> {
+export async function catalogMeta(quizId: string): Promise<Pick<CatalogItem, 'category' | 'level' | 'status' | 'hidden' | 'unlisted'> | null> {
   const s = await getDoc(doc(db, 'catalog', quizId)).catch(() => null)
-  return s?.exists() ? { category: s.get('category'), level: s.get('level'), status: s.get('status'), hidden: s.get('hidden') } : null
+  return s?.exists() ? { category: s.get('category'), level: s.get('level'), status: s.get('status'), hidden: s.get('hidden'), unlisted: s.get('unlisted') } : null
 }
 /** Kataloq: standart olaraq yalnız tələbələrə görünənlər (gizlədilmiş və yoxlamada olanlar çıxarılır). */
 export async function listCatalog(all = false): Promise<CatalogItem[]> {
   const s = await getDocs(collection(db, 'catalog'))
   return s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<CatalogItem, 'id'>) }))
-    .filter((c) => all || (!c.hidden && c.status !== 'review'))
+    .filter((c) => all || (!c.hidden && c.status !== 'review' && !c.unlisted))
     .sort((a, b) => (b.publishedAt?.toMillis() ?? 0) - (a.publishedAt?.toMillis() ?? 0))
 }
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { parseBlanks } from '../../lib/scoring'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, Award, CheckCircle2, Clock, Flag, RotateCcw, Trophy, X, XCircle } from 'lucide-react'
 import { loadCatalogItem, reportQuiz, saveAttempt, useAccount, type CatalogItem, type ReportReason } from '../../lib/account'
@@ -53,6 +53,9 @@ function Shell({ children, title, report }: { children: React.ReactNode; title?:
 }
 
 function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: () => void }) {
+  const [params] = useSearchParams()
+  const { profile } = useAccount()
+  const ctx = { classId: params.get('class'), taskId: params.get('task'), courseId: params.get('course'), name: profile ? `${profile.firstName} ${profile.lastName}`.trim() : '' }
   const qs = item.questions
   const [i, setI] = useState(0)
   const [results, setResults] = useState<Result[]>([])
@@ -101,6 +104,13 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
     const durationMs = Date.now() - started.current
     setElapsed(durationMs)
     void saveAttempt({ quizId: item.id, quizTitle: item.title.slice(0, 120), correct, total, score, durationMs }).catch(() => {})
+    // sinif tapşırığı və ya kurs daxilində açılıbsa — nəticə müəllimə / irəliləyiş kursa
+    void (async () => {
+      const { saveClassResult, loadCourse, markCourseItem } = await import('../../lib/classes')
+      const name = ctx.name || ''
+      if (ctx.classId && ctx.taskId) await saveClassResult(ctx.classId, ctx.taskId, name, { score, correct, total }).catch(() => {})
+      if (ctx.courseId && correct / total >= 0.5) { const c = await loadCourse(ctx.courseId).catch(() => null); if (c) await markCourseItem(c, item.id, name).catch(() => {}) }
+    })()
     if (correct / total >= 0.7) burst(1.2)
   }, [finished, correct, total, score, item])
 
@@ -120,7 +130,9 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
         {p >= 70 && <CertButton item={item} score={score} correct={correct} total={total} />}
         <div className="flex w-full flex-col gap-2 sm:flex-row">
           <button className="btn btn-primary btn-lg flex-1" onClick={onRetry}><RotateCcw />{A.retry}</button>
-          <Link to="/learn" className="btn btn-ghost btn-lg flex-1"><ArrowLeft />{A.toCatalog}</Link>
+          {ctx.courseId
+            ? <Link to={`/learn/course/${ctx.courseId}`} className="btn btn-ghost btn-lg flex-1"><ArrowLeft />{t.course.back}</Link>
+            : <Link to="/learn" className="btn btn-ghost btn-lg flex-1"><ArrowLeft />{A.toCatalog}</Link>}
         </div>
       </div>
     )

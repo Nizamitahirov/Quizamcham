@@ -695,8 +695,33 @@ export const az = {
   },
   aiReport: { title: 'AI təhlil', sub: 'Zəif mövzular və növbəti addımlar — bir kliklə', run: 'Təhlil et', again: 'Yenidən', strengths: 'Güclü tərəflər', gaps: 'Zəif yerlər', actions: 'Növbəti addımlar',
     grade: 'AI ilə qiymətləndir', rubric: 'Rubrika / gözlənilən cavab (istəyə bağlı)', rubricPh: 'məs. cavabda bu 3 məqam olmalıdır: …', gradeRun: 'Qiymətləndir', gradeNote: 'AI təklifidir (0–100). Yekun qiyməti siz verirsiniz.' },
+  cls: {
+    nav: 'Siniflər', title: 'Siniflər və qruplar', sub: 'Tələbələri kodla toplayın, tapşırıq verin və nəticələri izləyin',
+    newName: 'Sinfin adı (məs. 10-A, Marketinq qrupu)', create: 'Sinif yarat', empty: 'Hələ sinif yoxdur', open: 'Aç', members: (n: number) => `${n} tələbə`,
+    code: 'Qoşulma kodu', joinLink: 'Qoşulma linki', copy: 'Kopyala', copied: 'Kopyalandı ✓', joinHow: 'Tələbələr jabr.az/learn səhifəsində bu kodu daxil edir və ya linki açır',
+    tabs: { tasks: 'Tapşırıqlar', members: 'Tələbələr', results: 'Nəticələr' },
+    addTask: 'Tapşırıq əlavə et', kind: 'Növ', kinds: { practice: 'Quiz (məşq)', course: 'Kurs', game: 'Oyun (PIN)' } as Record<string, string>,
+    pickQuiz: 'Quiz seçin', pickCourse: 'Kurs seçin', pickGame: 'Oyun seçin (aktiv oyunlar)', noQuizzes: 'Kataloqda quiz yoxdur — əvvəlcə quizi dərc edin (istəsəniz "yalnız link ilə")',
+    due: 'Son tarix', note: 'Qeyd', add: 'Əlavə et', noTasks: 'Tapşırıq yoxdur', noMembers: 'Hələ tələbə qoşulmayıb', remove: 'Çıxar', del: 'Sil',
+    delClass: 'Sinfi sil', delConfirm: 'Sinif, tapşırıqlar və nəticələr silinəcək. Davam edilsin?', archive: 'Arxivlə', unarchive: 'Arxivdən çıxar', archived: 'Arxivdə (yeni qoşulma bağlıdır)',
+    student: 'Tələbə', avg: 'Orta', notDone: '—', report: 'Hesabat', progress: (a: number, b: number) => `${a}/${b}`,
+    // tələbə tərəfi
+    mine: 'Siniflərim', joinTitle: 'Sinfə qoşul', joinPh: 'Kod (6 simvol)', join: 'Qoşul', joined: (n: string) => `"${n}" sinfinə qoşuldunuz ✓`,
+    notFound: 'Bu kodla sinif tapılmadı', leave: 'Sinifdən çıx', start: 'Başla', openCourse: 'Kursa keç', openGame: 'Oyuna qoşul', yourScore: (p: number) => `Nəticəniz: ${p}%`, dueAt: (d: string) => `Son tarix: ${d}`,
+  },
+  course: {
+    nav: 'Kurslar', title: 'Kurslar', sub: 'Bir neçə quizi ardıcıl proqrama birləşdirin — sonda sertifikat',
+    create: 'Yeni kurs', edit: 'Redaktə', name: 'Kursun adı', desc: 'Təsvir', items: 'Quizlər (ardıcıllıqla)', addItem: 'Quiz əlavə et', search: 'Kataloqda axtar…',
+    save: 'Yadda saxla', empty: 'Hələ kurs yoxdur', del: 'Sil', delConfirm: 'Kurs silinsin?', count: (n: number) => `${n} quiz`,
+    // tələbə
+    progress: (a: number, b: number) => `${a} / ${b} tamamlanıb`, done: 'Tamamlandı', start: 'Başla', again: 'Təkrar', completeTitle: 'Kurs tamamlandı! 🎉', certificate: 'Sertifikatı yüklə', back: 'Kursa qayıt', notFound: 'Kurs tapılmadı',
+  },
+  cards: {
+    open: 'Flashcard', title: 'Flashcard rejimi', flip: 'Çevirmək üçün toxunun', know: 'Bilirəm', again: 'Təkrarla', left: (n: number) => `${n} kart qalıb`,
+    done: 'Bütün kartları bildiniz! 🎉', restart: 'Yenidən başla', answer: 'Cavab',
+  },
   premium: { requires: (p: string) => `${p} planında`, locked: (p: string) => `Bu imkan ${p} və daha yüksək planlarda mövcuddur.`, upgrade: 'Planı yüksəlt', yourPlan: 'Planınız' },
-  mod: {
+  mod: { unlisted: 'Yalnız link ilə', unlistedHint: 'Kataloqda göstərilmir — yalnız sinif, kurs və ya link vasitəsilə açılır', 
     title: 'Dərc etmək olmur — düzəldilməli yerlər',
     codes: { profanity: 'Söyüş və ya vulqar ifadə', sexual: 'Seksual məzmun', hate: 'Təhqir və ya nifrət ifadəsi', violence: 'Zorakılığa və ya özünəzərərə çağırış', contact: 'Əlaqə məlumatı (telefon, e-poçt, messencer)', link: 'Xarici keçid (reklam)', quality: 'Keyfiyyət tələbi' },
     quality: { 'title-length': 'Başlıq 5–120 simvol olmalıdır', 'min-questions': 'Ən azı 3 qiymətləndirilən sual lazımdır', 'empty-question': 'Sualın mətni boşdur', options: 'Ən azı 2 variant və düzgün cavab seçilməlidir' } as Record<string, string>,

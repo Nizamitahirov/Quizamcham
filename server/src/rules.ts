@@ -341,6 +341,100 @@ async function evaluate(c: Ctx): Promise<boolean> {
     if (op === 'delete') return c.registered() && f(rd(), 'uid') === c.uid
     return false
   }
+  // ---------- siniflər, kodlar, üzvlüklər, kurslar (firestore.rules ilə eyni) ----------
+  const classOwner = async (cid: string) => (await c.isAdmin()) && (await c.exists(`classes/${cid}`)) && g(await c.get(`classes/${cid}`), 'ownerUid', '') === c.uid
+  const classMember = async (cid: string) => c.registered() && (await c.exists(`classes/${cid}/members/${c.uid}`))
+  if (col === 'classes') {
+    const cid = id
+    if (path.length === 2) {
+      if (op === 'get') return (await classOwner(cid)) || (await classMember(cid)) || c.can('allContent')
+      if (op === 'list') return ((await c.isAdmin()) && (await ok(() => f(rd(), 'ownerUid') === c.uid))) || c.can('allContent')
+      if (op === 'create') {
+        const d = nd()
+        return (await c.isAdmin()) && (await c.can('createQuiz')) && f(d, 'ownerUid') === c.uid
+          && keysOnly(d, ['ownerUid', 'name', 'code', 'createdAt', 'archived', 'ownerName'])
+          && str(f(d, 'name'), 80) && size(f(d, 'name')) >= 2 && isStr(f(d, 'code')) && size(f(d, 'code')) === 6 && isReq(f(d, 'createdAt'), now)
+      }
+      if (op === 'update') {
+        const d = nd()
+        return (await classOwner(cid)) && eq(f(d, 'ownerUid'), f(rd(), 'ownerUid')) && eq(f(d, 'code'), f(rd(), 'code'))
+          && onlyAffected(d, res, ['name', 'archived', 'ownerName']) && str(f(d, 'name'), 80)
+      }
+      return classOwner(cid)
+    }
+    if (path.length === 4 && sub === 'members') {
+      const uid = subId
+      if (read) return (await classOwner(cid)) || (c.registered() && c.uid === uid)
+      if (op === 'create') {
+        const d = nd(), cls = await c.get(`classes/${cid}`)
+        return c.registered() && uid === c.uid && keysOnly(d, ['uid', 'name', 'email', 'code', 'joinedAt'])
+          && f(d, 'uid') === uid && str(f(d, 'name'), 80) && str(g(d, 'email', ''), 120)
+          && eq(f(d, 'code'), f(cls, 'code')) && g(cls, 'archived', false) === false && isReq(f(d, 'joinedAt'), now)
+      }
+      if (op === 'update') return false
+      return (await classOwner(cid)) || (c.registered() && c.uid === uid)
+    }
+    if (path.length === 4 && sub === 'tasks') {
+      if (read) return (await classOwner(cid)) || (await classMember(cid))
+      if (op === 'delete') return classOwner(cid)
+      const d = nd()
+      return (await classOwner(cid)) && keysOnly(d, ['kind', 'title', 'quizId', 'courseId', 'gameId', 'pin', 'dueAt', 'createdAt', 'note'])
+        && inList(f(d, 'kind'), ['practice', 'course', 'game']) && str(f(d, 'title'), 120) && str(g(d, 'note', ''), 300)
+    }
+    if (path.length === 4 && sub === 'results') {
+      if (read) return (await classOwner(cid)) || (c.registered() && (await ok(() => f(rd(), 'uid') === c.uid)))
+      if (op === 'delete') return classOwner(cid)
+      const d = nd()
+      const total = f(d, 'total'), correct = f(d, 'correct'), pct = f(d, 'pct')
+      return (await classMember(cid)) && subId === `${c.uid}_${f(d, 'taskId')}`
+        && keysOnly(d, ['uid', 'name', 'taskId', 'score', 'correct', 'total', 'pct', 'at'])
+        && f(d, 'uid') === c.uid && str(f(d, 'name'), 80)
+        && isInt(total) && (total as number) > 0 && (total as number) <= 200
+        && isInt(correct) && (correct as number) >= 0 && (correct as number) <= (total as number)
+        && isInt(pct) && (pct as number) >= 0 && (pct as number) <= 100
+        && isReq(f(d, 'at'), now) && (await c.exists(`classes/${cid}/tasks/${f(d, 'taskId')}`))
+    }
+    return false
+  }
+  if (col === 'classCodes' && path.length === 2) {
+    if (op === 'get') return c.registered() || c.isAdmin()
+    if (op === 'list' || op === 'update') return false
+    if (op === 'create') { const d = nd(); return (await c.isAdmin()) && keysOnly(d, ['classId']) && classOwner(String(f(d, 'classId'))) }
+    return (await c.isAdmin()) && classOwner(String(f(rd(), 'classId')))
+  }
+  if (col === 'memberships' && path.length === 2) {
+    if (read) return c.registered() && (await ok(() => f(rd(), 'uid') === c.uid))
+    if (op === 'create') {
+      const d = nd()
+      return c.registered() && id === `${c.uid}_${f(d, 'classId')}` && keysOnly(d, ['uid', 'classId', 'className', 'joinedAt'])
+        && f(d, 'uid') === c.uid && str(f(d, 'className'), 80) && isReq(f(d, 'joinedAt'), now)
+        && c.exists(`classes/${f(d, 'classId')}/members/${c.uid}`)
+    }
+    if (op === 'delete') return c.registered() && f(rd(), 'uid') === c.uid
+    return false
+  }
+  if (col === 'courses') {
+    if (path.length === 2) {
+      if (read) return c.registered() || c.isAdmin()
+      if (op === 'delete') return (await c.isAdmin()) && f(rd(), 'ownerUid') === c.uid
+      const d = nd()
+      const items = f(d, 'items')
+      return (await c.isAdmin()) && (await c.can('createQuiz')) && f(d, 'ownerUid') === c.uid
+        && (res === null || f(res, 'ownerUid') === c.uid)
+        && keysOnly(d, ['ownerUid', 'ownerName', 'title', 'description', 'items', 'createdAt', 'updatedAt', 'coverEmoji'])
+        && str(f(d, 'title'), 120) && size(f(d, 'title')) >= 3 && str(g(d, 'description', ''), 500)
+        && Array.isArray(items) && items.length >= 1 && items.length <= 50
+    }
+    if (path.length === 4 && sub === 'progress') {
+      const uid = subId
+      if (read) return (c.registered() && c.uid === uid) || ((await c.isAdmin()) && g(await c.get(`courses/${id}`), 'ownerUid', '') === c.uid)
+      if (op === 'delete') return false
+      const d = nd(), done = f(d, 'done')
+      return c.registered() && c.uid === uid && keysOnly(d, ['uid', 'name', 'done', 'completedAt', 'at'])
+        && f(d, 'uid') === uid && Array.isArray(done) && done.length <= 50 && isReq(f(d, 'at'), now)
+    }
+    return false
+  }
   if (col === 'plays' && path.length === 2) {
     if (read) return (await ok(() => c.registered() && f(rd(), 'uid') === c.uid)) || c.can('console')
     if (op === 'create') {

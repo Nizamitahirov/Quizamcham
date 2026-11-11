@@ -11,6 +11,11 @@ const PlayerGame = lazy(() => import('./pages/player/PlayerGame'))
 const HostGame = lazy(() => import('./pages/host/HostGame'))
 const Login = lazy(() => import('./pages/admin/Login'))
 const ResetPassword = lazy(() => import('./pages/account/ResetPassword'))
+const Classes = lazy(() => import('./pages/admin/Classes'))
+const ClassDetail = lazy(() => import('./pages/admin/Classes').then((m) => ({ default: m.ClassDetail })))
+const Courses = lazy(() => import('./pages/admin/Courses'))
+const CoursePage = lazy(() => import('./pages/account/CoursePage'))
+const Flashcards = lazy(() => import('./pages/account/Flashcards'))
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'))
 const QuizList = lazy(() => import('./pages/admin/QuizList'))
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -56,6 +61,8 @@ export const router = createBrowserRouter([
       { path: '/onboarding', element: S(<Onboarding />) },
       { path: '/learn', element: S(<Learn />) },
       { path: '/learn/:quizId', element: S(<Practice />) },
+      { path: '/learn/:quizId/cards', element: S(<Flashcards />) },
+      { path: '/learn/course/:courseId', element: S(<CoursePage />) },
       { path: '/pricing', element: S(<Pricing />) },
       { path: '/account', element: S(<Account />) },
       {
@@ -75,6 +82,9 @@ export const router = createBrowserRouter([
           { path: 'sounds', element: S(<OwnerOnly><Sounds /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'team', element: S(<Team />), errorElement: <RouteError /> },
           { path: 'analytics', element: S(<Analytics />), errorElement: <RouteError /> },
+          { path: 'classes', element: S(<Classes />), errorElement: <RouteError /> },
+          { path: 'classes/:cid', element: S(<ClassDetail />), errorElement: <RouteError /> },
+          { path: 'courses', element: S(<Courses />), errorElement: <RouteError /> },
         ],
       },
       { path: '*', element: S(<NotFound />) },

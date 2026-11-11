@@ -604,15 +604,16 @@ function PublishButton({ quizId, author, trusted }: { quizId: string; author: st
   const [issues, setIssues] = useState<ModIssue[]>([])
   const [category, setCategory] = useState('')
   const [level, setLevel] = useState<'easy' | 'medium' | 'hard'>('medium')
-  useEffect(() => { void catalogMeta(quizId).then((m) => { setMeta(m); if (m?.category) setCategory(m.category); if (m?.level) setLevel(m.level) }) }, [quizId])
+  const [unlisted, setUnlisted] = useState(false)
+  useEffect(() => { void catalogMeta(quizId).then((m) => { setMeta(m); if (m?.category) setCategory(m.category); if (m?.level) setLevel(m.level); setUnlisted(!!m?.unlisted) }) }, [quizId])
   if (meta === undefined) return null
   const on = !!meta
   const pub = async () => {
     if (!on && !confirm(t.mod.confirm)) return
     setBusy(true); setErr(''); setIssues([])
     try {
-      const status = await publishToCatalog(quizId, author, { category, level }, { trusted })
-      setMeta({ category, level, status, hidden: false })
+      const status = await publishToCatalog(quizId, author, { category, level }, { trusted, unlisted })
+      setMeta({ category, level, status, hidden: false, unlisted })
     } catch (e) {
       if (e instanceof ModerationError) setIssues(e.issues)
       else if ((e as Error).message === 'no-scored') setErr(t.acct.noScored)
@@ -629,6 +630,9 @@ function PublishButton({ quizId, author, trusted }: { quizId: string; author: st
       <select className="input h-10 w-auto py-0 text-sm" value={level} onChange={(e) => setLevel(e.target.value as typeof level)} aria-label={t.acct.difficulty}>
         {(['easy', 'medium', 'hard'] as const).map((l) => <option key={l} value={l}>{t.acct.levelsQ[l]}</option>)}
       </select>
+      <label className="flex items-center gap-1.5 text-xs font-semibold text-muted" title={t.mod.unlistedHint}>
+        <input type="checkbox" checked={unlisted} onChange={(e) => setUnlisted(e.target.checked)} />{t.mod.unlisted}
+      </label>
       <button className={`btn ${on ? 'btn-secondary text-green-700' : 'btn-ghost-dark'}`} title={err || t.acct.publishHint} disabled={busy} onClick={() => void pub()}>
         <BookOpenCheck />{on ? t.acct.update : t.mod.makePublic}
       </button>

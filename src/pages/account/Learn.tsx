@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { Award, BookOpen, History, LogOut, Play, Search, Target, Trophy, UserRound } from 'lucide-react'
+import { Award, BookOpen, History, Layers, LogOut, Play, Search, Target, Trophy, UserRound } from 'lucide-react'
 import { listCatalog, myAttempts, myPlays, useAccount, type Attempt, type CatalogItem } from '../../lib/account'
 import { logout } from '../../firebase/auth'
 import { fmtDateTime } from '../../lib/format'
@@ -9,6 +9,7 @@ import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
 import { LangSwitch } from '../../components/LangSwitch'
 import { Spinner } from '../../components/ui'
+import { MyClasses } from './MyClasses'
 
 const A = t.acct
 const pct = (a: Pick<Attempt, 'correct' | 'total'>) => (a.total ? Math.round((a.correct / a.total) * 100) : 0)
@@ -33,8 +34,10 @@ export default function Learn() {
   const shown = useMemo(() => (items ?? []).filter((i) => (!tag || i.category === tag) && (!level || (i.level ?? 'medium') === level) && (!q || `${i.title} ${i.description ?? ''}`.toLowerCase().includes(q.toLowerCase()))), [items, q, tag, level])
   const best = useMemo(() => { const m = new Map<string, number>(); attempts.forEach((a) => m.set(a.quizId, Math.max(m.get(a.quizId) ?? 0, pct(a)))); return m }, [attempts])
 
+  // sinif linki (?join=KOD) giriş/qeydiyyatdan sonra da itməsin
+  try { const j = new URLSearchParams(location.search).get('join'); if (j) sessionStorage.setItem('jabr.join', j) } catch { /* noop */ }
   if (loading) return <div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>
-  if (!user) return <Navigate to="/start?next=/learn" replace />
+  if (!user) return <Navigate to={`/start?next=${encodeURIComponent('/learn' + location.search)}`} replace />
   if (!profile?.onboarded) return <Navigate to="/onboarding" replace />
 
   const avg = attempts.length ? Math.round(attempts.reduce((s, a) => s + pct(a), 0) / attempts.length) : 0
@@ -72,6 +75,8 @@ export default function Learn() {
           </div>
         </section>
 
+        <MyClasses name={`${profile.firstName} ${profile.lastName}`.trim()} email={user.email ?? ''} />
+
         <section>
           <div className="mb-3 flex flex-wrap items-center gap-3">
             <h2 className="flex items-center gap-2 text-xl font-black"><BookOpen className="h-5 w-5 text-orange-300" />{A.catalog}</h2>
@@ -90,7 +95,7 @@ export default function Learn() {
           {!items ? <Spinner /> : shown.length === 0 ? <p className="glass p-6 text-center text-white/60">{A.emptyCatalog}</p> : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {shown.map((i) => (
-                <Link key={i.id} to={`/learn/${i.id}`} className="glass group flex flex-col gap-3 p-5 transition hover:bg-white/10">
+                <div key={i.id} className="glass group flex flex-col gap-3 p-5 transition hover:bg-white/10">
                   <div className="flex items-start gap-3">
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl" style={{ background: i.coverColor ?? 'var(--grad)' }}>{i.coverEmoji ?? '🎯'}</span>
                     <div className="min-w-0">
@@ -101,9 +106,12 @@ export default function Learn() {
                   {i.description && <p className="line-clamp-2 text-sm text-white/65">{i.description}</p>}
                   <div className="mt-auto flex items-center justify-between gap-2 pt-1">
                     {best.has(i.id) ? <span className="chip bg-green-500/15 text-green-300">{A.best}: {best.get(i.id)}%</span> : <span />}
-                    <span className="btn btn-primary btn-sm"><Play className="fill-current" />{best.has(i.id) ? A.again : A.start}</span>
+                    <span className="flex gap-2">
+                      <Link to={`/learn/${i.id}/cards`} className="btn btn-ghost btn-sm"><Layers className="h-4 w-4" />{t.cards.open}</Link>
+                      <Link to={`/learn/${i.id}`} className="btn btn-primary btn-sm"><Play className="fill-current" />{best.has(i.id) ? A.again : A.start}</Link>
+                    </span>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}
