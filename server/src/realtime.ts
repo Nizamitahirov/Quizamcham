@@ -23,6 +23,9 @@ type Sub =
 
 interface Conn { ws: WebSocket; caller: Caller; subs: Map<string, Sub>; queue: Promise<void> }
 const conns = new Set<Conn>()
+/** Hədlər: bir bağlantıda abunə sayı, saniyədə mesaj sayı, bir IP-dən bağlantı sayı (böyük auditoriya bir NAT arxasında ola bilər). */
+const MAX_SUBS = 300, MAX_MSGS_PER_SEC = 60, MAX_CONNS_PER_IP = 2000
+const perIp = new Map<string, number>()
 
 const send = (c: Conn, m: unknown) => { if (c.ws.readyState === 1) c.ws.send(JSON.stringify(m)) }
 const codeOf = (e: unknown) => (e instanceof DbError ? e.code : 'internal')
@@ -68,10 +71,17 @@ changes.on('change', ({ path }: { path: string; data: Doc | null }) => {
 
 export async function realtimeRoutes(app: FastifyInstance) {
   await app.register(websocket, { options: { maxPayload: 256 * 1024 } })
-  app.get('/api/ws', { websocket: true }, (ws) => {
+  app.get('/api/ws', { websocket: true }, (ws, req) => {
+    const ip = req.ip
+    if ((perIp.get(ip) ?? 0) >= MAX_CONNS_PER_IP) { ws.close(1013, 'too many connections'); return }
+    perIp.set(ip, (perIp.get(ip) ?? 0) + 1)
     const c: Conn = { ws, caller: { auth: null }, subs: new Map(), queue: Promise.resolve() }
     conns.add(c)
+    let win = Date.now(), msgs = 0
     ws.on('message', (raw) => {
+      const now = Date.now()
+      if (now - win > 1000) { win = now; msgs = 0 }
+      if (++msgs > MAX_MSGS_PER_SEC) { ws.close(1008, 'rate limit'); return }
       let m: { t: string; id?: string; kind?: string; path?: string; query?: Query; token?: string; test?: string }
       try { m = JSON.parse(String(raw)) } catch { return }
       enqueue(c, async () => {
@@ -85,7 +95,8 @@ export async function realtimeRoutes(app: FastifyInstance) {
             break
           }
           case 'sub': {
-            if (!m.id) return
+            if (!m.id || typeof m.id !== 'string' || m.id.length > 64) return
+            if (!c.subs.has(m.id) && c.subs.size >= MAX_SUBS) { send(c, { t: 'error', id: m.id, code: 'resource-exhausted' }); return }
             const s: Sub = m.kind === 'doc' ? { kind: 'doc', path: String(m.path) } : { kind: 'query', query: m.query as Query }
             c.subs.set(m.id, s)
             await evalSub(c, m.id, s, true)
@@ -96,7 +107,7 @@ export async function realtimeRoutes(app: FastifyInstance) {
         }
       })
     })
-    ws.on('close', () => { conns.delete(c); c.subs.clear() })
+    ws.on('close', () => { conns.delete(c); c.subs.clear(); const n = (perIp.get(ip) ?? 1) - 1; if (n <= 0) perIp.delete(ip); else perIp.set(ip, n) })
     ws.on('error', () => ws.close())
   })
 }

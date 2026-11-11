@@ -8,6 +8,7 @@
 import Fastify, { type FastifyReply } from 'fastify'
 import { authFrom, authRoutes, bearer, migrateAuth, testHeader } from './auth.js'
 import { realtimeRoutes, realtimeStats } from './realtime.js'
+import { limit } from './ratelimit.js'
 import { aiRoutes, migrateAi } from './ai.js'
 import { clearAll, commit, DbError, getDoc, migrate, pool, runQuery, type Query, type Write } from './store.js'
 
@@ -27,17 +28,26 @@ app.setErrorHandler((e: Error & { statusCode?: number; code?: string }, _req, re
 
 app.get('/api/health', async (_req, reply) => {
   try {
-    const r = await pool.query<{ now: Date; version: string }>('select now() as now, version() as version')
-    return { ok: true, service: 'jabr-api', startedAt, realtime: realtimeStats(), db: { ok: true, now: r.rows[0].now, version: r.rows[0].version.split(' ').slice(0, 2).join(' ') } }
+    const r = await pool.query<{ ok: number }>('select 1 as ok')
+    return { ok: true, service: 'jabr-api', startedAt, realtime: realtimeStats(), db: { ok: !!r.rows[0] } }
   } catch (e) {
+    app.log.error(e)
     reply.code(503)
-    return { ok: false, service: 'jabr-api', db: { ok: false, error: (e as Error).message } }
+    return { ok: false, service: 'jabr-api', db: { ok: false } }
   }
 })
 app.get('/api/time', async () => ({ now: Date.now() }))
 
 const caller = (req: Parameters<typeof bearer>[0]) => authFrom(bearer(req), testHeader(req))
 
+// sürət limiti: sessiya (və ya IP) üzrə — bir sinifdə hamı eyni IP-dən gələ bilər, ona görə əsas açar tokendir
+const who = (r: Parameters<typeof bearer>[0]) => bearer(r)?.slice(0, 24) ?? `ip:${r.ip}`
+const readLimit = limit('db-read', 1200, 60_000, who), writeLimit = limit('db-write', 600, 60_000, who), ipLimit = limit('db-ip', 20_000, 60_000)
+app.addHook('preHandler', async (req) => {
+  if (!req.url.startsWith('/api/db/') || testHeader(req)) return // test rejimi (ALLOW_TEST_AUTH) istehsalda heç vaxt açıq deyil
+  await ipLimit(req)
+  await (req.url.startsWith('/api/db/commit') ? writeLimit : readLimit)(req)
+})
 app.post<{ Body: { path: string } }>('/api/db/get', async (req) => ({ data: await getDoc(await caller(req), String(req.body?.path)) }))
 app.post<{ Body: { query: Query } }>('/api/db/query', async (req) => ({ docs: await runQuery(await caller(req), req.body.query) }))
 app.post<{ Body: { query: Query } }>('/api/db/count', async (req) => ({ count: (await runQuery(await caller(req), req.body.query)).length }))

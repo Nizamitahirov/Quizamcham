@@ -241,7 +241,12 @@ async function evaluate(c: Ctx): Promise<boolean> {
   if (col === 'pins' && path.length === 2) {
     if (op === 'get') return c.signedIn()
     if (op === 'list') return c.can('allContent')
-    return c.isAdmin()
+    // PIN yalnız həmin oyunun hostuna məxsusdur
+    if (!(await c.isAdmin())) return false
+    if (op === 'create') { const d = nd(); return keysOnly(d, ['gameId', 'active', 'createdAt']) && isStr(f(d, 'gameId')) && (await c.isGameHost(String(f(d, 'gameId')))) }
+    if (op === 'update') { const d = nd(), r = rd(); return f(d, 'gameId') === f(r, 'gameId') && onlyAffected(d, r, ['active']) && (await c.isGameHost(String(f(r, 'gameId')))) }
+    const gid = String(f(rd(), 'gameId'))
+    return (await c.isGameHost(gid)) || (await c.isOwner()) || !(await c.exists(`games/${gid}`))
   }
   if (col === 'settings' && path.length === 2) {
     if (op === 'get') return c.signedIn()

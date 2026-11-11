@@ -749,3 +749,17 @@ describe('kataloq reytinqi', () => {
     await assertSucceeds(getDoc(doc(stu(S2), 'ratingStats', 'q1')))
   })
 })
+
+describe('PIN sahibliyi (təhlükəsizlik auditi)', () => {
+  it('başqa təlimçi aktiv PIN-i öz oyununa yönləndirə, söndürə və ya silə bilmir; host bacarır', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'games', 'g2'), { hostUid: TRAINER2, phase: 'lobby', pin: '654321', createdAt: serverTimestamp() }) })
+    await assertFails(setDoc(doc(as(TRAINER2), 'pins', '123456'), { gameId: 'g2', active: true, createdAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(as(TRAINER2), 'pins', '123456'), { active: false }))
+    await assertFails(deleteDoc(doc(as(TRAINER2), 'pins', '123456')))
+    await assertFails(setDoc(doc(as(TRAINER2), 'pins', '777777'), { gameId: 'g1', active: true, createdAt: serverTimestamp() }))
+    await assertSucceeds(setDoc(doc(as(TRAINER2), 'pins', '654321'), { gameId: 'g2', active: true, createdAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(as(TRAINER), 'pins', '123456'), { gameId: 'g2' }))
+    await assertSucceeds(updateDoc(doc(as(TRAINER), 'pins', '123456'), { active: false }))
+    await assertSucceeds(deleteDoc(doc(as(TRAINER), 'pins', '123456')))
+  })
+})

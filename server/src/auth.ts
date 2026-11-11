@@ -130,11 +130,14 @@ export const bearer = (req: FastifyRequest) => {
 export const testHeader = (req: FastifyRequest) => (TEST_AUTH ? (req.headers['x-test-auth'] as string | undefined) : undefined)
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+/** Yeni şifrələr üçün minimum uzunluq (köhnə 6 simvollu şifrələr girişdə işləməyə davam edir). */
+export const MIN_PASSWORD = 8
+const weak = (pw: string) => pw.length < MIN_PASSWORD || pw.length > 200
 const err = (code: string, status = 400) => Object.assign(new Error(code), { statusCode: status, code })
 
 export function authRoutes(app: FastifyInstance) {
   // Anonim oyunçu
-  app.post('/api/auth/anonymous', { preHandler: limit('anon', 300, 60_000) }, async () => {
+  app.post('/api/auth/anonymous', { preHandler: limit('anon', 1500, 60_000) }, async () => {
     const uid = newUid()
     const r = await pool.query<UserRow>("insert into auth_users (uid, provider) values ($1, 'anonymous') returning *", [uid])
     return issueSession(r.rows[0])
@@ -144,12 +147,12 @@ export function authRoutes(app: FastifyInstance) {
   app.post<{ Body: { email: string; password: string; displayName?: string } }>('/api/auth/signup', { preHandler: limit('signup', 20, 600_000) }, async (req) => {
     const email = String(req.body?.email ?? '').trim().toLowerCase()
     const pw = String(req.body?.password ?? '')
-    if (!EMAIL.test(email)) throw err('auth/invalid-email')
-    if (pw.length < 6) throw err('auth/weak-password')
+    if (!EMAIL.test(email) || email.length > 200) throw err('auth/invalid-email')
+    if (weak(pw)) throw err('auth/weak-password')
     const exists = await pool.query('select 1 from auth_users where email = $1', [email])
     if (exists.rowCount) throw err('auth/email-already-in-use')
     const r = await pool.query<UserRow>("insert into auth_users (uid, email, password_hash, provider, display_name) values ($1, $2, $3, 'password', $4) returning *",
-      [newUid(), email, await hashPassword(pw), req.body?.displayName ?? null])
+      [newUid(), email, await hashPassword(pw), req.body?.displayName ? String(req.body.displayName).slice(0, 80) : null])
     return issueSession(r.rows[0])
   })
 
@@ -157,7 +160,9 @@ export function authRoutes(app: FastifyInstance) {
     const email = String(req.body?.email ?? '').trim().toLowerCase()
     const r = await pool.query<UserRow>('select * from auth_users where email = $1 and password_hash is not null', [email])
     const u = r.rows[0]
-    if (!u || !(await verifyPassword(String(req.body?.password ?? ''), u.password_hash ?? null, u.uid))) throw err('auth/invalid-credential', 401)
+    // mövcud olmayan e-poçt üçün də eyni hesablama — cavab vaxtından hesabın varlığı bilinməsin
+    if (!u) { await hashPassword(String(req.body?.password ?? '')); throw err('auth/invalid-credential', 401) }
+    if (!(await verifyPassword(String(req.body?.password ?? ''), u.password_hash ?? null, u.uid))) throw err('auth/invalid-credential', 401)
     if (u.disabled) throw err('auth/user-disabled', 403)
     return issueSession(u, 'password')
   })
@@ -207,7 +212,7 @@ export function authRoutes(app: FastifyInstance) {
     const u = r.rows[0]
     if (!(await verifyPassword(String(req.body?.currentPassword ?? ''), u.password_hash ?? null, u.uid))) throw err('auth/wrong-password', 401)
     const pw = String(req.body?.newPassword ?? '')
-    if (pw.length < 6) throw err('auth/weak-password')
+    if (weak(pw)) throw err('auth/weak-password')
     await pool.query('update auth_users set password_hash = $2 where uid = $1', [u.uid, await hashPassword(pw)])
     // digər sessiyalar bağlanır, cari qalır
     await pool.query('delete from sessions where uid = $1 and id <> $2', [u.uid, sha(bearer(req)!)])
@@ -229,7 +234,7 @@ export function authRoutes(app: FastifyInstance) {
   })
   app.post<{ Body: { token: string; newPassword: string } }>('/api/auth/reset/confirm', { preHandler: limit('resetc', 20, 600_000) }, async (req) => {
     const pw = String(req.body?.newPassword ?? '')
-    if (pw.length < 6) throw err('auth/weak-password')
+    if (weak(pw)) throw err('auth/weak-password')
     const r = await pool.query<{ uid: string }>("update password_resets set used = true where id = $1 and not used and expires_at > now() returning uid", [sha(String(req.body?.token ?? ''))])
     if (!r.rows[0]) throw err('auth/expired-action-code')
     await pool.query('update auth_users set password_hash = $2 where uid = $1', [r.rows[0].uid, await hashPassword(pw)])

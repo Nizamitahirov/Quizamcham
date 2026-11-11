@@ -13,6 +13,9 @@ export const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, ma
 export const changes = new EventEmitter()
 changes.setMaxListeners(0)
 
+/** Bir sənədin maksimum ölçüsü (şəkilli kataloq quizləri üçün ehtiyatla). */
+export const MAX_DOC_BYTES = 1_500_000
+
 export class DbError extends Error {
   constructor(public code: 'permission-denied' | 'not-found' | 'invalid-argument' | 'failed-precondition' | 'unauthenticated', message?: string) { super(message ?? code) }
 }
@@ -172,6 +175,8 @@ export async function commit(caller: Caller, writes: Write[]): Promise<{ time: n
         if (!m.ok && content(before) !== content(after)) throw new DbError('failed-precondition', 'moderation:' + JSON.stringify(m.issues.slice(0, 20)))
         after = { ...after, hasImages: m.hasImages }
       }
+      // Firestore kimi sənəd ölçüsü limiti (bazanın şişirdilməsinin qarşısını alır)
+      if (after && Buffer.byteLength(JSON.stringify(after)) > MAX_DOC_BYTES) throw new DbError('invalid-argument', 'document too large')
       state.set(w.path, after)
       planned.push({ w, parent, id, op, before, after })
     }
