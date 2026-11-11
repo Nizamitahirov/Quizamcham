@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fmtTime } from '../../lib/format'
-import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -8,7 +8,6 @@ import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, 
 import { logAudit } from '../../lib/audit'
 import { catalogMeta, ModerationError, publishToCatalog, unpublish } from '../../lib/account'
 import type { ModIssue } from '../../../server/src/moderation'
-import { FREE_MAX_PLAYERS } from '../../lib/roles'
 import { compressImage } from '../../lib/image'
 import { canManage, orgScope, scopeUid } from '../../lib/access'
 import { launchQuiz, toPublic } from '../../lib/gameEngine'
@@ -17,7 +16,7 @@ import { download } from '../../lib/csv'
 import { ALL_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
 import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
-import { ListChecks, Library, BookOpenCheck } from 'lucide-react'
+import { ListChecks, Library, BookOpenCheck, Sparkles } from 'lucide-react'
 import { Lock, FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
@@ -36,6 +35,8 @@ export default function QuizEditor() {
   const admin = useOutletContext<AdminState>()
   const { user } = admin
   const nav = useNavigate()
+  // AI ilə yaradılmış quiz — istifadədən əvvəl yoxlama xatırlatması
+  const [aiBanner, setAiBanner] = useState(!!(useLocation().state as { ai?: boolean } | null)?.ai)
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
   const [sel, setSel] = useState<string | null>(null)
@@ -221,9 +222,15 @@ export default function QuizEditor() {
       </div>
       {errCount > 0 && <p className="mb-3 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-700"><AlertTriangle className="h-4 w-4" />{t.editor.issues(errCount)}</p>}
 
+      {aiBanner && (
+        <div className="mb-3 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+          <Sparkles className="mt-0.5 h-4 w-4 shrink-0" /><span className="flex-1">{t.ai.banner}</span>
+          <button className="text-xs font-bold underline" onClick={() => setAiBanner(false)}>{t.app.close}</button>
+        </div>
+      )}
       <div className="mb-4"><Tabs value={tab} onChange={setTab} tabs={[{ value: 'questions', label: `${t.admin.editorTabs.questions} (${questions.length})`, icon: ListChecks, badge: errCount }, { value: 'settings', label: t.admin.editorTabs.settings, icon: Settings2 }]} /></div>
 
-      {tab === 'settings' ? <SettingsForm s={quiz.settings} onChange={setSettings} maxPlayersCap={admin.plan.free ? FREE_MAX_PLAYERS : undefined} /> : (
+      {tab === 'settings' ? <SettingsForm s={quiz.settings} onChange={setSettings} maxPlayersCap={admin.plan.selfServe ? admin.plan.players : undefined} /> : (
       <div className="grid gap-4 lg:grid-cols-[300px_1fr_280px]">
         <QuestionList questions={questions} sel={sel} errors={errors} onSelect={setSel} onReorder={reorder} onAdd={addQ} onDup={dupQ} onDel={delQ} onCopy={setCopying} />
         {current ? (

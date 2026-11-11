@@ -14,6 +14,7 @@ import { AssignmentPanel } from './AssignmentPanel'
 import { Avatar } from '../../components/Avatar'
 import { TILE_COLORS } from '../../components/AnswerTile'
 import type { Game } from '../../types'
+import { AiGradeOpen, AiInsightsPanel } from './AiReport'
 
 export default function GameReport() {
   const { gameId } = useParams()
@@ -42,6 +43,8 @@ export default function GameReport() {
       </div>
 
       {game.settings?.mode === 'assign' && game.phase === 'self' && <AssignmentPanel game={game} onGraded={() => setTick((x) => x + 1)} />}
+
+      <AiInsightsPanel title={game.title} r={r} />
 
       <div className="card mb-8 overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -119,6 +122,7 @@ export default function GameReport() {
                 </div>
               )}
               {s.mostWrong && <p className="mt-3 text-sm text-red-700"><b>{t.games.mostWrong}:</b> {s.mostWrong}</p>}
+              {s.q.type === 'open' && <AiGradeOpen question={s.q.text} answers={Object.keys(s.distribution)} />}
             </div>
           )
         })}

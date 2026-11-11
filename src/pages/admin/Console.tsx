@@ -7,7 +7,7 @@ import { planInfo } from '../../lib/roles'
 import { setRestricted, type AdminRow } from '../../lib/team'
 import {
   approveCatalog, convertToTrainer, extendTrial, grantLicense, hideCatalog, listReports, loadConsole, loadPricing, revokeLicense, savePricing, setLeadStatus, unpublish,
-  type ConsoleData, type QuizReport, type LeadStatus, type LicenseRecord, type PricePlan,
+  type ConsoleData, type QuizReport, type LicenseInput, type LeadStatus, type LicenseRecord, type PricePlan,
 } from '../../lib/account'
 import { Link } from 'react-router-dom'
 import { PageHeader, Spinner } from '../../components/ui'
@@ -289,7 +289,7 @@ const isoDay = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000
 /** Lisenziya ver / yenilə / ləğv et + tarixçə. */
 function LicensePanel({ r, busy, act }: { r: Row; busy: boolean; act: (uid: string, fn: () => Promise<unknown>) => Promise<void> }) {
   const base = r.status === 'licensed' && r.endsAt && r.endsAt.getTime() > Date.now() ? r.endsAt : new Date()
-  const [plan, setPlan] = useState<'pro' | 'institution'>(r.member?.plan === 'institution' || r.type === 'institution' ? 'institution' : 'pro')
+  const [plan, setPlan] = useState<LicPlan>(r.type === 'institution' ? 'institution' : ((['trainer', 'pro', 'business', 'institution'] as const).find((x) => x === r.member?.plan) ?? 'pro'))
   const [seats, setSeats] = useState(String(r.member?.seats ?? (r.type === 'institution' ? 5 : 1)))
   const [until, setUntil] = useState(isoDay(addMonths(base, 1)))
   const [amount, setAmount] = useState('')
@@ -299,7 +299,7 @@ function LicensePanel({ r, busy, act }: { r: Row; busy: boolean; act: (uid: stri
     <div className="grid gap-5 lg:grid-cols-[1.3fr_1fr]">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end gap-3">
-          <div><p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">{C.licPlan}</p><Segmented size="sm" value={plan} options={[{ value: 'pro', label: C.licPro }, { value: 'institution', label: C.licInst }]} onChange={setPlan} /></div>
+          <div><p className="mb-1 text-xs font-bold uppercase tracking-wide text-muted">{C.licPlan}</p><Segmented size="sm" value={plan} options={[{ value: 'trainer', label: C.licTrainer }, { value: 'pro', label: C.licPro }, { value: 'business', label: C.licBusiness }, { value: 'institution', label: C.licInst }]} onChange={setPlan} /></div>
           {plan === 'institution' && <label className="text-xs font-bold uppercase tracking-wide text-muted">{C.licSeats}<input className="input mt-1 h-10 w-24 text-sm" type="number" min={1} max={500} value={seats} onChange={(e) => setSeats(e.target.value)} /></label>}
         </div>
         <div className="flex flex-wrap items-end gap-3">
@@ -321,7 +321,7 @@ function LicensePanel({ r, busy, act }: { r: Row; busy: boolean; act: (uid: stri
           <ul className="flex flex-col gap-1.5 text-sm">
             {r.licenses.map((l) => (
               <li key={l.id} className="flex flex-wrap items-center gap-x-3 rounded-lg bg-white px-3 py-2">
-                <span className="font-semibold">{l.plan === 'revoked' ? C.licRevoked : l.plan === 'institution' ? `${C.licInst} · ${l.seats}` : C.licPro}</span>
+                <span className="font-semibold">{l.plan === 'revoked' ? C.licRevoked : l.plan === 'institution' ? `${C.licInst} · ${l.seats}` : l.plan === 'trainer' ? C.licTrainer : l.plan === 'business' ? C.licBusiness : C.licPro}</span>
                 {l.plan !== 'revoked' && l.until && <span className="text-muted">→ {fmtDate(l.until.toDate())}</span>}
                 {l.amount > 0 && <span className="font-semibold tabular-nums">{money(l.amount)}</span>}
                 <span className="ml-auto text-xs text-muted">{l.at ? fmtDateTime(l.at.toDate()) : ''}</span>
@@ -410,6 +410,8 @@ function Leads({ data, reload }: { data: ConsoleData; reload: () => void }) {
     </Section>
   )
 }
+
+type LicPlan = LicenseInput['plan']
 
 function CatalogStats({ data, reload }: { data: ConsoleData; reload: () => void }) {
   const M = t.mod

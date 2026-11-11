@@ -12,7 +12,7 @@ import { serverNow } from './timeSync'
 import { shortName } from './nameFilter'
 import { track } from '../firebase/extras'
 import { computeTeams, pickTeam } from './teams'
-import { FREE_MAX_PLAYERS, planInfo } from './roles'
+import { planInfo } from './roles'
 
 export const MIN_READ_MS = 3000
 export const readMsFor = (settings: QuizSettings | undefined, q?: Question) => (q?.type === 'slide' ? 1500 : Math.max(MIN_READ_MS, (settings?.readTime ?? 4) * 1000))
@@ -50,7 +50,8 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   const owner = member?.get('source') === 'org' && orgId ? await getDoc(doc(db, 'admins', orgId)).catch(() => null) : null
   const planR = owner ? planInfo(member!.data() as Parameters<typeof planInfo>[0], Date.now(), owner.exists() ? (owner.data() as Parameters<typeof planInfo>[0]) : null) : plan
   const free = planR.selfServe && !planR.active
-  const settings: QuizSettings = free ? { ...quiz.settings, maxPlayers: Math.min(quiz.settings.maxPlayers || 10, FREE_MAX_PLAYERS) } : quiz.settings
+  // plan pilləsinə görə iştirakçı limiti (Rules eyni limiti tətbiq edir)
+  const settings: QuizSettings = planR.selfServe ? { ...quiz.settings, maxPlayers: Math.min(quiz.settings.maxPlayers || planR.players, planR.players) } : quiz.settings
 
   const gameRef = doc(collection(db, 'games'))
   const game: Omit<Game, 'id'> = {

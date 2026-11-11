@@ -47,6 +47,15 @@ service cloud.firestore {
     }
     // Pulsuz plan: sınaq/lisenziya bitib → oyunda maksimum 10 iştirakçı
     function freeHost() { return selfServe() && !planOk(); }
+    // Plan pillələri (Kahoot modeli): oyunda iştirakçı limiti. Komanda hesabları limitsiz; sınaq = Pro.
+    function tierCap(p) { return p == 'trainer' ? 50 : (p in ['business', 'institution'] ? 1000 : 200); }
+    function playerCap() {
+      return !selfServe() ? 100000
+        : !planOk() ? 10
+        : me().get('source', 'team') == 'org' ? 1000
+        : request.time < me().get('licenseUntil', timestamp.value(0)) ? tierCap(me().get('plan', 'pro'))
+        : 200;
+    }
     function can(p) {
       return isSuper() || (isAdmin() && me().get('perms', {}).get(p, rolePerm(p)) == true
         && (!(p in ['share', 'publish']) || !selfServe()));
@@ -309,7 +318,7 @@ service cloud.firestore {
       allow create: if can('console')
         && request.resource.data.keys().hasOnly(['uid','email','plan','seats','from','until','amount','currency','note','by','at'])
         && request.resource.data.by == request.auth.uid && request.resource.data.at == request.time
-        && request.resource.data.plan in ['pro', 'institution', 'revoked']
+        && request.resource.data.plan in ['trainer', 'pro', 'business', 'institution', 'revoked']
         && request.resource.data.amount is number && request.resource.data.amount >= 0
         && str(request.resource.data.get('note', ''), 300);
       allow update, delete: if isSuper();
@@ -323,7 +332,7 @@ service cloud.firestore {
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.status == 'new'
         && request.resource.data.createdAt == request.time
-        && request.resource.data.plan in ['trainer', 'institution', 'custom']
+        && request.resource.data.plan in ['trainer', 'pro', 'business', 'institution', 'event', 'custom']
         && str(request.resource.data.name, 80) && str(request.resource.data.phone, 30) && str(request.resource.data.get('message', ''), 1000)
         && str(request.resource.data.get('organization', ''), 120);
       allow update: if can('console')
@@ -352,11 +361,10 @@ service cloud.firestore {
         || (isOrgOwner() && resource.data.get('orgId', '') == request.auth.uid);
       allow create: if can('runGames') && request.resource.data.hostUid == request.auth.uid
         && request.resource.data.get('orgId', '') in ['', orgOf()]
-        && (!freeHost() || request.resource.data.settings.get('maxPlayers', 200) <= 10);
+        && request.resource.data.settings.get('maxPlayers', 200) <= playerCap();
       allow update: if isAdmin() && (resource.data.hostUid == request.auth.uid || isOwner() || (isOrgOwner() && resource.data.get('orgId', '') == request.auth.uid))
-        // pulsuz planda iştirakçı limitini 10-dan yuxarı qaldırmaq olmaz (sınaqda başlamış oyun pozulmur)
-        && (!freeHost()
-            || request.resource.data.settings.get('maxPlayers', 200) <= 10
+        // iştirakçı limitini plandan yuxarı qaldırmaq olmaz (əvvəl başlamış oyun pozulmur — azaltmaq/saxlamaq olar)
+        && (request.resource.data.settings.get('maxPlayers', 200) <= playerCap()
             || request.resource.data.settings.get('maxPlayers', 200) <= resource.data.settings.get('maxPlayers', 200));
       allow delete: if isAdmin() && (resource.data.hostUid == request.auth.uid || isOwner() || (isOrgOwner() && resource.data.get('orgId', '') == request.auth.uid));
 

@@ -432,6 +432,16 @@ describe('qeydiyyat, sınaq, kataloq, lisenziya', () => {
     await assertSucceeds(updateDoc(doc(google(G), 'games', 'gbig'), { phase: 'reveal' }))
     await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', G), { licenseUntil: Timestamp.fromMillis(Date.now() + 86400000) }) })
     await assertSucceeds(setDoc(doc(google(G), 'games', 'gg2'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 150 } }))
+    // plan pillələri: Təlimçi 50, Pro 200 (köhnə lisenziya), Biznes 1000
+    await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', G), { plan: 'trainer' }) })
+    await assertFails(setDoc(doc(google(G), 'games', 'gt1'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 51 } }))
+    await assertSucceeds(setDoc(doc(google(G), 'games', 'gt2'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 50 } }))
+    await assertFails(updateDoc(doc(google(G), 'games', 'gt2'), { 'settings.maxPlayers': 120 }))
+    await env.withSecurityRulesDisabled(async (ctx) => { await updateDoc(doc(ctx.firestore(), 'admins', G), { plan: 'business' }) })
+    await assertSucceeds(setDoc(doc(google(G), 'games', 'gt3'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 1000 } }))
+    await assertFails(setDoc(doc(google(G), 'games', 'gt4'), { hostUid: G, phase: 'lobby', settings: { maxPlayers: 1001 } }))
+    // planı istifadəçi özü dəyişə bilməz
+    await assertFails(updateDoc(doc(google(G), 'admins', G), { plan: 'pro', licenseUntil: Timestamp.fromMillis(Date.now() + 9e10) }))
   })
   it('müştəri (özü qeydiyyatlı) kitabxanaya paylaşa, ümumi QR-ı dəyişə bilməz; öz quizini kataloqa dərc edə bilər', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), 'admins', G), trial(`${G}@gmail.com`)) })
