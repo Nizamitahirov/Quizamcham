@@ -17,7 +17,7 @@ export interface Request {
   load: (path: string) => Promise<Doc | null> // get()/exists() üçün (yazıdan ƏVVƏLKİ vəziyyət)
 }
 
-const SUPER = 'ii98moHX58SDPcn9lA4SYHWanou1'
+export const SUPER = 'ii98moHX58SDPcn9lA4SYHWanou1'
 const PERM_KEYS = ['createQuiz', 'runGames', 'library', 'share', 'allContent', 'trainers', 'settings', 'logs', 'publish', 'console']
 const DAY = 86_400_000
 
