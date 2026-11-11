@@ -44,7 +44,8 @@ export async function loadReport(gameId: string): Promise<GameReportData> {
   return { players: ranked, questions, qstats, scoredCount }
 }
 
-export function reportCsv(r: GameReportData): string {
+/** Hesabat cədvəli (CSV və Excel üçün ortaq). */
+export function reportRows(r: GameReportData): (string | number)[][] {
   const H = t.csvHead
   const withTeams = r.players.some((p) => p.team != null)
   const head = [H.rank, H.first, H.last, ...(withTeams ? [H.team] : []), H.score, H.correct, H.acc, H.avg, H.streak]
@@ -65,5 +66,11 @@ export function reportCsv(r: GameReportData): string {
     })
     rows.push(row)
   }
-  return toCsv(rows)
+  return rows
+}
+export const reportCsv = (r: GameReportData) => toCsv(reportRows(r))
+/** Suallar üzrə statistika vərəqi. */
+export function questionRows(r: GameReportData): (string | number)[][] {
+  return [[t.csvHead.q(0).replace(/0$/, '#'), t.games.quiz, t.games.accuracy, t.games.avgTime, t.games.players, t.games.mostWrong],
+    ...r.qstats.map((s) => [s.index + 1, s.q.text, SCORED_TYPES.has(s.q.type) ? Math.round(s.accuracy * 100) : '', Math.round(s.avgTimeMs / 100) / 10, s.answered, s.mostWrong ?? ''])]
 }

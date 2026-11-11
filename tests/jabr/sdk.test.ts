@@ -133,6 +133,15 @@ describe('moderasiya (yalnız Jabr serveri)', () => {
     })
     expect(hidden).toBe(true)
   })
+  it('reytinqlər: server orta qiyməti hesablayır, təkrar qiymət dəyişir (artmır)', async () => {
+    const rate = (u: string, stars: number) => setDoc(doc(env.authenticatedContext(u, { email: `${u}@gmail.com`, firebase: { sign_in_provider: 'google.com' } }).firestore(), 'ratings', `mq_${u}`), { uid: u, quizId: 'mq', stars, at: serverTimestamp() })
+    await rate('r1', 5); await rate('r2', 4); await rate('r2', 2)
+    let stats: Record<string, unknown> | undefined
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await until(async () => { stats = (await getDoc(doc(ctx.firestore(), 'ratingStats', 'mq'))).data(); return stats?.sum === 7 }, 3000)
+    })
+    expect(stats).toEqual({ count: 2, sum: 7, avg: 3.5 })
+  })
 })
 
 describe('giriş + dərhal abunə (qeydiyyatın təkrarlanması xətası)', () => {

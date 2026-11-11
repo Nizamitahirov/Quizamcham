@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { fmtDateTime } from '../../lib/format'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Eye, Lock, Bot, Copy, FileJson, FileSpreadsheet, LayoutTemplate, Pencil, Play, Plus, Search, Sparkles, Trash2, Library } from 'lucide-react'
-import { createQuiz, deleteQuiz, duplicateQuiz, listQuizzes, loadQuiz, parseQuizJson } from '../../firebase/db'
+import { Eye, Lock, Bot, Copy, FileJson, FileSpreadsheet, Folder, FolderInput, LayoutTemplate, Pencil, Play, Plus, Search, Sparkles, Trash2, Library, Users } from 'lucide-react'
+import { createQuiz, deleteQuiz, duplicateQuiz, listQuizzes, loadQuiz, parseQuizJson, setQuizFolder } from '../../firebase/db'
 import { launchQuiz } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { t } from '../../i18n/az'
@@ -11,7 +11,7 @@ import { PageHeader, Spinner } from '../../components/ui'
 import { AiImport } from '../../components/AiImport'
 import { CsvImport, TemplateGallery } from '../../components/ImportModals'
 import type { AdminState } from '../../firebase/auth'
-import { canManage, orgScope, scopeUid } from '../../lib/access'
+import { canManage, isQuizOwner, orgScope, scopeUid } from '../../lib/access'
 import { logAudit } from '../../lib/audit'
 import type { Quiz } from '../../types'
 import seed from '../../../seed/ai-pretest.json'
@@ -27,13 +27,15 @@ export default function QuizList() {
   const [tpl, setTpl] = useState(false)
   const [csv, setCsv] = useState(false)
   const [tag, setTag] = useState<string | null>(null)
+  const [folder, setFolder] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const reload = useCallback(() => { void listQuizzes(scopeUid(admin), admin.perms.library, orgScope(admin)).then(setItems).catch(() => setItems([])) }, [admin])
   useEffect(reload, [reload])
-  const filtered = useMemo(() => (items ?? []).filter((x) => `${x.title} ${x.description} ${(x.tags ?? []).join(' ')}`.toLocaleLowerCase('az-AZ').includes(q.toLocaleLowerCase('az-AZ')) && (!tag || (x.tags ?? []).includes(tag))), [items, q, tag])
+  const filtered = useMemo(() => (items ?? []).filter((x) => `${x.title} ${x.description} ${(x.tags ?? []).join(' ')}`.toLocaleLowerCase('az-AZ').includes(q.toLocaleLowerCase('az-AZ')) && (!tag || (x.tags ?? []).includes(tag)) && (!folder || x.folder === folder)), [items, q, tag, folder])
   const allTags = useMemo(() => [...new Set((items ?? []).flatMap((x) => x.tags ?? []))].sort(), [items])
+  const folders = useMemo(() => [...new Set((items ?? []).map((x) => x.folder).filter(Boolean) as string[])].sort(), [items])
 
   const importData = async (raw: unknown, fromAi = false) => {
     const { quiz, questions } = parseQuizJson(raw)
@@ -76,6 +78,14 @@ export default function QuizList() {
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input className="input pl-9" placeholder={t.admin.search} value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
+      {folders.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Folder className="h-4 w-4 text-muted" />
+          {[null, ...folders].map((f) => (
+            <button key={f ?? '_all'} className={`chip ${folder === f ? 'bg-ink text-white' : 'bg-white text-[#4A4E69] ring-1 ring-line'}`} onClick={() => setFolder(f)}>{f ?? t.folders.all}</button>
+          ))}
+        </div>
+      )}
       {allTags.length > 0 && (
         <div className="mb-5 flex flex-wrap gap-2">
           {[null, ...allTags].map((tg) => (
@@ -104,13 +114,16 @@ export default function QuizList() {
                 {x.description && <p className="line-clamp-2 text-sm text-muted">{x.description}</p>}
                 {(x.tags ?? []).length > 0 && <div className="flex flex-wrap gap-1">{x.tags!.map((tg) => <span key={tg} className="chip chip-brand">{tg}</span>)}</div>}
                 <p className="text-xs text-muted">{t.admin.lastEdit}: {fmt(x)}</p>
-                {!canManage(admin, x.ownerUid, x.orgId) && <span className="chip self-start bg-surface text-[#4A4E69]"><Lock className="h-3 w-3" />{t.admin.locked}</span>}
+                {!canManage(admin, x.ownerUid, x.orgId, x.editors) && <span className="chip self-start bg-surface text-[#4A4E69]"><Lock className="h-3 w-3" />{t.admin.locked}</span>}
+                {x.folder && <span className="chip self-start bg-surface text-[#4A4E69]"><Folder className="h-3 w-3" />{x.folder}</span>}
+                {x.ownerUid !== user?.uid && (x.editors ?? []).includes((user?.email ?? '').toLowerCase()) && <span className="chip self-start bg-blue-50 text-blue-800"><Users className="h-3 w-3" />{t.folders.coEdited}</span>}
                 {x.shared && <span className="chip self-start bg-green-50 text-green-800" title={t.admin.shareHint}><Library className="h-3 w-3" />{t.admin.shared}</span>}
                 <div className="mt-auto flex items-center gap-1 pt-2">
                   <button className="btn btn-primary btn-sm flex-1" disabled={busyId === x.id || x.count === 0 || !admin.perms.runGames} onClick={() => void launch(x.id)}><Play className="fill-current" />{busyId === x.id ? t.admin.launching : t.admin.launch}</button>
-                  <button className="btn btn-ghost-dark btn-sm btn-icon" title={canManage(admin, x.ownerUid, x.orgId) ? t.admin.edit : t.admin.view} onClick={() => nav(`/admin/quiz/${x.id}`)}>{canManage(admin, x.ownerUid, x.orgId) ? <Pencil /> : <Eye />}</button>
+                  <button className="btn btn-ghost-dark btn-sm btn-icon" title={canManage(admin, x.ownerUid, x.orgId, x.editors) ? t.admin.edit : t.admin.view} onClick={() => nav(`/admin/quiz/${x.id}`)}>{canManage(admin, x.ownerUid, x.orgId, x.editors) ? <Pencil /> : <Eye />}</button>
+                  {isQuizOwner(admin, x.ownerUid, x.orgId) && <button className="btn btn-ghost-dark btn-sm btn-icon" title={t.folders.move} onClick={() => { const f = prompt(t.folders.prompt, x.folder ?? ''); if (f !== null) void setQuizFolder(x.id, f).then(reload) }}><FolderInput /></button>}
                   <button className="btn btn-ghost-dark btn-sm btn-icon" title={t.admin.duplicate} onClick={async () => { await duplicateQuiz(x.id, user!.uid, t.admin.copySuffix); reload() }}><Copy /></button>
-                  {canManage(admin, x.ownerUid, x.orgId) && <button className="btn btn-ghost-dark btn-sm btn-icon text-red-600" title={t.app.delete} onClick={async () => { if (confirm(t.admin.deleteConfirm(x.title))) { try { await deleteQuiz(x.id); void logAudit('quiz_deleted', { target: x.id, details: { title: x.title } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>}
+                  {isQuizOwner(admin, x.ownerUid, x.orgId) && <button className="btn btn-ghost-dark btn-sm btn-icon text-red-600" title={t.app.delete} onClick={async () => { if (confirm(t.admin.deleteConfirm(x.title))) { try { await deleteQuiz(x.id); void logAudit('quiz_deleted', { target: x.id, details: { title: x.title } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>}
                 </div>
               </div>
             </motion.div>

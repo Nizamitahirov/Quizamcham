@@ -146,14 +146,19 @@ service cloud.firestore {
     }
 
     // ---------- Quizlər: təlimçi öz quizlərini və kitabxanaya paylaşılanları görür; admin hamısını ----------
+    // Birgə redaktə: quizin "editors" siyahısındakı e-poçt (kiçik hərflə) — həmmüəllif
+    function myEmail() { return request.auth.token.get('email', '') is string ? request.auth.token.get('email', '').lower() : ''; }
+    function coEditor(d) { return isAdmin() && myEmail() != '' && d.get('editors', []).hasAny([myEmail()]); }
     match /quizzes/{quizId} {
       // müəssisə daxilində quizlər ortaqdır (orgId), müəssisə sahibi hamısını idarə edir
       allow read: if can('allContent') || (isAdmin() && (resource.data.ownerUid == request.auth.uid || (resource.data.get('shared', false) == true && can('library'))))
-        || (orgOf() != '' && resource.data.get('orgId', '') == orgOf());
+        || (orgOf() != '' && resource.data.get('orgId', '') == orgOf()) || coEditor(resource.data);
       allow create: if can('createQuiz') && request.resource.data.ownerUid == request.auth.uid
         && (request.resource.data.get('shared', false) == false || can('share'))
         && request.resource.data.get('orgId', '') in ['', orgOf()];
-      allow update: if isAdmin() && (resource.data.ownerUid == request.auth.uid || isOwner() || (isOrgOwner() && resource.data.get('orgId', '') == request.auth.uid))
+      allow update: if isAdmin() && (resource.data.ownerUid == request.auth.uid || isOwner() || (isOrgOwner() && resource.data.get('orgId', '') == request.auth.uid)
+            // həmmüəllif: məzmunu dəyişir, amma redaktorlar siyahısına toxuna bilməz
+            || (coEditor(resource.data) && request.resource.data.get('editors', []) == resource.data.get('editors', [])))
         && request.resource.data.ownerUid == resource.data.ownerUid
         && request.resource.data.get('orgId', '') == resource.data.get('orgId', '')
         && (request.resource.data.get('shared', false) == resource.data.get('shared', false) || can('share'));
@@ -162,10 +167,11 @@ service cloud.firestore {
         function quizOwner() { return get(/databases/$(db)/documents/quizzes/$(quizId)).data.ownerUid; }
         function quizShared() { return get(/databases/$(db)/documents/quizzes/$(quizId)).data.get('shared', false) == true; }
         function quizOrg() { return get(/databases/$(db)/documents/quizzes/$(quizId)).data.get('orgId', ''); }
+        function quizCoEditor() { return exists(/databases/$(db)/documents/quizzes/$(quizId)) && coEditor(get(/databases/$(db)/documents/quizzes/$(quizId)).data); }
         allow read: if can('allContent') || (isAdmin() && (quizOwner() == request.auth.uid || (quizShared() && can('library'))))
-          || (orgOf() != '' && quizOrg() == orgOf());
+          || (orgOf() != '' && quizOrg() == orgOf()) || quizCoEditor();
         allow write: if isAdmin() && (!exists(/databases/$(db)/documents/quizzes/$(quizId)) || quizOwner() == request.auth.uid || isOwner()
-          || (isOrgOwner() && quizOrg() == request.auth.uid));
+          || (isOrgOwner() && quizOrg() == request.auth.uid) || quizCoEditor());
       }
     }
 
@@ -265,6 +271,22 @@ service cloud.firestore {
             && (resource == null || can('publish') || resource.data.publishedBy == request.auth.uid)
             && catalogSafe());
       allow delete: if can('publish') || can('console') || (isAdmin() && resource.data.publishedBy == request.auth.uid);
+    }
+
+    // ---------- Kataloq reytinqi: tələbə 1–5 ulduz verir (bir quizə bir sənəd, dəyişə bilər); orta göstərici server tərəfindən ----------
+    match /ratings/{id} {
+      allow read: if registered() && resource.data.uid == request.auth.uid;
+      allow create, update: if registered() && id == request.resource.data.quizId + '_' + request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'quizId', 'stars', 'at'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.stars is int && request.resource.data.stars >= 1 && request.resource.data.stars <= 5
+        && request.resource.data.at == request.time
+        && exists(/databases/$(db)/documents/catalog/$(request.resource.data.quizId));
+      allow delete: if false;
+    }
+    match /ratingStats/{quizId} {
+      allow read: if registered() || isAdmin();
+      allow write: if false; // yalnız server (orta qiymət) yazır
     }
 
     // ---------- Şikayətlər (tələbə → kataloqdakı quiz). 3 şikayət → server quizi avtomatik gizlədir ----------

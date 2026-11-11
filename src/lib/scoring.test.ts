@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { applyConfidence, evaluateAnswer, matchRightId, parseBlanks, streakBonus, rankPlayers, speedFactor, normalizeText } from './scoring'
 import type { Question } from '../types'
+import { computeGamify } from './gamify'
 
 const q = (over: Partial<Question>): Question => ({ id: 'q', type: 'single', text: 'x', timeLimit: 30, points: 'standard', options: [], correct: ['a'], ...over })
 
@@ -129,5 +130,26 @@ describe('yeni sual növləri', () => {
     expect(applyConfidence({ correct: false, points: 0, scored: true }, true, 1000).points).toBe(-250)
     expect(applyConfidence({ correct: true, points: 800, scored: true }, false, 1000).points).toBe(800)
     expect(applyConfidence({ correct: false, points: 0, scored: false }, true, 1000).points).toBe(0)
+  })
+})
+
+describe('oyunlaşdırma (XP, seriya, nişanlar)', () => {
+  const day = 86_400_000, now = new Date('2026-11-12T12:00:00').getTime()
+  const ts = (ms: number) => ({ toMillis: () => ms })
+  it('XP, səviyyə və ardıcıl günlər', () => {
+    const g = computeGamify([
+      { correct: 10, total: 10, at: ts(now) }, { correct: 5, total: 10, at: ts(now - day) }, { correct: 3, total: 10, at: ts(now - 2 * day) },
+    ], [{ score: 5000, rank: 1, at: ts(now - 5 * day) }], now)
+    expect(g.xp).toBe(10 + 100 + 50 + 10 + 50 + 10 + 30 + 20 + 50 + 100)
+    expect(g.streak).toBe(3)
+    expect(g.today).toBe(true)
+    expect(g.level).toBeGreaterThan(1)
+    expect(g.badges.find((b) => b.id === 'perfect')?.earned).toBe(true)
+    expect(g.badges.find((b) => b.id === 'champion')?.earned).toBe(true)
+    expect(g.badges.find((b) => b.id === 'streak7')?.earned).toBe(false)
+  })
+  it('bu gün məşq yoxdursa seriya dünəndən sayılır; boşluq seriyanı qırır', () => {
+    expect(computeGamify([{ correct: 1, total: 2, at: ts(now - day) }, { correct: 1, total: 2, at: ts(now - 2 * day) }], [], now).streak).toBe(2)
+    expect(computeGamify([{ correct: 1, total: 2, at: ts(now - 3 * day) }], [], now).streak).toBe(0)
   })
 })

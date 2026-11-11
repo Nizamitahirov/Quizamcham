@@ -4,12 +4,12 @@ import { Link, useLocation, useNavigate, useOutletContext, useParams } from 'rea
 import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull, setQuizShared } from '../../firebase/db'
+import { duplicateQuiz, copyQuestionTo, listQuizzes, loadAppSettings, loadQuiz, quizToJson, saveQuizFull, setQuizShared, setQuizEditors } from '../../firebase/db'
 import { logAudit } from '../../lib/audit'
 import { catalogMeta, ModerationError, publishToCatalog, unpublish } from '../../lib/account'
 import type { ModIssue } from '../../../server/src/moderation'
 import { compressImage } from '../../lib/image'
-import { canManage, orgScope, scopeUid } from '../../lib/access'
+import { canManage, isQuizOwner, orgScope, scopeUid } from '../../lib/access'
 import { launchQuiz, toPublic } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { download } from '../../lib/csv'
@@ -17,7 +17,7 @@ import { ALL_TYPES, PREMIUM_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 
 import { useAdmin } from '../../firebase/auth'
 import { hasFeature } from '../../lib/roles'
 import { parseBlanks } from '../../lib/scoring'
-import { PremiumBadge } from '../../components/Premium'
+import { LockedCard, PremiumBadge, useFeature } from '../../components/Premium'
 
 /** Plan bu sual növünə icazə verirmi? (yeni növlər — Təlimçi/Pro planlarında) */
 function useTypeAllowed() {
@@ -31,7 +31,7 @@ function TypeOptions() {
 }
 import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
-import { ListChecks, Library, BookOpenCheck, Sparkles } from 'lucide-react'
+import { ListChecks, Library, BookOpenCheck, Sparkles, Users } from 'lucide-react'
 import { Lock, FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
 import { az, catLabel, t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
@@ -108,7 +108,8 @@ export default function QuizEditor() {
     return () => { window.removeEventListener('beforeunload', h); if (timer.current) void save() }
   }, [save])
 
-  const readOnly = !!quiz && !canManage(admin, quiz.ownerUid, quiz.orgId)
+  const readOnly = !!quiz && !canManage(admin, quiz.ownerUid, quiz.orgId, quiz.editors)
+  const owner = !!quiz && isQuizOwner(admin, quiz.ownerUid, quiz.orgId)
   const readOnlyRef = useRef(false)
   useEffect(() => { readOnlyRef.current = readOnly }, [readOnly])
   const commit = useCallback((nextQuiz: Quiz, nextQs: Question[], dirtyIds: string[] = [], opts: { noUndo?: boolean } = {}) => {
@@ -206,6 +207,7 @@ export default function QuizEditor() {
         <span className={`flex items-center gap-1.5 text-xs font-semibold ${state === 'error' ? 'text-red-600' : state === 'saved' ? 'text-ok' : 'text-muted'}`} role="status">
           {state === 'saving' ? <Loader2 className="h-4 w-4 animate-spin" /> : state === 'saved' && savedAt ? <CheckCircle2 className="h-4 w-4" /> : state === 'error' ? <AlertTriangle className="h-4 w-4" /> : null}{status}
         </span>
+        {owner && quiz.ownerUid === admin.user?.uid && <CoEditors quizId={quiz.id} initial={quiz.editors ?? []} onChange={(editors) => setQuiz((x) => (x ? { ...x, editors } : x))} />}
         {(admin.perms.publish || (admin.perms.createQuiz && quiz.ownerUid === admin.user?.uid)) && (
           <PublishButton quizId={quiz.id} trusted={!!admin.perms.console} author={admin.user?.displayName || admin.user?.email?.split('@')[0] || ''} />
         )}
@@ -582,6 +584,45 @@ function PhonePreview({ q, shuffle }: { q: Question; shuffle: boolean }) {
         )}
       </div>
     </div>
+  )
+}
+
+/** Birgə redaktə: həmmüəlliflərin e-poçtları (yalnız sahib idarə edir; Təlimçi planı). */
+function CoEditors({ quizId, initial, onChange }: { quizId: string; initial: string[]; onChange: (e: string[]) => void }) {
+  const F = t.folders
+  const allowed = useFeature('sharedEdit')
+  const [open, setOpen] = useState(false)
+  const [list, setList] = useState(initial)
+  const [email, setEmail] = useState('')
+  const [err, setErr] = useState('')
+  const save = async (next: string[]) => { await setQuizEditors(quizId, next); setList(next); onChange(next) }
+  const add = async () => {
+    const e = email.trim().toLowerCase()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return setErr(F.badEmail)
+    setErr(''); setEmail(''); await save([...new Set([...list, e])])
+  }
+  return (
+    <>
+      <button className="btn btn-ghost-dark" onClick={() => setOpen(true)} title={F.share}><Users />{list.length > 0 ? list.length : ''}{!allowed && <PremiumBadge feature="sharedEdit" compact />}</button>
+      <Modal open={open} onClose={() => setOpen(false)} title={F.shareTitle}>
+        {!allowed ? <LockedCard feature="sharedEdit" title={F.share} /> : (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-muted">{F.shareHint}</p>
+            <div className="flex gap-2">
+              <input className="input flex-1" type="email" placeholder={F.emailPh} value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') void add() }} aria-label={F.emailPh} />
+              <button className="btn btn-primary" onClick={() => void add()}>{F.add}</button>
+            </div>
+            {err && <p className="text-sm text-red-600" role="alert">{err}</p>}
+            {list.length === 0 ? <p className="text-sm text-muted">{F.none}</p> : (
+              <ul className="flex flex-col gap-1.5">{list.map((e) => (
+                <li key={e} className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm"><span className="min-w-0 flex-1 truncate">{e}</span>
+                  <button className="text-xs font-semibold text-red-600" onClick={() => void save(list.filter((x) => x !== e))}>{F.remove}</button></li>
+              ))}</ul>
+            )}
+          </div>
+        )}
+      </Modal>
+    </>
   )
 }
 

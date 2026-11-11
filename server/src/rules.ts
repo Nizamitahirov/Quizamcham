@@ -211,15 +211,18 @@ async function evaluate(c: Ctx): Promise<boolean> {
   }
 
   // ---------- quizzes ----------
+  // birgə redaktə: "editors" siyahısında öz e-poçtu (kiçik hərflə)
+  const myEmail = () => (typeof c.r.auth?.token.email === 'string' ? c.r.auth.token.email.toLowerCase() : '')
+  const coEditor = async (d: J | undefined) => (await c.isAdmin()) && myEmail() !== '' && isMap(d) && isList(g(d, 'editors', [])) && (g(d, 'editors', []) as J[]).includes(myEmail())
   if (col === 'quizzes' && path.length === 2) {
     if (read) return (await c.can('allContent'))
       || ((await c.isAdmin()) && ((await ok(() => f(rd(), 'ownerUid') === c.uid)) || (g(rd(), 'shared', false) === true && (await c.can('library')))))
-      || ((await c.orgOf()) !== '' && g(rd(), 'orgId', '') === (await c.orgOf()))
+      || ((await c.orgOf()) !== '' && g(rd(), 'orgId', '') === (await c.orgOf())) || (await coEditor(res ?? undefined))
     if (op === 'create') return (await c.can('createQuiz')) && f(nd(), 'ownerUid') === c.uid
       && (g(nd(), 'shared', false) === false || (await c.can('share')))
       && inList(g(nd(), 'orgId', ''), ['', await c.orgOf()])
     const manage = async () => (await c.isAdmin()) && ((await ok(() => f(rd(), 'ownerUid') === c.uid)) || (await c.isOwner()) || ((await c.isOrgOwner()) && g(rd(), 'orgId', '') === c.uid))
-    if (op === 'update') return (await manage()) && eq(f(nd(), 'ownerUid'), f(rd(), 'ownerUid'))
+    if (op === 'update') return ((await manage()) || ((await coEditor(rd())) && eq(g(nd(), 'editors', []), g(rd(), 'editors', [])))) && eq(f(nd(), 'ownerUid'), f(rd(), 'ownerUid'))
       && eq(g(nd(), 'orgId', ''), g(rd(), 'orgId', ''))
       && (eq(g(nd(), 'shared', false), g(rd(), 'shared', false)) || (await c.can('share')))
     return manage()
@@ -229,9 +232,9 @@ async function evaluate(c: Ctx): Promise<boolean> {
     const quiz = () => c.get(qp)
     if (read) return (await c.can('allContent'))
       || ((await c.isAdmin()) && (f(await quiz(), 'ownerUid') === c.uid || (g(await quiz(), 'shared', false) === true && (await c.can('library')))))
-      || ((await c.orgOf()) !== '' && g(await quiz(), 'orgId', '') === (await c.orgOf()))
+      || ((await c.orgOf()) !== '' && g(await quiz(), 'orgId', '') === (await c.orgOf())) || ((await c.exists(qp)) && (await coEditor(await quiz())))
     return (await c.isAdmin()) && (!(await c.exists(qp)) || f(await quiz(), 'ownerUid') === c.uid || (await c.isOwner())
-      || ((await c.isOrgOwner()) && g(await quiz(), 'orgId', '') === c.uid))
+      || ((await c.isOrgOwner()) && g(await quiz(), 'orgId', '') === c.uid) || (await coEditor(await quiz())))
   }
 
   // ---------- pins, settings, sounds, profiles ----------
@@ -315,6 +318,18 @@ async function evaluate(c: Ctx): Promise<boolean> {
       && ((await c.can('publish')) || (await ownsQuiz()))
       && (res === null || (await c.can('publish')) || f(res, 'publishedBy') === c.uid)
       && safe()
+  }
+  if (col === 'ratings' && path.length === 2) {
+    if (read) return c.registered() && (await ok(() => f(rd(), 'uid') === c.uid))
+    if (op === 'delete') return false
+    const d = nd(), st = f(d, 'stars')
+    return c.registered() && id === `${f(d, 'quizId')}_${c.uid}` && keysOnly(d, ['uid', 'quizId', 'stars', 'at'])
+      && f(d, 'uid') === c.uid && isInt(st) && (st as number) >= 1 && (st as number) <= 5 && isReq(f(d, 'at'), now)
+      && c.exists(`catalog/${f(d, 'quizId')}`)
+  }
+  if (col === 'ratingStats' && path.length === 2) {
+    if (read) return c.registered() || c.isAdmin()
+    return false
   }
   if (col === 'reports' && path.length === 2) {
     if (read || op === 'delete') return c.can('console')

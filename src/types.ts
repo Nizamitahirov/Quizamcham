@@ -78,6 +78,10 @@ export interface Quiz {
   shared?: boolean // kitabxanaya paylaşılıb: bütün təlimçilər görür və surətini çıxara bilir
   orgId?: string // müəssisə: təşkilat daxilində ortaq
   tags?: string[]
+  /** qovluq (təlimçinin öz təşkilatı üçün) */
+  folder?: string
+  /** birgə redaktə edən həmmüəlliflərin e-poçtları (kiçik hərflə) */
+  editors?: string[]
   createdAt?: Timestamp
   updatedAt?: Timestamp
 }

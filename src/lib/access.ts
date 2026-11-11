@@ -3,8 +3,11 @@ import type { AdminState } from '../firebase/auth'
 type A = Pick<AdminState, 'user' | 'perms'> & Partial<Pick<AdminState, 'org'>>
 
 /** "Bütün məzmun" icazəsi olan hər şeyi idarə edir; müəssisə sahibi — təşkilatının məzmununu; digərləri — özününkünü. */
-export const canManage = (admin: A, ownerUid?: string | null, orgId?: string | null) =>
+export const canManage = (admin: A, ownerUid?: string | null, orgId?: string | null, editors?: string[]) =>
   admin.perms.allContent || (!!ownerUid && ownerUid === admin.user?.uid) || (admin.org?.role === 'owner' && !!orgId && orgId === admin.org.id)
+  || (!!admin.user?.email && (editors ?? []).includes(admin.user.email.toLowerCase()))
+/** Quizin sahibidir (həmmüəllif yox) — silmək və həmmüəllifləri idarə etmək üçün. */
+export const isQuizOwner = (admin: A, ownerUid?: string | null, orgId?: string | null) => canManage(admin, ownerUid, orgId)
 
 /** "Bütün məzmun" yoxdursa — öz oyunları (müəssisə sahibi üçün təşkilatın oyunları da). */
 export const visibleGames = <T extends { hostUid?: string; orgId?: string }>(admin: A, games: T[]) =>
