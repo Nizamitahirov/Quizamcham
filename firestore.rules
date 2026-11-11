@@ -297,6 +297,87 @@ service cloud.firestore {
       allow delete: if registered() && resource.data.uid == request.auth.uid;
     }
 
+    // ---------- Siniflər (qruplar): təlimçi yaradır, tələbə kodla qoşulur, tapşırıqlar və nəticələr ----------
+    function classDoc(cid) { return get(/databases/$(db)/documents/classes/$(cid)).data; }
+    function classOwner(cid) { return isAdmin() && exists(/databases/$(db)/documents/classes/$(cid)) && classDoc(cid).ownerUid == request.auth.uid; }
+    function classMember(cid) { return registered() && exists(/databases/$(db)/documents/classes/$(cid)/members/$(request.auth.uid)); }
+    match /classes/{cid} {
+      allow get: if classOwner(cid) || classMember(cid) || can('allContent');
+      allow list: if (isAdmin() && resource.data.ownerUid == request.auth.uid) || can('allContent');
+      allow create: if isAdmin() && can('createQuiz') && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['ownerUid','name','code','createdAt','archived','ownerName'])
+        && str(request.resource.data.name, 80) && request.resource.data.name.size() >= 2
+        && request.resource.data.code is string && request.resource.data.code.size() == 6
+        && request.resource.data.createdAt == request.time;
+      allow update: if classOwner(cid) && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.code == resource.data.code
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','archived','ownerName']) && str(request.resource.data.name, 80);
+      allow delete: if classOwner(cid);
+      match /members/{uid} {
+        allow read: if classOwner(cid) || (registered() && request.auth.uid == uid);
+        allow create: if registered() && uid == request.auth.uid
+          && request.resource.data.keys().hasOnly(['uid','name','email','code','joinedAt'])
+          && request.resource.data.uid == uid && str(request.resource.data.name, 80) && str(request.resource.data.get('email', ''), 120)
+          && request.resource.data.code == classDoc(cid).code && classDoc(cid).get('archived', false) == false
+          && request.resource.data.joinedAt == request.time;
+        allow update: if false;
+        allow delete: if classOwner(cid) || (registered() && request.auth.uid == uid);
+      }
+      match /tasks/{tid} {
+        allow read: if classOwner(cid) || classMember(cid);
+        allow create, update: if classOwner(cid)
+          && request.resource.data.keys().hasOnly(['kind','title','quizId','courseId','gameId','pin','dueAt','createdAt','note'])
+          && request.resource.data.kind in ['practice', 'course', 'game'] && str(request.resource.data.title, 120) && str(request.resource.data.get('note', ''), 300);
+        allow delete: if classOwner(cid);
+      }
+      match /results/{rid} {
+        allow read: if classOwner(cid) || (registered() && resource.data.uid == request.auth.uid);
+        allow create, update: if classMember(cid) && rid == request.auth.uid + '_' + request.resource.data.taskId
+          && request.resource.data.keys().hasOnly(['uid','name','taskId','score','correct','total','pct','at'])
+          && request.resource.data.uid == request.auth.uid && str(request.resource.data.name, 80)
+          && request.resource.data.total is int && request.resource.data.total > 0 && request.resource.data.total <= 200
+          && request.resource.data.correct is int && request.resource.data.correct >= 0 && request.resource.data.correct <= request.resource.data.total
+          && request.resource.data.pct is int && request.resource.data.pct >= 0 && request.resource.data.pct <= 100
+          && request.resource.data.at == request.time
+          && exists(/databases/$(db)/documents/classes/$(cid)/tasks/$(request.resource.data.taskId));
+        allow delete: if classOwner(cid);
+      }
+    }
+    // Sinif kodu → sinif (PIN kimi: konkret kodu bilən oxuyur, siyahı yoxdur)
+    match /classCodes/{code} {
+      allow get: if registered() || isAdmin();
+      allow create: if isAdmin() && request.resource.data.keys().hasOnly(['classId']) && classOwner(request.resource.data.classId);
+      allow delete: if isAdmin() && classOwner(resource.data.classId);
+    }
+    // Tələbənin üzvlükləri (öz siniflərinin siyahısı üçün), id = uid_classId
+    match /memberships/{id} {
+      allow read: if registered() && resource.data.uid == request.auth.uid;
+      allow create: if registered() && id == request.auth.uid + '_' + request.resource.data.classId
+        && request.resource.data.keys().hasOnly(['uid','classId','className','joinedAt'])
+        && request.resource.data.uid == request.auth.uid && str(request.resource.data.className, 80)
+        && request.resource.data.joinedAt == request.time
+        && exists(/databases/$(db)/documents/classes/$(request.resource.data.classId)/members/$(request.auth.uid));
+      allow delete: if registered() && resource.data.uid == request.auth.uid;
+    }
+
+    // ---------- Kurslar: kataloq quizlərinin ardıcıllığı + tələbənin irəliləyişi ----------
+    match /courses/{courseId} {
+      allow read: if registered() || isAdmin();
+      allow create, update: if isAdmin() && can('createQuiz') && request.resource.data.ownerUid == request.auth.uid
+        && (resource == null || resource.data.ownerUid == request.auth.uid)
+        && request.resource.data.keys().hasOnly(['ownerUid','ownerName','title','description','items','createdAt','updatedAt','coverEmoji'])
+        && str(request.resource.data.title, 120) && request.resource.data.title.size() >= 3 && str(request.resource.data.get('description', ''), 500)
+        && request.resource.data.items is list && request.resource.data.items.size() >= 1 && request.resource.data.items.size() <= 50;
+      allow delete: if isAdmin() && resource.data.ownerUid == request.auth.uid;
+      match /progress/{uid} {
+        allow read: if (registered() && request.auth.uid == uid) || (isAdmin() && get(/databases/$(db)/documents/courses/$(courseId)).data.ownerUid == request.auth.uid);
+        allow create, update: if registered() && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['uid','name','done','completedAt','at'])
+          && request.resource.data.uid == uid && request.resource.data.done is list && request.resource.data.done.size() <= 50
+          && request.resource.data.at == request.time;
+        allow delete: if false;
+      }
+    }
+
     // ---------- Qeydiyyatlı istifadəçinin canlı oyun tarixçəsi (id = uid_gameId) ----------
     match /plays/{id} {
       allow read: if (registered() && resource.data.uid == request.auth.uid) || can('console');

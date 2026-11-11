@@ -1,5 +1,5 @@
 import { Link, NavLink, Navigate, Outlet } from 'react-router-dom'
-import { Ban, BarChart3, Building2, Gauge, Sparkles, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
+import { Ban, BarChart3, BookOpen, Building2, Gauge, GraduationCap, Sparkles, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
 import { ForcePasswordChange } from '../../components/ForcePasswordChange'
 import type { PermKey } from '../../lib/roles'
 import { useEffect, useState } from 'react'
@@ -16,6 +16,8 @@ const NAV: { to: string; end?: boolean; icon: typeof Settings; label: string; pe
   { to: '/admin', end: true, icon: LayoutDashboard, label: t.admin.nav.dashboard },
   { to: '/admin/quizzes', icon: ListChecks, label: t.admin.nav.quizzes },
   { to: '/admin/games', icon: History, label: t.admin.nav.games },
+  { to: '/admin/classes', icon: GraduationCap, label: t.cls.nav },
+  { to: '/admin/courses', icon: BookOpen, label: t.course.nav },
   { to: '/admin/analytics', icon: BarChart3, label: t.admin.nav.analytics },
   { to: '/admin/sounds', icon: Music2, label: t.admin.nav.sounds, perm: 'settings' },
   { to: '/admin/profile', icon: UserRound, label: t.admin.nav.profile },
