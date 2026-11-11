@@ -27,7 +27,7 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <LangSwitch />
           <Link to="/pricing" className="btn btn-ghost btn-sm hidden md:inline-flex">{t.acct.pricingTitle}</Link>
-          <Link to="/start" className="btn btn-primary btn-sm">{t.acct.signIn} / {t.acct.signUp}<ArrowRight /></Link>
+          <Link to="/start" className="btn btn-primary btn-sm whitespace-nowrap">{t.acct.signIn}<span className="hidden sm:inline"> / {t.acct.signUp}</span><ArrowRight /></Link>
         </div>
       </header>
 

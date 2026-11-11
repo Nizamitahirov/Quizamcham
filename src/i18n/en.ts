@@ -384,7 +384,7 @@ export const en: Dict = {
     ],
     ctaTitle: 'Make your next training live', ctaSub: '3-day Pro trial, then the free plan — no card required.',
   },
-  legal: { more: 'Details', accept: 'I have read it, I agree', docs: 'Legal documents', version: 'Version', print: 'Print', forPlayers: 'Short notice for live game participants', terms: 'Terms of Use', privacy: 'Privacy Policy', consent: 'Data processing consent' },
+  legal: { translationNote: 'This is a translation; the Azerbaijani text is authoritative.', more: 'Details', accept: 'I have read it, I agree', docs: 'Legal documents', version: 'Version', print: 'Print', forPlayers: 'Short notice for live game participants', terms: 'Terms of Use', privacy: 'Privacy Policy', consent: 'Data processing consent' },
   privacy: {
     title: 'Privacy notice', short: 'By joining, you agree that your name and answers are used for this training session.', more: 'Details',
     body: [
