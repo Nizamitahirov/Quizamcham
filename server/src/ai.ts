@@ -9,6 +9,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authFrom, bearer, testHeader } from './auth.js'
 import { loadDoc, pool } from './store.js'
+import { SUPER as SUPER_UID } from './rules.js'
 import { limit } from './ratelimit.js'
 import type { Doc } from './values.js'
 
@@ -29,6 +30,7 @@ export async function migrateAi() {
 
 /** Effektiv pillə — klientdəki planInfo və Rules-dakı playerCap ilə eyni məntiq. */
 export async function tierOf(uid: string): Promise<Tier | null> {
+  if (uid === SUPER_UID) return 'business' // super admin: plan məhdudiyyəti yoxdur
   const d = await loadDoc(`admins/${uid}`)
   if (!d || d.disabled === true) return null
   const now = Date.now()

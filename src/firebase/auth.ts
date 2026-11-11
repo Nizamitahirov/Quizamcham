@@ -78,6 +78,8 @@ export type AdminState = {
 
 const NONE: Perms = effectivePerms(null, null, undefined)
 const NO_PLAN: PlanInfo = { selfServe: false, licensed: false, endsAt: null, active: true, free: false, tier: 'free', trial: false, players: 10 }
+/** Super admin: bütün funksiyalar, limitsiz (heç bir plan məhdudiyyəti yoxdur). */
+const SUPER_PLAN: PlanInfo = { selfServe: false, licensed: false, endsAt: null, active: true, free: false, tier: 'business', trial: false, players: 100000 }
 const NO_ORG: OrgInfo = { role: null, id: '', seats: 0 }
 
 /**
@@ -110,7 +112,7 @@ export function useAdmin(): AdminState {
           unsubs.push(() => ownerUnsub?.())
           return
         }
-        const plan = isSuper ? NO_PLAN : planInfo(data, Date.now(), owner?.data() ?? null)
+        const plan = isSuper ? SUPER_PLAN : planInfo(data, Date.now(), owner?.data() ?? null)
         const org = isSuper ? NO_ORG : orgInfo(u.uid, data)
         const perms = disabled ? NONE : effectivePerms(role, cfg, me.get('perms') as PermMap | undefined)
         if (plan.selfServe) SELF_SERVE_BLOCKED.forEach((p) => { perms[p] = false })
