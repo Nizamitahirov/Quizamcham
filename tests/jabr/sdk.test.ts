@@ -134,3 +134,39 @@ describe('moderasiya (yalnız Jabr serveri)', () => {
     expect(hidden).toBe(true)
   })
 })
+
+describe('giriş + dərhal abunə (qeydiyyatın təkrarlanması xətası)', () => {
+  it('girişdən dərhal sonra açılan profil abunəsi yeni sessiya ilə yoxlanılır', async () => {
+    const app = initializeApp({ baseUrl: BASE }, 'race-test')
+    const auth = getAuth(app)
+    const db = getFirestore(app)
+    // anonim sessiya ilə realtime bağlantısı artıq açıqdır (sayta giriş səhifəsi kimi)
+    await signInAnonymously(auth)
+    let warm = false
+    const off0 = onSnapshot(doc(db, 'settings', 'app'), () => { warm = true }, () => { warm = true })
+    await until(() => warm)
+    const email = `race${Date.now()}@x.az`
+    const c = await createUserWithEmailAndPassword(auth, email, 'secret12')
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', c.user.uid), { email, type: 'student', onboarded: true })
+    })
+    // tətbiqdəki useAccount kimi: abunə giriş bildirişinin İÇİNDƏ, dərhal açılır
+    let result: string | null = null
+    let off: (() => void) | null = null
+    const offAuth = onAuthStateChanged(auth, (u) => {
+      off?.(); off = null
+      if (!u || u.isAnonymous) return
+      off = onSnapshot(doc(db, 'users', u.uid), (s) => { result = s.get('onboarded') === true ? 'ok' : 'missing' }, (e) => { result = e.code })
+    })
+    for (let round = 0; round < 3; round++) {
+      await signOut(auth)
+      await signInAnonymously(auth)
+      result = null
+      await signInWithEmailAndPassword(auth, email, 'secret12')
+      await until(() => result !== null)
+      expect(result).toBe('ok')
+    }
+    offAuth(); (off as (() => void) | null)?.()
+    off0()
+  })
+})

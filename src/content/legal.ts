@@ -4,7 +4,7 @@
  * Versiya dəyişəndə LEGAL_VERSION artırılır — istifadəçinin verdiyi razılıq bu versiya ilə qeyd olunur.
  * Qeyd: operatorun hüquqi adı və VÖEN-i məlum olanda OPERATOR sahəsinə əlavə edin.
  */
-export const LEGAL_VERSION = '2026-11-07'
+export const LEGAL_VERSION = '2026-11-11'
 export const OPERATOR = { name: 'Jabr platformasının operatoru', nameEn: 'the operator of the Jabr platform', email: 'nt.nizamitahir@gmail.com', phone: '+994 99 777 70 09' }
 
 export type LegalId = 'privacy' | 'terms' | 'consent' | 'marketing'
@@ -35,7 +35,7 @@ const az: LegalDoc[] = [
         'Canlı oyun iştirakçısı: daxil etdiyiniz ad, soyad, avatar, cavablar, xal və yer. Anonim iştirakçıdan e-poçt və telefon soruşulmur.',
         'Məşq nəticələri: keçdiyiniz quizlər, düzgün cavab sayı, xal və vaxt.',
         'Lisenziya müraciəti: ad, telefon, e-poçt, təşkilat, plan, qeyd.',
-        'Texniki məlumatlar: giriş vaxtı, brauzer növü, xəta qeydləri və anonimləşdirilmiş istifadə statistikası (Firebase Analytics).',
+        'Texniki məlumatlar: giriş vaxtı, brauzer növü və xəta qeydləri (təhlükəsizlik və xətaların aradan qaldırılması üçün).',
         'Razılıqlar: hansı sənədə, hansı versiyaya və nə vaxt razılıq verdiyiniz.',
       ] },
       { h: '4. Məqsədlər və hüquqi əsaslar', list: [
@@ -51,10 +51,10 @@ const az: LegalDoc[] = [
         'Oyunu keçirən təlimçi — öz oyunlarındakı iştirakçıların adını, cavablarını və nəticələrini görür.',
         'Digər iştirakçılar — oyun zamanı reytinqdə ad və xalınızı görür.',
         'Platformanın səlahiyyətli idarəçiləri — yalnız iş üçün lazım olan həcmdə, rol əsaslı giriş ilə.',
-        'Xidmət təminatçıları (prosessorlar): Google LLC (Firebase Authentication, Cloud Firestore, Analytics) və Vercel Inc. (veb hostinq). Onlar məlumatları yalnız bizim tapşırığımızla emal edir.',
+        'Xidmət təminatçıları (prosessorlar): Contabo GmbH (server hostinqi, Almaniya), Google LLC (yalnız "Google ilə daxil ol" — giriş zamanı ad, e-poçt və profil şəkli bizə Google tərəfindən ötürülür) və Cloudflare, Inc. (domen adı xidməti — DNS). Onlar məlumatları yalnız bizim tapşırığımızla və ya xidmətin göstərilməsi üçün zəruri həcmdə emal edir.',
         'Məlumatlarınızı satmırıq və reklam məqsədilə üçüncü şəxslərə vermirik. Qanunla tələb olunduqda səlahiyyətli dövlət orqanlarına təqdim oluna bilər.',
       ] },
-      { h: '6. Saxlama yeri və transsərhəd ötürmə', p: ['Məlumatlar Google Cloud-un Avropa İttifaqındakı məlumat mərkəzlərində (Firestore, eur3 regionu) saxlanılır. Bu, məlumatların Azərbaycan Respublikasının hüdudlarından kənara ötürülməsi deməkdir; ötürmə razılığınız əsasında və adekvat mühafizə səviyyəsini təmin edən təminatçı vasitəsilə həyata keçirilir. Əlaqə HTTPS (TLS) ilə şifrələnir.'] },
+      { h: '6. Saxlama yeri və transsərhəd ötürmə', p: ['Məlumatlar Contabo GmbH-ın Almaniyadakı (Avropa İttifaqı) məlumat mərkəzində yerləşən serverimizdə saxlanılır. Bu, məlumatların Azərbaycan Respublikasının hüdudlarından kənara ötürülməsi deməkdir; ötürmə razılığınız əsasında və adekvat mühafizə səviyyəsini təmin edən təminatçı vasitəsilə həyata keçirilir. Əlaqə HTTPS (TLS) ilə şifrələnir.'] },
       { h: '7. Saxlama müddətləri', list: [
         'Hesab və qeydiyyat məlumatları — hesab silinənədək; 24 ay heç bir fəaliyyət olmadıqda hesab silinə bilər.',
         'Canlı oyun məlumatları — təlimçi silənədək; platforma köhnə oyunları təmizləmə vasitəsi təqdim edir.',
@@ -73,7 +73,7 @@ const az: LegalDoc[] = [
         `Müraciətlərə 30 gün ərzində cavab veririk: ${O.email}. Hüquqlarınızın pozulduğunu düşünürsünüzsə, qanunvericiliyə uyğun olaraq səlahiyyətli dövlət orqanına və ya məhkəməyə müraciət edə bilərsiniz.`,
       ] },
       { h: '9. Uşaqlar', p: ['16 yaşına çatmamış şəxslər qeydiyyatdan yalnız valideynin və ya qanuni nümayəndənin razılığı ilə keçə bilər. Məktəb və digər təhsil müəssisələri platformanı şagirdlərlə istifadə edərkən bu razılığın alınmasına cavabdehdir.'] },
-      { h: '10. Brauzer yaddaşı və kukilər', p: ['Platforma reklam kukiləri istifadə etmir. Brauzerin yerli yaddaşında yalnız iş üçün zəruri məlumatlar saxlanılır (dil seçimi, giriş sessiyası, oyuna qayıtmaq üçün oyun identifikatoru). Firebase Analytics anonimləşdirilmiş istifadə statistikası toplayır.'] },
+      { h: '10. Brauzer yaddaşı və kukilər', p: ['Platforma reklam kukiləri istifadə etmir. Brauzerin yerli yaddaşında yalnız iş üçün zəruri məlumatlar saxlanılır (dil seçimi, giriş sessiyası, oyuna qayıtmaq üçün oyun identifikatoru). Üçüncü tərəf analitika və ya reklam izləmə alətləri istifadə olunmur.'] },
       { h: '11. Dəyişikliklər', p: ['Bu siyasət dəyişdikdə yeni versiya bu səhifədə dərc olunur. Əhəmiyyətli dəyişikliklərdə sizdən yenidən razılıq istənilir.'] },
     ],
   },
@@ -120,7 +120,7 @@ const az: LegalDoc[] = [
       { h: 'Razılığın mətni', p: [`Mən, Jabr platformasında qeydiyyatdan keçməklə, "Fərdi məlumatlar haqqında" Azərbaycan Respublikası Qanununa uyğun olaraq ${O.name}na ("Operator") aşağıda göstərilən fərdi məlumatlarımın göstərilən məqsədlərlə toplanmasına, işlənməsinə, saxlanmasına və məhv edilməsinə azad, konkret və məlumatlı razılıq verirəm.`] },
       { h: 'Məlumatlar', list: ['ad, soyad, e-poçt, Google profil şəkli;', 'telefon nömrəsi, ölkə, şəhər;', 'peşə və ya təhsil məlumatları (sektor, vəzifə, təşkilat, təhsil müəssisəsi, ixtisas, səviyyə);', 'maraq sahələri, platformanı necə tapdığım;', 'platformadakı fəaliyyətim: quizlər, oyunlar, nəticələr, müraciətlər.'] },
       { h: 'Məqsədlər', list: ['hesabımın yaradılması və idarə olunması;', 'platformanın funksiyalarının (oyunlar, məşq, sertifikat, hesabat) göstərilməsi;', 'sınaq, plan və lisenziyaların idarə olunması, müraciətlərimə cavab verilməsi və mənimlə əlaqə saxlanılması;', 'xidmətin təhlükəsizliyi və təkmilləşdirilməsi.'] },
-      { h: 'Saxlama və ötürmə', p: ['Məlumatlarımın Google Cloud-un Avropa İttifaqındakı serverlərində saxlanmasına (transsərhəd ötürməyə) və xidmət təminatçıları (Google LLC, Vercel Inc.) tərəfindən Operatorun tapşırığı ilə emal edilməsinə razıyam.'] },
+      { h: 'Saxlama və ötürmə', p: ['Məlumatlarımın Avropa İttifaqında (Almaniya) yerləşən serverdə saxlanmasına (transsərhəd ötürməyə) və xidmət təminatçıları (Contabo GmbH, Google LLC, Cloudflare, Inc.) tərəfindən Operatorun tapşırığı ilə emal edilməsinə razıyam.'] },
       { h: 'Müddət və geri götürmə', p: ['Razılıq hesabım silinənədək qüvvədədir. Onu istənilən vaxt "Hesabım" səhifəsində hesabı silməklə və ya Operatora yazılı müraciətlə geri götürə bilərəm. Razılığı geri götürdükdə platformadan istifadə mümkün olmayacaq; geri götürmə ondan əvvəlki emalın qanuniliyinə təsir etmir.'] },
     ],
   },
@@ -157,7 +157,7 @@ const en: LegalDoc[] = [
         'Live game participants: the name you enter, avatar, answers, score and rank. Anonymous participants are not asked for email or phone.',
         'Practice results: quizzes taken, correct answers, score and time.',
         'License requests: name, phone, email, organisation, plan, notes.',
-        'Technical data: sign-in time, browser type, error reports and anonymised usage statistics (Firebase Analytics).',
+        'Technical data: sign-in time, browser type and error reports (for security and troubleshooting).',
         'Consents: which document and version you agreed to, and when.',
       ] },
       { h: '4. Purposes and legal bases', list: [
@@ -173,10 +173,10 @@ const en: LegalDoc[] = [
         'The trainer running a game — names, answers and results of participants in their own games.',
         'Other participants — your name and score on the in-game leaderboard.',
         'Authorised platform administrators — only as needed, with role-based access.',
-        'Service providers (processors): Google LLC (Firebase Authentication, Cloud Firestore, Analytics) and Vercel Inc. (web hosting), acting only on our instructions.',
+        'Service providers (processors): Contabo GmbH (server hosting, Germany), Google LLC (only “Sign in with Google” — Google passes us your name, email and profile photo at sign-in) and Cloudflare, Inc. (domain name service — DNS), acting only on our instructions or to the extent necessary to provide the service.',
         'We do not sell your data or share it for advertising. It may be disclosed to competent authorities where required by law.',
       ] },
-      { h: '6. Storage location and transfers', p: ['Data is stored in Google Cloud data centres in the European Union (Firestore, eur3 region). This means your data is transferred outside the Republic of Azerbaijan; the transfer is based on your consent and made through a provider ensuring an adequate level of protection. Traffic is encrypted with HTTPS (TLS).'] },
+      { h: '6. Storage location and transfers', p: ['Data is stored on our server in a Contabo GmbH data centre in Germany (European Union). This means your data is transferred outside the Republic of Azerbaijan; the transfer is based on your consent and made through a provider ensuring an adequate level of protection. Traffic is encrypted with HTTPS (TLS).'] },
       { h: '7. Retention', list: [
         'Account and sign-up data — until the account is deleted; accounts inactive for 24 months may be deleted.',
         'Live game data — until the trainer deletes it; the platform offers a cleanup tool for old games.',
@@ -195,7 +195,7 @@ const en: LegalDoc[] = [
         `We reply within 30 days: ${O.email}. If you believe your rights were violated, you may complain to the competent public authority or court under applicable law.`,
       ] },
       { h: '9. Children', p: ['People under 16 may register only with the consent of a parent or legal guardian. Schools and other institutions using the platform with pupils are responsible for obtaining that consent.'] },
-      { h: '10. Browser storage and cookies', p: ['We do not use advertising cookies. Only strictly necessary data is kept in local browser storage (language, sign-in session, the game identifier to rejoin a game). Firebase Analytics collects anonymised usage statistics.'] },
+      { h: '10. Browser storage and cookies', p: ['We do not use advertising cookies. Only strictly necessary data is kept in local browser storage (language, sign-in session, the game identifier to rejoin a game). No third-party analytics or advertising trackers are used.'] },
       { h: '11. Changes', p: ['When this policy changes the new version is published here. For material changes we ask for your consent again.'] },
     ],
   },
@@ -228,7 +228,7 @@ const en: LegalDoc[] = [
       { h: 'Consent text', p: [`By signing up to the Jabr platform I give ${O.nameEn} ("Operator") my free, specific and informed consent, under the Law of the Republic of Azerbaijan "On Personal Data", to collect, process, store and destroy the personal data listed below for the stated purposes.`] },
       { h: 'Data', list: ['first and last name, email, Google profile photo;', 'phone number, country, city;', 'work or education details (sector, position, organisation, institution, field, level);', 'interests and how I found the platform;', 'my activity on the platform: quizzes, games, results, requests.'] },
       { h: 'Purposes', list: ['creating and managing my account;', 'providing platform features (games, practice, certificates, reports);', 'managing trials, plans and licenses, answering my requests and contacting me;', 'security and improvement of the service.'] },
-      { h: 'Storage and transfer', p: ['I agree that my data is stored on Google Cloud servers in the European Union (cross-border transfer) and processed by service providers (Google LLC, Vercel Inc.) on the Operator’s instructions.'] },
+      { h: 'Storage and transfer', p: ['I agree that my data is stored on a server in the European Union (Germany) (cross-border transfer) and processed by service providers (Contabo GmbH, Google LLC, Cloudflare, Inc.) on the Operator’s instructions.'] },
       { h: 'Duration and withdrawal', p: ['This consent is valid until my account is deleted. I can withdraw it at any time by deleting my account on "My account" or by writing to the Operator. Without this consent the platform cannot be used; withdrawal does not affect earlier processing.'] },
     ],
   },

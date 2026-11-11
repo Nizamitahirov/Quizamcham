@@ -14,7 +14,7 @@ export const az = {
   },
   about: {
     title: 'Haqqında',
-    text: 'Jabr — AmCham Azərbaycan “NextGen HR Leaders” proqramı üçün canlı quiz platforması.',
+    text: 'Jabr — təlimlər, dərslər və tədbirlər üçün canlı interaktiv quiz platforması.',
     avatars: 'Avatarlar DiceBear (dicebear.com) ilə yaradılır:',
     music: 'Musiqi və səs effektləri brauzerdə kodla yaradılır.',
   },
@@ -48,7 +48,7 @@ export const az = {
     step1: 'PIN', step2: 'Profil', step3: 'Lobbi',
     hello: 'Salam! 👋',
   },
-  power: {
+  power: { tapToCancel: 'Seçimi ləğv etmək üçün yenidən toxunun',
     title: 'Güc artırıcılar',
     fifty: '50/50', fiftyDesc: 'İki səhv variantı gizlədir',
     double: '2x', doubleDesc: 'Bu sualda ikiqat xal',
@@ -198,7 +198,7 @@ export const az = {
     progress: 'İrəliləyiş',
     autoNext: (s: number) => `Avtomatik keçid: ${s} s`,
   },
-  admin: {
+  admin: { secureLogin: 'Şifrələnmiş bağlantı (HTTPS)',
     readOnly: 'Bu quiz başqa təlimçiyə məxsusdur — yalnız baxış. Dəyişmək üçün öz surətinizi yaradın.',
     makeCopy: 'Surət yarat', view: 'Bax', locked: 'Yalnız baxış',
     share: 'Kitabxanaya paylaş', shared: 'Kitabxanada', shareHint: 'Paylaşılan quizi bütün təlimçilər görür və surətini çıxara bilir (redaktə edə bilməz)',
@@ -641,8 +641,8 @@ export const az = {
     more: 'Ətraflı',
     body: [
       'Jabr təlim zamanı canlı quiz keçirmək üçündür. Qoşulanda yalnız daxil etdiyiniz ad, soyad, seçdiyiniz avatar və quiz cavablarınız saxlanılır.',
-      'E-poçt, telefon nömrəsi və ya digər şəxsi məlumat soruşulmur. Giriş anonim hesabla (Firebase Authentication) həyata keçirilir.',
-      'Məlumatlar Google Firebase (Avropa regionu, eur3) serverlərində saxlanılır və yalnız təlimçi tərəfindən nəticələrin hesablanması və təlim hesabatı üçün istifadə olunur.',
+      'E-poçt, telefon nömrəsi və ya digər şəxsi məlumat soruşulmur. Giriş adsız (anonim) müvəqqəti hesabla həyata keçirilir.',
+      'Məlumatlar Avropa İttifaqında (Almaniya) yerləşən serverimizdə saxlanılır və yalnız təlimçi tərəfindən nəticələrin hesablanması və təlim hesabatı üçün istifadə olunur.',
       'Nəticələr (ad, xal, yer) oyun zamanı ekranda digər iştirakçılara göstərilir.',
       'Oyun məlumatları təlimçi tərəfindən müəyyən müddətdən sonra silinir. Məlumatlarınızın silinməsini istəsəniz, təlimçiyə müraciət edin.',
     ],

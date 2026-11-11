@@ -49,7 +49,7 @@ async function seed(gameExtra: Record<string, unknown> = {}) {
 }
 
 beforeAll(async () => {
-  env = await initializeTestEnvironment({ projectId: 'demo-quizamcham', firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 } })
+  env = await initializeTestEnvironment({ projectId: 'demo-jabr', firestore: { rules: readFileSync('firestore.rules', 'utf8'), host: '127.0.0.1', port: 8080 } })
 })
 afterAll(async () => { await env?.cleanup() })
 beforeEach(async () => { await env.clearFirestore(); await seed() })

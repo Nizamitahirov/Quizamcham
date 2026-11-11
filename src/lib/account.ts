@@ -44,9 +44,20 @@ export async function signInWithGoogle(): Promise<User> {
   }
 }
 
+/**
+ * Profil. Girişdən dərhal sonra oxu bir anlıq "icazə yoxdur" ala bilər (sessiya hələ ötürülməyib) —
+ * xəta "profil yoxdur" sayılmır (əks halda istifadəçi yenidən qeydiyyata göndərilir), bir neçə dəfə təkrarlanır.
+ */
 export async function loadUserProfile(uid: string): Promise<UserProfile | null> {
-  const s = await getDoc(doc(db, 'users', uid)).catch(() => null)
-  return s?.exists() ? (s.data() as UserProfile) : null
+  for (let i = 0; ; i++) {
+    try {
+      const s = await getDoc(doc(db, 'users', uid))
+      return s.exists() ? (s.data() as UserProfile) : null
+    } catch (e) {
+      if (i >= 4) throw e
+      await new Promise((r) => setTimeout(r, 300 * (i + 1)))
+    }
+  }
 }
 
 /** Qeydiyyatın sonu: profil + (təlimçi/müəssisə üçün) 3 günlük sınaqla təlimçi hesabı. */
@@ -86,13 +97,22 @@ export function useAccount() {
     const unsub = onAuthStateChanged(auth, (u) => {
       unsubDoc?.(); unsubDoc = null
       if (!u || u.isAnonymous) return setState({ loading: false, user: null, profile: null })
-      unsubDoc = onSnapshot(doc(db, 'users', u.uid), { includeMetadataChanges: true },
-        (s) => {
-          // keşdən gələn "yoxdur" sübut deyil — server cavabını gözlə (yoxsa istifadəçi səhvən qeydiyyata qaytarılır)
-          if (!s.exists() && s.metadata.fromCache) return
-          setState({ loading: false, user: u, profile: s.exists() ? (s.data() as UserProfile) : null })
-        },
-        () => setState({ loading: false, user: u, profile: null }))
+      let tries = 0
+      const listen = () => {
+        unsubDoc = onSnapshot(doc(db, 'users', u.uid), { includeMetadataChanges: true },
+          (s) => {
+            // keşdən gələn "yoxdur" sübut deyil — server cavabını gözlə (yoxsa istifadəçi səhvən qeydiyyata qaytarılır)
+            if (!s.exists() && s.metadata.fromCache) return
+            tries = 0
+            setState({ loading: false, user: u, profile: s.exists() ? (s.data() as UserProfile) : null })
+          },
+          () => {
+            // girişdən dərhal sonrakı müvəqqəti "icazə yoxdur" — yenidən abunə ol, "profil yoxdur" demə
+            if (tries++ < 5 && auth.currentUser?.uid === u.uid) { setTimeout(() => { if (auth.currentUser?.uid === u.uid) listen() }, 400 * tries); return }
+            setState({ loading: false, user: u, profile: null })
+          })
+      }
+      listen()
     })
     return () => { unsub(); unsubDoc?.() }
   }, [])
@@ -101,8 +121,10 @@ export function useAccount() {
 
 /** Girişdən sonra hara: admin/təlimçi → panel, tələbə → kataloq, profil yoxdursa → qeydiyyat. */
 export async function routeAfterLogin(uid: string): Promise<string> {
-  const [admin, profile] = await Promise.all([getDoc(doc(db, 'admins', uid)).catch(() => null), loadUserProfile(uid)])
+  const [admin, profile] = await Promise.all([getDoc(doc(db, 'admins', uid)).catch(() => null), loadUserProfile(uid).catch(() => undefined)])
   if (admin?.exists()) return '/admin'
+  // profili oxumaq alınmadısa qeydiyyata göndərmirik — tələbə kataloqu profili yenidən yoxlayır
+  if (profile === undefined) return '/learn'
   if (!profile?.onboarded) return '/onboarding'
   return profile.type === 'student' ? '/learn' : '/admin'
 }

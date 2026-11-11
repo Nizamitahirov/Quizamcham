@@ -25,7 +25,27 @@ export default function Games() {
       <PageHeader title={t.games.title} />
       {msg && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800" role="status">{msg}</p>}
       {!rows ? <Spinner /> : rows.length === 0 ? <p className="card p-8 text-center text-muted">{t.games.empty}</p> : (
-        <div className="card overflow-x-auto">
+        <>
+        {/* telefon: kartlar (cədvəl dar ekranda sağa sürüşürdü) */}
+        <ul className="space-y-3 md:hidden">
+          {rows.map((g) => (
+            <li key={g.id} className="card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="break-words font-bold">{g.title}</div>
+                  <div className="mt-0.5 text-xs text-muted">{g.createdAt ? fmtDateTime(g.createdAt.toDate()) : ''} · PIN <span className="font-mono">{g.pin}</span> · {g.playerCount ?? 0} {t.games.players.toLowerCase()}</div>
+                </div>
+                <span className={`chip shrink-0 ${g.phase === 'finished' ? 'bg-surface text-[#4A4E69]' : 'bg-green-100 text-green-700'}`}>{g.phase ? t.games.phases[g.phase] : ''}</span>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {g.phase !== 'finished' && <Link className="btn btn-soft btn-sm" to={`/host/${g.id}`}><MonitorPlay />{t.games.host}</Link>}
+                <Link className="btn btn-secondary btn-sm" to={`/admin/games/${g.id}`}><BarChart3 />{t.games.open}</Link>
+                <button className="btn btn-ghost-dark btn-sm btn-icon ml-auto text-red-600" aria-label={t.games.delete} onClick={async () => { if (confirm(`${t.games.delete}?`)) { try { await deleteGame(g.id, g.pin); void logAudit('game_deleted', { target: g.id, details: { pin: g.pin } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <div className="card hidden overflow-x-auto md:block">
           <table className="w-full text-left">
             <thead className="bg-surface text-[11px] uppercase tracking-wider text-muted">
               <tr><th className="p-3">{t.games.date}</th><th className="p-3">{t.games.quiz}</th><th className="p-3">PIN</th><th className="p-3">{t.games.players}</th><th className="p-3">{t.games.status}</th><th className="p-3" /></tr>
@@ -48,6 +68,7 @@ export default function Games() {
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   )

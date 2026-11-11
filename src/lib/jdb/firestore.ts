@@ -280,7 +280,7 @@ class Realtime {
     this.ws = ws
     ws.onopen = async () => {
       this.retry = 0
-      await this.sendAuth()
+      await this.sendAuth(true)
       for (const [id, l] of this.subs) this.raw({ t: 'sub', id, ...l.msg })
       this.ping = setInterval(() => this.raw({ t: 'ping' }), 25000)
     }
@@ -293,6 +293,7 @@ class Realtime {
     ws.onclose = () => {
       if (this.ping) clearInterval(this.ping)
       this.ws = null
+      this.sentAuth = null
       if (this.paused || this.subs.size === 0) return
       const delay = Math.min(10000, 300 * 2 ** this.retry++) * (0.7 + Math.random() * 0.6)
       this.timer = setTimeout(() => this.connect(), delay)
@@ -300,15 +301,30 @@ class Realtime {
     ws.onerror = () => ws.close()
   }
   raw(m: unknown) { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(m)) }
-  async sendAuth() {
-    const h = await this.db._headers()
-    const token = h.authorization?.replace(/^Bearer /, '')
-    this.raw({ t: 'auth', token, test: h['x-test-auth'] })
+  /**
+   * Giriş məlumatı abunələrdən ƏVVƏL göndərilməlidir: əks halda girişdən dərhal sonra açılan abunə (məs. profil)
+   * köhnə (anonim) sessiya ilə yoxlanılır, rədd olunur və istifadəçi səhvən qeydiyyata yönləndirilir.
+   * Bütün auth göndərişləri bir növbədədir; abunə həmişə növbənin sonunu gözləyir.
+   */
+  authChain: Promise<void> = Promise.resolve()
+  sentAuth: string | null = null
+  sendAuth(force = false) {
+    this.authChain = this.authChain.then(async () => {
+      const h = await this.db._headers()
+      const token = h.authorization?.replace(/^Bearer /, '')
+      const key = JSON.stringify([token, h['x-test-auth']])
+      if (!force && key === this.sentAuth) return
+      if (this.ws?.readyState !== 1) return
+      this.sentAuth = key
+      this.raw({ t: 'auth', token, test: h['x-test-auth'] })
+    }).catch(() => {})
+    return this.authChain
   }
   add(msg: Record<string, unknown>, on: (m: SubMsg) => void) {
     const id = String(++this.seq)
     this.subs.set(id, { msg, on })
-    if (this.ws?.readyState === 1) this.raw({ t: 'sub', id, ...msg }); else this.connect()
+    if (this.ws?.readyState === 1) void this.sendAuth().then(() => { if (this.subs.has(id)) this.raw({ t: 'sub', id, ...msg }) })
+    else this.connect()
     return () => {
       if (!this.subs.delete(id)) return
       this.raw({ t: 'unsub', id })
