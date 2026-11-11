@@ -179,3 +179,11 @@ describe('giriş + dərhal abunə (qeydiyyatın təkrarlanması xətası)', () =
     off0()
   })
 })
+
+describe('hədlər (təhlükəsizlik auditi)', () => {
+  it('1.5 MB-dan böyük sənəd rədd edilir', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await expect(setDoc(doc(ctx.firestore(), 'tmp', 'big'), { blob: 'x'.repeat(1_600_000) })).rejects.toMatchObject({ code: 'invalid-argument' })
+    })
+  })
+})

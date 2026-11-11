@@ -178,7 +178,13 @@ service cloud.firestore {
     match /pins/{pin} {
       allow get: if signedIn();          // konkret PIN yoxlanır, siyahılamaq olmur
       allow list: if can('allContent');
-      allow write: if isAdmin();
+      // PIN yalnız həmin oyunun hostuna məxsusdur (başqa təlimçi aktiv PIN-i öz oyununa yönləndirə və ya silə bilməz)
+      allow create: if isAdmin() && request.resource.data.keys().hasOnly(['gameId', 'active', 'createdAt'])
+        && request.resource.data.gameId is string && isGameHost(request.resource.data.gameId);
+      allow update: if isAdmin() && request.resource.data.gameId == resource.data.gameId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['active']) && isGameHost(resource.data.gameId);
+      allow delete: if isAdmin() && (isGameHost(resource.data.gameId) || isOwner()
+        || !exists(/databases/$(db)/documents/games/$(resource.data.gameId)));
     }
 
     // settings/app → ümumi ayarlar (yalnız sahib), settings/current → daimi QR (istənilən təlimçi),
