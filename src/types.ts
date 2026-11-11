@@ -1,11 +1,14 @@
 import type { Timestamp } from 'firebase/firestore'
 
-export type QuestionType = 'single' | 'multi' | 'truefalse' | 'type' | 'poll' | 'order' | 'slider' | 'wordcloud' | 'open' | 'slide'
+export type QuestionType = 'single' | 'multi' | 'truefalse' | 'type' | 'poll' | 'order' | 'slider' | 'wordcloud' | 'open' | 'slide' | 'match' | 'fill' | 'hotspot'
 export type PointsMode = 'standard' | 'double' | 'none'
 export type Phase = 'lobby' | 'countdown' | 'question' | 'reveal' | 'leaderboard' | 'podium' | 'finished' | 'self'
 export type GameMode = 'host' | 'auto' | 'self' | 'assign'
 
-export interface Option { id: string; text: string }
+/** pair — uyğunlaşdırma sualında sağ tərəf (yalnız gizli nüsxədə) */
+export interface Option { id: string; text: string; pair?: string }
+/** Şəkil üzərində düzgün sahə: mərkəz və radius — şəklin eninə/hündürlüyünə görə faizlə */
+export interface Hotspot { x: number; y: number; r: number }
 export interface SliderCfg { min: number; max: number; step: number; answer: number; tolerance: number }
 
 export interface Question {
@@ -22,6 +25,9 @@ export interface Question {
   softMatch?: boolean
   slider?: SliderCfg
   shuffleOptions?: boolean
+  hotspot?: Hotspot
+  /** oyun başlayanda təsadüfi — uyğunlaşdırma cavablarının id-lərini gizlədir (yalnız gizli nüsxədə) */
+  matchSalt?: string
 }
 
 export type MusicTheme = 'energetic' | 'chill' | 'retro' | 'synthwave' | 'lofi' | 'house' | 'funk' | 'arcade' | 'epic' | 'jazz' | 'latin' | 'techno' | 'bossa' | 'space'
@@ -35,6 +41,8 @@ export interface QuizSettings {
   scoring: 'speed' | 'accuracy'
   defaultTime: number
   streakBonus: boolean
+  /** əminlik rejimi: oyunçu cavabla birlikdə 'əminəm' seçir — düz ×1.5, səhv −25% */
+  confidence?: boolean
   shuffleQuestions: boolean
   shuffleOptions: boolean
   showCorrect: boolean
@@ -88,6 +96,10 @@ export interface PublicQuestion {
   multiCount?: number
   shuffle?: boolean
   body?: string
+  /** uyğunlaşdırma: sağ tərəf, qarışdırılmış, gizli id-lərlə */
+  right?: Option[]
+  /** boşluq doldurma: boşluq sayı (mətndə ___ ilə) */
+  blanks?: number
 }
 
 export interface LobbyEntry { uid: string; firstName: string; lastName: string; avatar: AvatarData; team?: number }
@@ -103,6 +115,10 @@ export interface Reveal {
   texts?: string[]
   fastest?: Fastest | null
   correctCount?: number
+  /** yeni növlər: düzgün cütlər, boşluqların cavabları, şəkildə düzgün sahə */
+  pairs?: { left: string; right: string }[]
+  blanks?: string[][]
+  hotspot?: Hotspot
 }
 
 export interface Preview { index: number; text: string; type: QuestionType; imageUrl?: string; points: PointsMode; readMs: number }
@@ -149,9 +165,9 @@ export interface TeamEntry { team: number; score: number; members: number; total
 
 export interface HostProfile { name: string; title?: string; org?: string; avatar?: AvatarData | null; photoUrl?: string }
 export interface TrainerProfile extends HostProfile { bio?: string; email?: string; defaults?: Partial<QuizSettings> }
-export interface SelfReveal { correct: string[]; accepted?: string[] | null; sliderAnswer?: number | null; explanation?: string | null }
+export interface SelfReveal { correct: string[]; accepted?: string[] | null; sliderAnswer?: number | null; explanation?: string | null; pairs?: { left: string; right: string }[]; blanks?: string[][]; hotspot?: Hotspot; text?: string }
 
-export interface ReviewItem { type: QuestionType; text: string; options: Option[]; correct: string[]; accepted: string[] | null; sliderAnswer: number | null; explanation: string | null; scored: boolean }
+export interface ReviewItem { type: QuestionType; text: string; options: Option[]; correct: string[]; accepted: string[] | null; sliderAnswer: number | null; explanation: string | null; scored: boolean; pairs?: { left: string; right: string }[]; blanks?: string[][]; hotspot?: Hotspot; imageUrl?: string }
 
 export interface GameStats { players: number; avgAccuracy: number; hardest?: { index: number; text: string; accuracy: number }; easiest?: { index: number; text: string; accuracy: number } }
 
@@ -182,7 +198,7 @@ export interface Player {
 
 export type AnswerValue = string[] | string | number
 
-export interface Answer { uid: string; questionIndex: number; value: AnswerValue | null; answeredAt: Timestamp | null }
+export interface Answer { uid: string; questionIndex: number; value: AnswerValue | null; answeredAt: Timestamp | null; conf?: boolean }
 
 export interface AppSettings { defaultTime: number; musicVolume: number; brandText: string; bannedWords: string[] }
 

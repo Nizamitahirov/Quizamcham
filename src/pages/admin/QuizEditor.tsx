@@ -13,7 +13,22 @@ import { canManage, orgScope, scopeUid } from '../../lib/access'
 import { launchQuiz, toPublic } from '../../lib/gameEngine'
 import { validateQuestion } from '../../lib/validate'
 import { download } from '../../lib/csv'
-import { ALL_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
+import { ALL_TYPES, PREMIUM_TYPES, TIME_OPTIONS, convertType, newQuestion, uid6 } from '../../lib/defaults'
+import { useAdmin } from '../../firebase/auth'
+import { hasFeature } from '../../lib/roles'
+import { parseBlanks } from '../../lib/scoring'
+import { PremiumBadge } from '../../components/Premium'
+
+/** Plan bu sual növünə icazə verirmi? (yeni növlər — Təlimçi/Pro planlarında) */
+function useTypeAllowed() {
+  const admin = useAdmin()
+  return (x: QuestionType) => { const f = PREMIUM_TYPES[x]; return !f || hasFeature(admin.plan.tier, f) }
+}
+/** Növ seçimi: icazəsiz növlər 👑 ilə göstərilir və seçilə bilmir. */
+function TypeOptions() {
+  const allowed = useTypeAllowed()
+  return <>{ALL_TYPES.map((x) => <option key={x} value={x} disabled={!allowed(x)}>{TYPE_ICON[x]} {t.types[x]}{allowed(x) ? '' : ` 👑 ${t.acct.plans[PREMIUM_TYPES[x] === 'premiumTypes' ? 'pro' : 'trainer'].title}`}</option>)}</>
+}
 import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
 import { ListChecks, Library, BookOpenCheck, Sparkles } from 'lucide-react'
@@ -28,7 +43,7 @@ import type { Question, QuestionType, Quiz, QuizSettings } from '../../types'
 type Snapshot = { quiz: Quiz; questions: Question[] }
 type SaveState = 'saved' | 'dirty' | 'saving' | 'error'
 
-const TYPE_ICON: Record<QuestionType, string> = { single: '◉', multi: '☑', truefalse: '⚖', type: '⌨', poll: '📊', order: '⇅', slider: '🎚', wordcloud: '☁', open: '💬', slide: '🖼' }
+const TYPE_ICON: Record<QuestionType, string> = { single: '◉', multi: '☑', truefalse: '⚖', type: '⌨', poll: '📊', order: '⇅', slider: '🎚', wordcloud: '☁', open: '💬', slide: '🖼', match: '⇄', fill: '▁', hotspot: '◎' }
 
 export default function QuizEditor() {
   const { quizId } = useParams()
@@ -298,10 +313,11 @@ function QuestionList({ questions, sel, errors, onSelect, onReorder, onAdd, onDu
       </DndContext>
       <div className="flex gap-2">
         <select className="input min-h-11 flex-1 py-1 text-sm" value={type} onChange={(e) => setType(e.target.value as QuestionType)} aria-label={t.editor.type}>
-          {ALL_TYPES.map((x) => <option key={x} value={x}>{TYPE_ICON[x]} {t.types[x]}</option>)}
+          <TypeOptions />
         </select>
         <button className="btn btn-primary btn-icon min-h-11 w-11" title={t.editor.addQuestion} onClick={() => onAdd(type)}><Plus /></button>
       </div>
+      <NewTypesHint />
     </aside>
   )
 }
@@ -410,6 +426,40 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
 
       {q.type === 'slide' && <p className="text-sm text-slate-500">{t.editor.slideHint}</p>}
 
+      {q.type === 'match' && (
+        <div>
+          <span className="label">{t.editor.pairs}</span>
+          <p className="mb-2 text-sm text-slate-500">{t.editor.pairsHint}</p>
+          <div className="flex flex-col gap-2">
+            {q.options.map((o, i) => (
+              <div key={o.id} className="flex items-center gap-2">
+                <span className="w-6 text-center font-display font-black text-muted">{i + 1}</span>
+                <input className="input min-h-10 flex-1 py-1" aria-label={t.editor.pairLeft(i + 1)} placeholder={t.editor.pairLeft(i + 1)} value={o.text} maxLength={60} onChange={(e) => set({ options: q.options.map((x) => (x.id === o.id ? { ...x, text: e.target.value } : x)) })} />
+                <span className="text-muted" aria-hidden>⇄</span>
+                <input className="input min-h-10 flex-1 py-1" aria-label={t.editor.pairRight(i + 1)} placeholder={t.editor.pairRight(i + 1)} value={o.pair ?? ''} maxLength={60} onChange={(e) => set({ options: q.options.map((x) => (x.id === o.id ? { ...x, pair: e.target.value } : x)) })} />
+                {q.options.length > 2 && <button type="button" className="px-1 text-red-600" aria-label={t.app.delete} onClick={() => set({ options: q.options.filter((x) => x.id !== o.id) })}>✕</button>}
+              </div>
+            ))}
+          </div>
+          {q.options.length < 6 && <button type="button" className="btn btn-ghost-dark mt-2 min-h-10" onClick={() => set({ options: [...q.options, { id: uid6(), text: '', pair: '' }] })}>{t.editor.addPair}</button>}
+        </div>
+      )}
+
+      {q.type === 'fill' && (() => {
+        const { display, answers } = parseBlanks(q.text)
+        return (
+          <div className="rounded-xl bg-surface p-3 text-sm">
+            <p className="text-slate-600">{t.editor.fillHint}</p>
+            <p className="mt-2"><b>{t.editor.fillPreview}:</b> {display || '—'}</p>
+            {answers.length > 0 && <p className="mt-1 text-slate-600">{answers.map((a, i) => `${i + 1}) ${a.join(' / ')}`).join(' · ')}</p>}
+          </div>
+        )
+      })()}
+
+      {q.type === 'hotspot' && (
+        <HotspotEditor q={q} onChange={(h) => set({ hotspot: h })} />
+      )}
+
       <div>
         <label className="label" htmlFor="qexp">{t.editor.explanation}</label>
         <textarea id="qexp" className="input" rows={2} maxLength={300} value={q.explanation ?? ''} onChange={(e) => set({ explanation: e.target.value || undefined })} />
@@ -423,6 +473,39 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
   )
 }
 
+/** Şəkil üzərində düzgün sahəni seçmək: şəklə klik → mərkəz, sürgü → radius. */
+function HotspotEditor({ q, onChange }: { q: Question; onChange: (h: NonNullable<Question['hotspot']>) => void }) {
+  const h = q.hotspot ?? { x: 50, y: 50, r: 10 }
+  if (!q.imageUrl) return <p className="rounded-xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">{t.editor.errors.needImage}</p>
+  return (
+    <div>
+      <span className="label">{t.editor.hotspotArea}</span>
+      <p className="mb-2 text-sm text-slate-500">{t.editor.hotspotHint}</p>
+      <div className="relative inline-block max-w-full cursor-crosshair select-none overflow-hidden rounded-xl"
+        onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); onChange({ ...h, x: Math.round(((e.clientX - r.left) / r.width) * 1000) / 10, y: Math.round(((e.clientY - r.top) / r.height) * 1000) / 10 }) }}>
+        <img src={q.imageUrl} alt="" className="block max-h-80 max-w-full" draggable={false} />
+        <span className="pointer-events-none absolute rounded-full border-4 border-green-500 bg-green-400/30"
+          style={{ left: `${h.x}%`, top: `${h.y}%`, width: `${h.r * 2}%`, aspectRatio: '1', transform: 'translate(-50%, -50%)' }} />
+      </div>
+      <label className="label mt-2" htmlFor="hsr">{t.editor.hotspotRadius}: {h.r}%</label>
+      <input id="hsr" type="range" min={3} max={30} value={h.r} onChange={(e) => onChange({ ...h, r: Number(e.target.value) })} className="w-full" />
+    </div>
+  )
+}
+
+/** Yeni sual növləri haqqında qısa qeyd + plan nişanı (kilidlidirsə). */
+function NewTypesHint() {
+  const admin = useAdmin()
+  if (hasFeature(admin.plan.tier, 'premiumTypes')) return null
+  return (
+    <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+      {t.editor.newTypes}
+      {!hasFeature(admin.plan.tier, 'newTypes') && <PremiumBadge feature="newTypes" />}
+      <PremiumBadge feature="premiumTypes" />
+    </p>
+  )
+}
+
 function QuestionSettings({ q, onChange }: { q: Question; onChange: (q: Question) => void }) {
   return (
     <aside className="card flex h-fit flex-col gap-4 p-4 lg:sticky lg:top-20">
@@ -430,7 +513,7 @@ function QuestionSettings({ q, onChange }: { q: Question; onChange: (q: Question
       <div>
         <label className="label" htmlFor="qtype">{t.editor.type}</label>
         <select id="qtype" className="input" value={q.type} onChange={(e) => onChange(convertType(q, e.target.value as QuestionType))}>
-          {ALL_TYPES.map((x) => <option key={x} value={x}>{TYPE_ICON[x]} {t.types[x]}</option>)}
+          <TypeOptions />
         </select>
       </div>
       {q.type !== 'slide' && (

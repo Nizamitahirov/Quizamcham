@@ -1,5 +1,6 @@
 import { t } from '../i18n/az'
 import type { Question } from '../types'
+import { parseBlanks } from './scoring'
 
 export function validateQuestion(q: Question): string[] {
   const e = t.editor.errors
@@ -14,6 +15,17 @@ export function validateQuestion(q: Question): string[] {
       break
     case 'type':
       if (!(q.accepted ?? []).some((a) => a.trim())) errs.push(e.noAccepted)
+      break
+    case 'match':
+      if (q.options.length < 2) errs.push(e.fewOptions)
+      if (q.options.some((o) => !o.text.trim() || !(o.pair ?? '').trim())) errs.push(e.emptyPair)
+      break
+    case 'fill':
+      if (parseBlanks(q.text).answers.length === 0) errs.push(e.noBlanks)
+      break
+    case 'hotspot':
+      if (!q.imageUrl) errs.push(e.needImage)
+      if (!q.hotspot) errs.push(e.noHotspot)
       break
     case 'slider': {
       const s = q.slider

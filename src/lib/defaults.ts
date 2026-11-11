@@ -36,11 +36,13 @@ export const POWER_START = { fifty: 1, double: 1, shield: 1 } as const
 export const DEFAULT_APP_SETTINGS: AppSettings = { defaultTime: 45, musicVolume: 60, brandText: 'Jabr', bannedWords: [] }
 
 export const TYPE_DEFAULT_TIME: Record<QuestionType, number> = {
-  single: 30, multi: 45, truefalse: 20, type: 45, poll: 20, order: 45, slider: 30, wordcloud: 45, open: 60, slide: 0,
+  single: 30, multi: 45, truefalse: 20, type: 45, poll: 20, order: 45, slider: 30, wordcloud: 45, open: 60, slide: 0, match: 60, fill: 60, hotspot: 30,
 }
 
 export const MVP_TYPES: QuestionType[] = ['single', 'multi', 'truefalse', 'type', 'poll']
-export const ALL_TYPES: QuestionType[] = ['single', 'multi', 'truefalse', 'type', 'poll', 'order', 'slider', 'wordcloud', 'open', 'slide']
+export const ALL_TYPES: QuestionType[] = ['single', 'multi', 'truefalse', 'type', 'poll', 'order', 'slider', 'wordcloud', 'open', 'slide', 'match', 'fill', 'hotspot']
+/** Yeni (ödənişli) sual növləri → tələb olunan funksiya (roles.ts → FEATURES) */
+export const PREMIUM_TYPES: Partial<Record<QuestionType, 'newTypes' | 'premiumTypes'>> = { match: 'newTypes', fill: 'newTypes', hotspot: 'premiumTypes' }
 
 export const uid6 = () => Math.random().toString(36).slice(2, 8)
 
@@ -89,6 +91,23 @@ export function convertType(q: Question, type: QuestionType): Question {
       next.options = []
       next.correct = []
       next.slider = q.slider ?? { min: 0, max: 100, step: 1, answer: 50, tolerance: 0 }
+      break
+    case 'match': {
+      // cütlər: sol (text) ↔ sağ (pair); 3 cütdən başlanır, ən çox 6
+      const opts = (q.options ?? []).slice(0, 6).map((o) => ({ id: o.id, text: o.text, pair: o.pair ?? '' }))
+      while (opts.length < 3) opts.push({ id: uid6(), text: '', pair: '' })
+      next.options = opts
+      next.correct = []
+      break
+    }
+    case 'fill':
+      next.options = []
+      next.correct = []
+      break
+    case 'hotspot':
+      next.options = []
+      next.correct = []
+      next.hotspot = q.hotspot ?? { x: 50, y: 50, r: 10 }
       break
     case 'wordcloud':
     case 'open':

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, Check, Clock, Flame, Hourglass, PartyPopper, Users, X } from 'lucide-react'
 import { LOCALE, t } from '../../i18n/az'
@@ -8,7 +9,8 @@ import { serverNow } from '../../lib/timeSync'
 import { burst } from '../../components/Confetti'
 import { Sticker } from '../../components/Sticker'
 import { AnswerTile } from '../../components/AnswerTile'
-import { QuestionInput } from './QuestionInputs'
+import { ConfidenceGate, QuestionInput } from './QuestionInputs'
+import { SCORED_TYPES } from '../../lib/scoring'
 import { PowerBar } from './PowerBar'
 import { CORRECT, WRONG, STICKERS_OK, STICKERS_BAD, pick } from '../../content/feedback'
 import type { AnswerValue, Game, Player, PublicQuestion } from '../../types'
@@ -103,12 +105,12 @@ function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onS
     void startSelfQuestion(game.id, uid, qi).catch(() => { /* artıq başlanıb (səhifə yeniləndi) */ }).finally(() => setReady(true))
   }, [game.id, uid, qi])
 
-  const submit = useCallback(async (v: AnswerValue | null) => {
+  const submit = useCallback(async (v: AnswerValue | null, conf?: boolean) => {
     if (sent.current) return
     sent.current = true
     if (v !== null) audio.click()
     onSent()
-    try { await submitAnswer(game.id, uid, qi, v) } catch { /* təkrar və ya gec — host nəticəni yazacaq */ }
+    try { await submitAnswer(game.id, uid, qi, v, conf) } catch { /* təkrar və ya gec — host nəticəni yazacaq */ }
     onSubmitted?.()
   }, [game.id, uid, qi, onSent, onSubmitted])
 
@@ -134,8 +136,8 @@ function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onS
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full transition-[width] duration-200" style={{ width: `${frac * 100}%`, background: remaining < 5000 ? '#ef4444' : 'linear-gradient(90deg,#FFB020,#FF4D1F)' }} /></div>
         <span className="font-display w-10 text-right text-xl font-black tabular-nums">{Math.max(0, Math.ceil(remaining / 1000))}</span>
       </div>
-      <h2 className="font-display text-center text-[22px] font-black leading-snug">{q.text}</h2>
-      {q.imageUrl && <img src={q.imageUrl} alt="" className="mx-auto max-h-40 rounded-2xl object-contain" />}
+      {q.type !== 'fill' && <h2 className="font-display text-center text-[22px] font-black leading-snug">{q.text}</h2>}
+      {q.imageUrl && q.type !== 'hotspot' && <img src={q.imageUrl} alt="" className="mx-auto max-h-40 rounded-2xl object-contain" />}
       {!waiting && <PowerBar game={game} player={player} q={q} qi={qi} disabled={!ready} />}
       <div className="mt-auto">
         {waiting ? (
@@ -150,7 +152,9 @@ function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onS
             <button className="btn btn-primary btn-lg w-full" onClick={() => void submit(null)}>{t.game.next}<ArrowRight /></button>
           </div>
         ) : (
-          <QuestionInput q={q} uid={uid} disabled={!ready} onSubmit={(v) => void submit(v)} hide={hide} />
+          <ConfidenceGate enabled={!!game.settings.confidence && SCORED_TYPES.has(q.type)} onSubmit={(v, c) => void submit(v, c)}>
+            {(onPick) => <QuestionInput q={q} uid={uid} disabled={!ready} onSubmit={onPick} hide={hide} />}
+          </ConfidenceGate>
         )}
       </div>
     </div>
@@ -186,6 +190,7 @@ function SelfResult({ game, player, qi, last, q, onNext }: { game: Game; player:
           {q.type === 'order' && <ol className="list-decimal pl-6 font-bold">{(rv.correct ?? []).map((id) => <li key={id}>{q.options.find((o) => o.id === id)?.text}</li>)}</ol>}
           {rv.accepted && <p className="text-xl font-black">{rv.accepted.filter(Boolean).join(' · ')}</p>}
           {rv.sliderAnswer != null && q.type === 'slider' && <p className="font-display text-3xl font-black">{rv.sliderAnswer}</p>}
+          <NewTypeReveal type={q.type} rv={rv} imageUrl={q.imageUrl} />
         </div>
       )}
       {rv?.explanation && <div className="glass w-full p-3 text-left text-sm leading-relaxed"><b className="text-orange-300">💡 {t.game.explanation}:</b> {rv.explanation}</div>}

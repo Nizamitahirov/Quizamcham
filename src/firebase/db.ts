@@ -159,12 +159,13 @@ export function parseQuizJson(raw: unknown): { quiz: Partial<Quiz>; questions: Q
       explanation: q.explanation || undefined,
       timeLimit: Number(q.timeLimit) || j.settings?.defaultTime || 45,
       points: (q.points as Question['points']) ?? 'standard',
-      options: Array.isArray(q.options) ? q.options.map((o, i) => ({ id: String(o?.id ?? `o${i}`), text: String(o?.text ?? '') })) : [],
+      options: Array.isArray(q.options) ? q.options.map((o, i) => ({ id: String(o?.id ?? `o${i}`), text: String(o?.text ?? ''), ...((o as { pair?: unknown })?.pair !== undefined ? { pair: String((o as { pair?: unknown }).pair) } : {}) })) : [],
       correct: Array.isArray(q.correct) ? q.correct.map(String) : [],
       accepted: Array.isArray(q.accepted) ? q.accepted.map(String) : undefined,
       softMatch: q.softMatch,
       slider: q.slider,
       shuffleOptions: q.shuffleOptions,
+      hotspot: (q as { hotspot?: Question['hotspot'] }).hotspot,
     }
     if (type === 'truefalse' && base.options.length !== 2) return convertType(base, 'truefalse')
     if (type === 'order' && base.correct.length === 0) base.correct = base.options.map((o) => o.id)

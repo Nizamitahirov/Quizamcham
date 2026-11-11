@@ -1,6 +1,26 @@
 import type { AnswerValue, Question, QuizSettings } from '../types'
 
-export const SCORED_TYPES = new Set(['single', 'multi', 'truefalse', 'type', 'order', 'slider'])
+export const SCORED_TYPES = new Set(['single', 'multi', 'truefalse', 'type', 'order', 'slider', 'match', 'fill', 'hotspot'])
+
+/** Uyğunlaşdırma: sağ tərəfin oyunçuya göstərilən id-si (gizli duz ilə — cütlər şəbəkə məlumatından oxunmasın). */
+export function matchRightId(salt: string, optionId: string): string {
+  let h = 2166136261
+  for (const c of `${salt}:${optionId}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) }
+  return 'r' + (h >>> 0).toString(36)
+}
+
+/** Boşluq doldurma: "Bakı [Azərbaycanın/Azerbaijan] paytaxtıdır" → boşluqlar və qəbul olunan variantlar. */
+export function parseBlanks(text: string): { display: string; answers: string[][] } {
+  const answers: string[][] = []
+  const display = text.replace(/\[([^\]]+)\]/g, (_, inner: string) => { answers.push(inner.split('/').map((x) => x.trim()).filter(Boolean)); return '___' })
+  return { display, answers }
+}
+
+/** Əminlik rejimi: əmin olub düz → ×1.5, əmin olub səhv → bazanın 25%-i qədər cərimə. */
+export function applyConfidence(ev: EvalResult, conf: boolean | undefined, base: number): EvalResult {
+  if (!conf || !ev.scored || base <= 0) return ev
+  return ev.correct ? { ...ev, points: Math.round(ev.points * 1.5) } : { ...ev, points: ev.points - Math.round(base * 0.25) }
+}
 
 export function basePoints(points: Question['points']): number {
   return points === 'double' ? 2000 : points === 'none' ? 0 : 1000
@@ -48,6 +68,27 @@ export function evaluateAnswer(q: Question, value: AnswerValue | null | undefine
     return { correct: exact, points: pts, scored: true }
   }
 
+  // hissəvi bal verən növlər: uyğunlaşdırma və boşluq doldurma
+  if (q.type === 'match' || q.type === 'fill') {
+    const v = Array.isArray(value) ? value.map(String) : []
+    let total: number, good = 0
+    if (q.type === 'match') {
+      const opts = q.options ?? []
+      total = opts.length
+      opts.forEach((o, i) => { if (v[i] === matchRightId(q.matchSalt ?? '', o.id)) good++ })
+    } else {
+      const { answers } = parseBlanks(q.text)
+      total = answers.length
+      const norm = (x: string) => new Set([normalizeText(x, true), normalizeText(x, true, 'en-US')])
+      answers.forEach((alts, i) => {
+        const got = norm(v[i] ?? '')
+        if (alts.some((a) => [...norm(a)].some((x) => x !== '' && got.has(x)))) good++
+      })
+    }
+    if (total === 0) return { correct: false, points: 0, scored: true }
+    return { correct: good === total, points: Math.round(base * factor * (good / total)), scored: true }
+  }
+
   let ok = false
   switch (q.type) {
     case 'single':
@@ -66,6 +107,13 @@ export function evaluateAnswer(q: Question, value: AnswerValue | null | undefine
     case 'order': {
       const v = Array.isArray(value) ? value : []
       ok = v.length === q.correct.length && v.every((id, i) => id === q.correct[i])
+      break
+    }
+    case 'hotspot': {
+      // dəyər "x,y" (faizlə); sahə daxilindədirsə düzdür
+      const [x, y] = String(value).split(',').map(Number)
+      const h = q.hotspot
+      ok = !!h && Number.isFinite(x) && Number.isFinite(y) && Math.hypot(x - h.x, y - h.y) <= h.r + 1e-9
       break
     }
     case 'slider': {
