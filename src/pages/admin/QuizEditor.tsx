@@ -18,7 +18,7 @@ import { Tabs } from '../../components/kit'
 import { SettingsForm } from '../../components/QuizSettingsForm'
 import { ListChecks, Library, BookOpenCheck, Sparkles } from 'lucide-react'
 import { Lock, FolderInput, ImageUp, Tag, X, ArrowLeft, Copy, Download, Eye, GripVertical, Play, Plus, Save, Settings2, Trash2, Undo2, AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react'
-import { t } from '../../i18n/az'
+import { az, catLabel, t } from '../../i18n/az'
 import { Modal, Spinner, Toggle } from '../../components/ui'
 import { TILE_COLORS, Shape } from '../../components/AnswerTile'
 import { QuestionInput } from '../player/QuestionInputs'
@@ -541,7 +541,7 @@ function PublishButton({ quizId, author, trusted }: { quizId: string; author: st
     <span className="relative flex flex-wrap items-center gap-1">
       <select className="input h-10 w-auto py-0 text-sm" value={category} onChange={(e) => setCategory(e.target.value)} aria-label={t.acct.category}>
         <option value="">{t.acct.category}…</option>
-        {t.acct.categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        {az.acct.categories.map((c) => <option key={c} value={c}>{catLabel(c)}</option>)}
       </select>
       <select className="input h-10 w-auto py-0 text-sm" value={level} onChange={(e) => setLevel(e.target.value as typeof level)} aria-label={t.acct.difficulty}>
         {(['easy', 'medium', 'hard'] as const).map((l) => <option key={l} value={l}>{t.acct.levelsQ[l]}</option>)}

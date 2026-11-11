@@ -4,7 +4,7 @@ import { Award, BookOpen, History, LogOut, Play, Search, Target, Trophy, UserRou
 import { listCatalog, myAttempts, myPlays, useAccount, type Attempt, type CatalogItem } from '../../lib/account'
 import { logout } from '../../firebase/auth'
 import { fmtDateTime } from '../../lib/format'
-import { t } from '../../i18n/az'
+import { catLabel, t } from '../../i18n/az'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Logo } from '../../components/Brand'
 import { LangSwitch } from '../../components/LangSwitch'
@@ -81,7 +81,7 @@ export default function Learn() {
             </label>
           </div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            {['', ...tags].map((x) => <button key={x || 'all'} onClick={() => setTag(x)} aria-pressed={tag === x} className={`rounded-full px-3 py-1.5 text-sm font-semibold ${tag === x ? 'text-white' : 'bg-white/5 text-white/65 hover:bg-white/10'}`} style={tag === x ? { background: 'var(--grad)' } : undefined}>{x || A.all}</button>)}
+            {['', ...tags].map((x) => <button key={x || 'all'} onClick={() => setTag(x)} aria-pressed={tag === x} className={`rounded-full px-3 py-1.5 text-sm font-semibold ${tag === x ? 'text-white' : 'bg-white/5 text-white/65 hover:bg-white/10'}`} style={tag === x ? { background: 'var(--grad)' } : undefined}>{x ? catLabel(x) : A.all}</button>)}
             <select className="input-dark ml-auto h-9 w-auto py-0 text-sm" value={level} onChange={(e) => setLevel(e.target.value)} aria-label={A.difficulty}>
               <option value="">{A.difficulty}: {A.all}</option>
               {(['easy', 'medium', 'hard'] as const).map((l) => <option key={l} value={l}>{A.levelsQ[l]}</option>)}
@@ -95,7 +95,7 @@ export default function Learn() {
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl" style={{ background: i.coverColor ?? 'var(--grad)' }}>{i.coverEmoji ?? '🎯'}</span>
                     <div className="min-w-0">
                       <h3 className="font-bold leading-snug">{i.title}</h3>
-                      <p className="mt-0.5 text-xs text-white/55">{A.questions(i.questionCount)} · {A.levelsQ[i.level ?? 'medium']}{i.category ? ` · ${i.category}` : ''}</p>
+                      <p className="mt-0.5 text-xs text-white/55">{A.questions(i.questionCount)} · {A.levelsQ[i.level ?? 'medium']}{i.category ? ` · ${catLabel(i.category)}` : ''}</p>
                     </div>
                   </div>
                   {i.description && <p className="line-clamp-2 text-sm text-white/65">{i.description}</p>}

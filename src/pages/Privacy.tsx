@@ -41,6 +41,7 @@ export default function Privacy() {
               <h1 className="break-words text-2xl font-black sm:text-3xl">{doc.title}</h1>
               <p className="mt-1 text-sm text-white/60 print:text-black/60">{doc.summary}</p>
               <p className="mt-2 flex items-center gap-1.5 text-xs text-white/45 print:text-black/50"><FileText className="h-3.5 w-3.5" />{t.legal.version}: {LEGAL_VERSION}</p>
+              {t.legal.translationNote && <p className="mt-1 text-xs italic text-white/45 print:text-black/50">{t.legal.translationNote}</p>}
             </div>
             <button className="btn btn-ghost btn-sm print:hidden" onClick={() => window.print()}><Printer />{t.legal.print}</button>
           </div>

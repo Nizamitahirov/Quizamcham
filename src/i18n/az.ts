@@ -638,7 +638,7 @@ export const az = {
     ],
     ctaTitle: 'Növbəti təliminizi canlı edin', ctaSub: '3 gün Pro sınaq, sonra pulsuz plan — kart tələb olunmur.',
   },
-  legal: { more: 'Ətraflı', accept: 'Oxudum, razıyam', docs: 'Hüquqi sənədlər', version: 'Versiya', print: 'Çap et', forPlayers: 'Canlı oyun iştirakçıları üçün qısa məlumat', terms: 'İstifadə şərtləri', privacy: 'Məxfilik siyasəti', consent: 'Məlumat emalına razılıq' },
+  legal: { translationNote: '', more: 'Ətraflı', accept: 'Oxudum, razıyam', docs: 'Hüquqi sənədlər', version: 'Versiya', print: 'Çap et', forPlayers: 'Canlı oyun iştirakçıları üçün qısa məlumat', terms: 'İstifadə şərtləri', privacy: 'Məxfilik siyasəti', consent: 'Məlumat emalına razılıq' },
   privacy: {
     title: 'Məxfilik bildirişi',
     short: 'Qoşulmaqla adınız və cavablarınızın bu təlim üçün istifadəsinə razılıq verirsiniz.',
@@ -719,17 +719,23 @@ export type Dict = typeof az
 
 // ---- Dil seçimi (az / en). Seçim localStorage-da saxlanılır; dəyişəndə səhifə yenilənir. ----
 import { en } from './en'
-export type Lang = 'az' | 'en'
+import { ru } from './ru'
+export type Lang = 'az' | 'ru' | 'en'
 export const LANG_KEY = 'qz.lang'
 export function currentLang(): Lang {
-  try { const v = localStorage.getItem(LANG_KEY); if (v === 'en' || v === 'az') return v } catch { /* noop */ }
+  try { const v = localStorage.getItem(LANG_KEY); if (v === 'en' || v === 'az' || v === 'ru') return v } catch { /* noop */ }
+  // ilk dəfə: brauzerin dilinə görə (rus dilli istifadəçilər üçün)
+  try { if (/^ru\b/i.test(navigator.language)) return 'ru' } catch { /* noop */ }
   return 'az'
 }
 export function setLang(l: Lang) {
   try { localStorage.setItem(LANG_KEY, l) } catch { /* noop */ }
   location.reload()
 }
-export const t: Dict = currentLang() === 'en' ? en : az
+export const t: Dict = { az, ru, en }[currentLang()]
 /** Tarix və rəqəm formatı üçün (müqayisə/normallaşdırma üçün DEYİL). */
-export const LOCALE = currentLang() === 'en' ? 'en-GB' : 'az-AZ'
+export const LOCALE = { az: 'az-AZ', ru: 'ru-RU', en: 'en-GB' }[currentLang()]
 if (typeof document !== 'undefined') document.documentElement.lang = currentLang()
+
+/** Kateqoriya bazada azərbaycanca saxlanılır (filtr/sorğu sabit qalsın), ekranda cari dildə göstərilir. */
+export const catLabel = (v: string | undefined) => { if (!v) return ''; const i = az.acct.categories.indexOf(v); return i >= 0 ? t.acct.categories[i] ?? v : v }
