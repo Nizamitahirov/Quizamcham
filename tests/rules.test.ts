@@ -113,6 +113,13 @@ describe('oyunçu qoşulması', () => {
 
 describe('cavablar', () => {
   const ans = (uid: string, qi: number, value: unknown) => setDoc(doc(as(uid), 'games', 'g1', 'answers', `${uid}_${qi}`), { uid, questionIndex: qi, value, answeredAt: serverTimestamp() })
+  it('əminlik rejimi: "conf" yalnız true/false ola bilər', async () => {
+    await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionStartedAt: Timestamp.fromMillis(Date.now() - 1000), questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
+    await setDoc(doc(as(P2), 'games', 'g1', 'starts', `${P2}_0`), { uid: P2, q: 0, startedAt: serverTimestamp() }).catch(() => {})
+    await assertFails(setDoc(doc(as(P2), 'games', 'g1', 'answers', `${P2}_0`), { uid: P2, questionIndex: 0, value: ['a'], answeredAt: serverTimestamp(), conf: 'yes' }))
+    await assertFails(setDoc(doc(as(P2), 'games', 'g1', 'answers', `${P2}_0`), { uid: P2, questionIndex: 0, value: ['a'], answeredAt: serverTimestamp(), extra: 1 }))
+    await assertSucceeds(setDoc(doc(as(P2), 'games', 'g1', 'answers', `${P2}_0`), { uid: P2, questionIndex: 0, value: ['a'], answeredAt: serverTimestamp(), conf: true }))
+  })
   it('sual fazasında vaxtında cavab qəbul olunur, təkrar cavab olmur', async () => {
     await env.clearFirestore(); await seed({ phase: 'question', questionIndex: 0, questionStartedAt: Timestamp.fromMillis(Date.now() - 1000), questionEndsAt: Timestamp.fromMillis(Date.now() + 30000) })
     await assertSucceeds(ans(P2, 0, ['a']))

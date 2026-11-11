@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { evaluateAnswer, streakBonus, rankPlayers, speedFactor, normalizeText } from './scoring'
+import { applyConfidence, evaluateAnswer, matchRightId, parseBlanks, streakBonus, rankPlayers, speedFactor, normalizeText } from './scoring'
 import type { Question } from '../types'
 
 const q = (over: Partial<Question>): Question => ({ id: 'q', type: 'single', text: 'x', timeLimit: 30, points: 'standard', options: [], correct: ['a'], ...over })
@@ -97,5 +97,37 @@ describe('seriya və reytinq', () => {
   })
   it('normalizeText durğu işarələrini atır', () => {
     expect(normalizeText('Attention!')).toBe('attention')
+  })
+})
+
+describe('yeni sual növləri', () => {
+  const pairs = [{ id: 'a', text: 'Bakı', pair: 'Azərbaycan' }, { id: 'b', text: 'Tbilisi', pair: 'Gürcüstan' }, { id: 'c', text: 'Ankara', pair: 'Türkiyə' }]
+  it('uyğunlaşdırma: hamısı düz — tam bal; 2/3 — hissəvi, "düz" sayılmır; duzsuz id-lər qəbul olunmur', () => {
+    const m = q({ type: 'match', options: pairs, correct: [], matchSalt: 's1' })
+    const ok = pairs.map((o) => matchRightId('s1', o.id))
+    expect(evaluateAnswer(m, ok, 0, 'accuracy')).toEqual({ correct: true, points: 1000, scored: true })
+    const partial = [ok[0], ok[1], ok[0]]
+    expect(evaluateAnswer(m, partial, 0, 'accuracy')).toEqual({ correct: false, points: 667, scored: true })
+    // duz fərqlidirsə (məs. başqa oyunun id-ləri) — heç biri düz deyil
+    expect(evaluateAnswer(m, pairs.map((o) => matchRightId('other', o.id)), 0, 'accuracy').points).toBe(0)
+    expect(matchRightId('s1', 'a')).not.toBe('a')
+  })
+  it('boşluq doldurma: alternativlər, böyük/kiçik hərf, hissəvi bal', () => {
+    const f = q({ type: 'fill', text: 'Azərbaycanın paytaxtı [Bakı/Baku], ən uzun çayı [Kür]', correct: [] })
+    expect(parseBlanks(f.text)).toEqual({ display: 'Azərbaycanın paytaxtı ___, ən uzun çayı ___', answers: [['Bakı', 'Baku'], ['Kür']] })
+    expect(evaluateAnswer(f, ['baku', 'KÜR'], 0, 'accuracy')).toEqual({ correct: true, points: 1000, scored: true })
+    expect(evaluateAnswer(f, ['Baki', 'Araz'], 0, 'accuracy')).toEqual({ correct: false, points: 500, scored: true })
+  })
+  it('şəkildə nöqtə: sahə daxilində düzdür', () => {
+    const h = q({ type: 'hotspot', hotspot: { x: 50, y: 50, r: 10 }, correct: [] })
+    expect(evaluateAnswer(h, '55,55', 0, 'accuracy').correct).toBe(true)
+    expect(evaluateAnswer(h, '70,50', 0, 'accuracy').correct).toBe(false)
+    expect(evaluateAnswer(h, 'x', 0, 'accuracy').correct).toBe(false)
+  })
+  it('əminlik: əmin + düz ×1.5, əmin + səhv cərimə, əmin deyil — dəyişmir', () => {
+    expect(applyConfidence({ correct: true, points: 800, scored: true }, true, 1000).points).toBe(1200)
+    expect(applyConfidence({ correct: false, points: 0, scored: true }, true, 1000).points).toBe(-250)
+    expect(applyConfidence({ correct: true, points: 800, scored: true }, false, 1000).points).toBe(800)
+    expect(applyConfidence({ correct: false, points: 0, scored: false }, true, 1000).points).toBe(0)
   })
 })

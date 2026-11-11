@@ -17,12 +17,18 @@ import type { AnswerValue, Game, Player, ReviewItem } from '../../types'
 
 function fmtAnswer(item: ReviewItem, v: AnswerValue | null): string {
   if (v === null || v === undefined) return t.game.noAnswer
+  if (item.type === 'fill' && Array.isArray(v)) return v.join(' · ')
+  if (item.type === 'hotspot') return '📍'
+  if (item.type === 'match' && Array.isArray(v)) return `${v.filter(Boolean).length} / ${item.pairs?.length ?? v.length}`
   if (Array.isArray(v)) return v.map((id) => item.options.find((o) => o.id === id)?.text ?? id).join(item.type === 'order' ? ' → ' : ', ')
   return String(v)
 }
 function correctText(item: ReviewItem): string {
   if (item.type === 'type') return (item.accepted ?? []).filter(Boolean).join(' · ')
   if (item.type === 'slider') return String(item.sliderAnswer ?? '')
+  if (item.type === 'match') return (item.pairs ?? []).map((p) => `${p.left} ⇄ ${p.right}`).join(' · ')
+  if (item.type === 'fill') return (item.blanks ?? []).map((b) => b.join('/')).join(' · ')
+  if (item.type === 'hotspot') return '◎'
   return item.correct.map((id) => item.options.find((o) => o.id === id)?.text ?? id).join(item.type === 'order' ? ' → ' : ', ')
 }
 

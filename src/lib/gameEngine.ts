@@ -5,7 +5,7 @@ import { db } from '../firebase/config'
 import { loadQuiz, orgIdFor } from '../firebase/db'
 import type { Answer, AvatarData, Award, Fastest, Game, GameStats, HistoryItem, HostProfile, LeaderEntry, LobbyEntry, Player, PowerType, PublicQuestion, Question, QuizSettings, Reveal, TrainerProfile } from '../types'
 import { POWER_START } from './defaults'
-import { evaluateAnswer, normalizeText, rankPlayers, SCORED_TYPES, basePoints, streakBonus } from './scoring'
+import { applyConfidence, evaluateAnswer, matchRightId, normalizeText, parseBlanks, rankPlayers, SCORED_TYPES, basePoints, streakBonus } from './scoring'
 import { randomPin } from './pin'
 import { seededShuffle, shuffle } from './shuffle'
 import { serverNow } from './timeSync'
@@ -63,7 +63,9 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
     startedAt: null, finishedAt: null, stats: null,
   }
   const batch = writeBatch(db)
-  batch.set(doc(db, 'games', gameRef.id, 'secret', 'key'), { questions: JSON.parse(JSON.stringify(questions)) })
+  // uyğunlaşdırma sualları üçün hər oyuna təsadüfi duz (sağ tərəfin id-ləri cütləri açıqlamasın)
+  const secretQs = questions.map((q) => (q.type === 'match' ? { ...q, matchSalt: Math.random().toString(36).slice(2, 12) } : q))
+  batch.set(doc(db, 'games', gameRef.id, 'secret', 'key'), { questions: JSON.parse(JSON.stringify(secretQs)) })
   batch.set(gameRef, { ...game, createdAt: serverTimestamp() })
   batch.set(doc(db, 'pins', pin), { gameId: gameRef.id, active: true, createdAt: serverTimestamp() })
   // Daimi QR: tapşırıq rejimi canlı təlimin QR-ını dəyişmir; hər təlimçinin öz QR-ı da var
@@ -83,14 +85,28 @@ export async function loadSecret(gameId: string): Promise<Question[]> {
 }
 
 export const toPublic = (q: Question, settings?: QuizSettings): PublicQuestion => ({
-  id: q.id, type: q.type, text: q.text, imageUrl: q.imageUrl || undefined,
-  shuffle: q.type !== 'truefalse' && q.type !== 'order' && (q.shuffleOptions ?? settings?.shuffleOptions ?? false),
+  id: q.id, type: q.type,
+  // boşluq doldurma: cavablar ([...]) oyunçuya göstərilmir
+  text: q.type === 'fill' ? parseBlanks(q.text).display : q.text,
+  imageUrl: q.imageUrl || undefined,
+  shuffle: !['truefalse', 'order', 'match', 'fill', 'hotspot'].includes(q.type) && (q.shuffleOptions ?? settings?.shuffleOptions ?? false),
   body: q.type === 'slide' ? q.explanation || undefined : undefined,
-  options: q.type === 'order' ? shuffle(q.options ?? []) : q.options ?? [],
+  // uyğunlaşdırmada sol tərəf (cüt olmadan), sağ tərəf ayrıca qarışdırılmış və gizli id-lərlə
+  options: q.type === 'order' ? shuffle(q.options ?? []) : q.type === 'fill' || q.type === 'hotspot' ? [] : (q.options ?? []).map((o) => ({ id: o.id, text: o.text })),
+  right: q.type === 'match' ? shuffle((q.options ?? []).map((o) => ({ id: matchRightId(q.matchSalt ?? '', o.id), text: o.pair ?? '' }))) : undefined,
+  blanks: q.type === 'fill' ? parseBlanks(q.text).answers.length : undefined,
   timeLimit: q.timeLimit, points: q.points,
   slider: q.slider ? { min: q.slider.min, max: q.slider.max, step: q.slider.step } : undefined,
   multiCount: q.type === 'multi' ? q.correct.length : undefined,
 })
+
+/** Yeni növlər üçün açıqlama məlumatı (yalnız sual bitəndən sonra göstərilir). */
+function extraReveal(q: Question) {
+  if (q.type === 'match') return { pairs: q.options.map((o) => ({ left: o.text, right: o.pair ?? '' })) }
+  if (q.type === 'fill') return { text: parseBlanks(q.text).display, blanks: parseBlanks(q.text).answers }
+  if (q.type === 'hotspot' && q.hotspot) return { hotspot: q.hotspot }
+  return {}
+}
 
 // ============ Host əməliyyatları ============
 
@@ -291,8 +307,9 @@ export async function finishQuestion(game: Game, questions: Question[]) {
       else if (q.type === 'type' || q.type === 'wordcloud' || q.type === 'open') { if (texts.length < 200) texts.push(String(a.value).slice(0, 140)) }
       else if (q.type === 'slider') { const k = String(a.value); distribution[k] = (distribution[k] ?? 0) + 1 }
       if (q.type === 'type') { const k = normalizeText(String(a.value)); distribution[k] = (distribution[k] ?? 0) + 1 }
+      if (q.type === 'hotspot' && texts.length < 300) texts.push(String(a.value)) // host ekranında nöqtələr
     }
-    const ev0 = evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring)
+    const ev0 = applyConfidence(evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring), settings.confidence ? a?.conf : undefined, basePoints(q.points))
     // güc artırıcı (yalnız bu sual üçün aktivləşdirilibsə və inventarda varsa)
     const used: PowerType | null = settings.powerUps !== false && ev0.scored && p.power?.q === qi && p.power.type !== 'fifty' && (p.powerups?.[p.power.type] ?? 0) > 0 ? p.power.type : null
     const ev = used === 'double' ? { ...ev0, points: ev0.points * 2 } : ev0
@@ -311,7 +328,7 @@ export async function finishQuestion(game: Game, questions: Question[]) {
       } else if (!shielded) {
         np.streak = 0
       }
-      np.score = (p.score ?? 0) + ev.points + bonus
+      np.score = Math.max(0, (p.score ?? 0) + ev.points + bonus)
     }
     const item: HistoryItem = { q: qi, answer: value, correct: ev.correct, points: ev.points + bonus, timeMs, power: used ?? fiftyUsed }
     np.history = [...(p.history ?? []), item]
@@ -333,6 +350,9 @@ export async function finishQuestion(game: Game, questions: Question[]) {
     accepted: q.type === 'type' ? q.accepted : undefined,
     sliderAnswer: q.slider?.answer,
     explanation: q.explanation || undefined,
+    pairs: q.type === 'match' ? q.options.map((o) => ({ left: o.text, right: o.pair ?? '' })) : undefined,
+    blanks: q.type === 'fill' ? parseBlanks(q.text).answers : undefined,
+    hotspot: q.type === 'hotspot' ? q.hotspot : undefined,
     distribution,
     answeredCount: answers.size,
     texts: texts.length ? texts : undefined,
@@ -478,7 +498,7 @@ export async function scoreSelfAnswer(game: Game, questions: Question[], player:
   const value = late || answer.value === null || answer.value === undefined ? null : answer.value
   const timeMs = value === null ? null : Math.max(0, raw ?? 0)
   const settings = game.settings
-  const ev0 = evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring)
+  const ev0 = applyConfidence(evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring), settings.confidence ? answer.conf : undefined, basePoints(q.points))
   const used: PowerType | null = settings.powerUps !== false && ev0.scored && player.power?.q === qi && player.power.type !== 'fifty' && (player.powerups?.[player.power.type] ?? 0) > 0 ? player.power.type : null
   const ev = used === 'double' ? { ...ev0, points: ev0.points * 2 } : ev0
   const shielded = used === 'shield' && !ev.correct && value !== null
@@ -493,7 +513,7 @@ export async function scoreSelfAnswer(game: Game, questions: Question[], player:
       np.totalCorrectTimeMs = (player.totalCorrectTimeMs ?? 0) + (timeMs ?? 0)
       if (settings.streakBonus && basePoints(q.points) > 0) bonus = streakBonus(np.streak)
     } else if (!shielded) np.streak = 0
-    np.score = (player.score ?? 0) + ev.points + bonus
+    np.score = Math.max(0, (player.score ?? 0) + ev.points + bonus)
   }
   const fifty = player.fiftyHide?.q === qi ? 'fifty' as const : null
   np.history = [...(player.history ?? []), { q: qi, answer: value, correct: ev.correct, points: ev.points + bonus, timeMs, power: used ?? fifty }]
@@ -505,7 +525,7 @@ export async function scoreSelfAnswer(game: Game, questions: Question[], player:
     lastResult: JSON.parse(JSON.stringify({
       questionIndex: qi, correct: ev.correct, points: ev.points, streakBonus: bonus, rank: 0, prevRank: 0, answered: value !== null,
       poll: !ev.scored, streak: np.streak ?? 0, total: 0, timeMs, power: used ?? fifty, shielded,
-      reveal: { correct: q.type === 'poll' ? [] : q.correct, accepted: q.accepted ?? null, sliderAnswer: q.slider?.answer ?? null, explanation: q.explanation ?? null },
+      reveal: { correct: q.type === 'poll' ? [] : q.correct, accepted: q.accepted ?? null, sliderAnswer: q.slider?.answer ?? null, explanation: q.explanation ?? null, ...extraReveal(q) },
     })),
   })
   return np
@@ -541,7 +561,7 @@ export async function finishGame(game: Game, questions: Question[]) {
   }
   const review = questions.slice(0, asked).map((q) => ({
     type: q.type, text: q.text, options: q.options, correct: q.type === 'poll' ? [] : q.correct, accepted: q.accepted ?? null,
-    sliderAnswer: q.slider?.answer ?? null, explanation: q.explanation ?? null, scored: SCORED_TYPES.has(q.type),
+    sliderAnswer: q.slider?.answer ?? null, explanation: q.explanation ?? null, scored: SCORED_TYPES.has(q.type), ...extraReveal(q),
   }))
   const prevRank = new Map(ranked.map((p) => [p.uid, p.rank]))
   const awards = computeAwards(players, scoredIdx.length)
@@ -627,8 +647,8 @@ export function joinBlockReason(g: Pick<Game, 'phase' | 'locked' | 'settings' | 
   return null
 }
 
-export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value'] | null) =>
-  setDoc(doc(db, 'games', gameId, 'answers', `${uid}_${questionIndex}`), { uid, questionIndex, value, answeredAt: serverTimestamp() })
+export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value'] | null, conf?: boolean) =>
+  setDoc(doc(db, 'games', gameId, 'answers', `${uid}_${questionIndex}`), { uid, questionIndex, value, answeredAt: serverTimestamp(), ...(conf !== undefined ? { conf } : {}) })
 
 export const heartbeat = (gameId: string, uid: string) => updateDoc(doc(db, 'games', gameId, 'players', uid), { lastSeen: serverTimestamp() })
 

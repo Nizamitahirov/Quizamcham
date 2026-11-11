@@ -11,7 +11,7 @@ export default defineConfig({
   use: { baseURL: 'http://localhost:5173', launchOptions: { proxy }, trace: 'retain-on-failure' },
   projects: [
     { name: 'mobile', use: { ...devices['iPhone 13'], browserName: 'chromium' }, testMatch: /public\.spec\.ts/ },
-    { name: 'desktop', use: { viewport: { width: 1600, height: 1000 } }, testMatch: /(game|a11y)\.spec\.ts/ },
+    { name: 'desktop', use: { viewport: { width: 1600, height: 1000 } }, testMatch: /(game|a11y|newtypes)\.spec\.ts/ },
   ],
   webServer: { command: 'npx vite --port 5173 --strictPort', url: 'http://localhost:5173', reuseExistingServer: true, timeout: 60_000 },
 })

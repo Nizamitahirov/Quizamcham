@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NewTypeReveal } from '../../components/NewTypeReveal'
+import { parseBlanks } from '../../lib/scoring'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, Award, CheckCircle2, Clock, Flag, RotateCcw, Trophy, X, XCircle } from 'lucide-react'
@@ -138,8 +140,8 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
           </>
         )}
       </div>
-      <h2 className="font-display text-center text-2xl font-black leading-snug">{q.text}</h2>
-      {q.imageUrl && <img src={q.imageUrl} alt="" className="mx-auto max-h-48 rounded-2xl object-contain" />}
+      {q.type !== 'fill' && <h2 className="font-display text-center text-2xl font-black leading-snug">{q.text}</h2>}
+      {q.imageUrl && q.type !== 'hotspot' && <img src={q.imageUrl} alt="" className="mx-auto max-h-48 rounded-2xl object-contain" />}
 
       {q.type === 'slide' ? (
         <div className="mt-auto flex flex-col gap-4 text-center">
@@ -160,6 +162,7 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
               {q.type === 'order' ? <ol className="list-decimal pl-6 font-bold">{q.correct.map((id) => <li key={id}>{q.options.find((o) => o.id === id)?.text}</li>)}</ol>
                 : q.type === 'type' ? <p className="text-lg font-black">{(q.accepted ?? []).filter(Boolean).join(' · ')}</p>
                   : q.type === 'slider' ? <p className="font-display text-2xl font-black">{q.slider?.answer}</p>
+                    : q.type === 'match' || q.type === 'fill' || q.type === 'hotspot' ? <NewTypeReveal type={q.type} rv={{ pairs: q.options.map((o) => ({ left: o.text, right: o.pair ?? '' })), blanks: parseBlanks(q.text).answers, hotspot: q.hotspot }} imageUrl={q.imageUrl} />
                     : <div className="flex flex-col gap-2">{correctOpts.map(({ o, idx }) => <AnswerTile key={o.id} index={idx} text={o.text} disabled />)}</div>}
             </div>
           )}

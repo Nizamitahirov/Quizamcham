@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { useMemo } from 'react'
 import { t } from '../../i18n/az'
 import { Check, Lightbulb, Zap } from 'lucide-react'
@@ -147,6 +148,13 @@ export function HostReveal({ game, questions }: HostCtx) {
             return <motion.li key={id} initial={{ x: -60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: k * 0.2 }} className="flex items-center gap-4 rounded-2xl px-6 py-3 text-4xl font-extrabold" style={{ background: TILE_COLORS[idx % 6] }}><span className="font-display">{k + 1}</span>{q.options[idx]?.text}</motion.li>
           })}
         </ol>
+      )}
+      {(q.type === 'match' || q.type === 'fill' || q.type === 'hotspot') && (
+        <div className="m-auto flex w-full max-w-4xl flex-col items-center gap-4">
+          {showCorrect && <div className="text-3xl opacity-80">{t.game.correctAnswer}</div>}
+          {(showCorrect || q.type === 'hotspot') && <NewTypeReveal type={q.type} rv={showCorrect ? r : { ...r, hotspot: undefined }} imageUrl={q.imageUrl} points={r.texts ?? []} big />}
+          {q.type !== 'hotspot' && r.correctCount != null && <div className="text-2xl opacity-80">{t.game.correctOf(r.correctCount, r.answeredCount)}</div>}
+        </div>
       )}
       {q.type === 'wordcloud' && <div className="flex-1 overflow-auto"><WordCloud texts={r.texts ?? []} /></div>}
       {q.type === 'open' && (

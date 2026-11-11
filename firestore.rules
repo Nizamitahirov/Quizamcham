@@ -426,7 +426,8 @@ service cloud.firestore {
         allow read: if isGameHost(gameId);
         allow create: if signedIn()
           && answerId == request.auth.uid + '_' + string(request.resource.data.questionIndex)
-          && request.resource.data.keys().hasOnly(['uid','questionIndex','value','answeredAt'])
+          && request.resource.data.keys().hasOnly(['uid','questionIndex','value','answeredAt','conf'])
+          && request.resource.data.get('conf', false) is bool
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.answeredAt == request.time
           && answerValueOk(request.resource.data.value)

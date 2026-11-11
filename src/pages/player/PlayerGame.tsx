@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Clock, Flame, Hourglass, Trophy } from 'lucide-react'
@@ -20,7 +21,8 @@ import { Sticker } from '../../components/Sticker'
 import { Leaderboard, Delta } from '../../components/Leaderboard'
 import { burst, celebrate } from '../../components/Confetti'
 import { AnswerTile } from '../../components/AnswerTile'
-import { QuestionInput } from './QuestionInputs'
+import { ConfidenceGate, QuestionInput } from './QuestionInputs'
+import { SCORED_TYPES } from '../../lib/scoring'
 import PlayerResults from './PlayerResults'
 import { CORRECT, WRONG, STICKERS_OK, STICKERS_BAD, pick, streakText } from '../../content/feedback'
 import { audio } from '../../audio/AudioEngine'
@@ -272,7 +274,7 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
    * Cavab göndərmə. Plitələr bitmə vaxtı bu cihaza çatmamış da aktivdir (zəif internetdə vaxt itməsin);
    * server hələ qəbul etmirsə (bitmə vaxtı yazılmayıb), qısa fasilələrlə yenidən cəhd edilir.
    */
-  async function submit(v: AnswerValue) {
+  async function submit(v: AnswerValue, conf?: boolean) {
     if (sentRef.current) return
     sentRef.current = true
     audio.click()
@@ -281,7 +283,7 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
     let maybeSaved = false // əvvəlki cəhd şəbəkə xətası ilə bitibsə, cavab serverə çatmış ola bilər
     for (let attempt = 0; attempt < 6; attempt++) {
       try {
-        await submitAnswer(game.id, uid, game.questionIndex, v)
+        await submitAnswer(game.id, uid, game.questionIndex, v, conf)
         return markSent()
       } catch (e) {
         const code = (e as { code?: string }).code
@@ -308,8 +310,8 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
         </div>
         <TimerRing endsAt={game.questionEndsAt} total={q.timeLimit} pausedMs={game.pausedRemainingMs} onTick={setRemaining} />
       </div>
-      <h2 className="font-display text-center text-[22px] font-black leading-snug">{q.text}</h2>
-      {q.imageUrl && <img src={q.imageUrl} alt="" className="mx-auto max-h-40 rounded-2xl object-contain" />}
+      {q.type !== 'fill' && <h2 className="font-display text-center text-[22px] font-black leading-snug">{q.text}</h2>}
+      {q.imageUrl && q.type !== 'hotspot' && <img src={q.imageUrl} alt="" className="mx-auto max-h-40 rounded-2xl object-contain" />}
       {paused && <p className="text-center text-xl font-bold">{t.game.paused}</p>}
       {!done && !timeUp && <PowerBar game={game} player={player} disabled={paused} />}
       <div className="mt-auto" aria-live="polite">
@@ -325,7 +327,9 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
         ) : (
           <>
             {state === 'error' && <p className="mb-2 text-center font-bold text-red-300" role="alert">{t.game.answerFailed}</p>}
-            <QuestionInput q={q} uid={uid} disabled={paused} onSubmit={submit} hide={hide} />
+            <ConfidenceGate enabled={!!game.settings.confidence && SCORED_TYPES.has(q.type)} onSubmit={(v, c) => void submit(v, c)}>
+              {(onPick) => <QuestionInput q={q} uid={uid} disabled={paused} onSubmit={onPick} hide={hide} />}
+            </ConfidenceGate>
           </>
         )}
       </div>
@@ -388,6 +392,7 @@ function RevealView({ game, player }: { game: Game; player: Player }) {
           {rv.accepted && <p className="text-xl font-black">{rv.accepted.filter(Boolean).join(' · ')}</p>}
           {rv.sliderAnswer != null && q?.type === 'slider' && <p className="font-display text-3xl font-black">{rv.sliderAnswer}</p>}
           {q?.type === 'order' && rv.correct.length > 0 && <ol className="list-decimal pl-6 font-bold">{rv.correct.map((id) => <li key={id}>{q.options.find((o) => o.id === id)?.text}</li>)}</ol>}
+          {q && <NewTypeReveal type={q.type} rv={rv} imageUrl={q.imageUrl} />}
         </div>
       )}
       {rv?.explanation && <div className="glass w-full p-3 text-left text-sm leading-relaxed"><b className="text-orange-300">💡 {t.game.explanation}:</b> {rv.explanation}</div>}

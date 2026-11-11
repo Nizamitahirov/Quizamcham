@@ -77,7 +77,7 @@ export const az = {
     ],
     react: 'Reaksiya göndər',
   },
-  game: {
+  game: { matchHint: 'Hər sətir üçün uyğun cavabı seçin', blank: (n: number) => `${n}-ci boşluq`, hotspotHint: 'Şəkildə düzgün yerə toxunun', confTitle: 'Cavabınızdan əminsiniz?', confHint: 'Əmin + düz: ×1.5 xal · Əmin + səhv: xal itirirsiniz', confSure: 'Əminəm', confUnsure: 'Əmin deyiləm', 
     questionOf: (i: number, n: number) => `Sual ${i} / ${n}`,
     getReady: 'Hazır olun!',
     submitted: 'Cavab qəbul edildi ✓',
@@ -259,7 +259,7 @@ export const az = {
     permanentQr: 'Daimi QR (/play)',
     permanentQrHint: 'Bu QR həmişə ən son aktiv oyuna aparır — təqdimata bir dəfə qoyun.',
   },
-  editor: {
+  editor: { pairs: 'Cütlər', pairsHint: 'Sol tərəfi sağ tərəflə uyğunlaşdırın — oyunçulara sağ tərəf qarışıq göstəriləcək', pairLeft: (n: number) => `${n}. sol`, pairRight: (n: number) => `${n}. sağ`, addPair: '+ Cüt', fillHint: 'Boşluqları kvadrat mötərizədə yazın: "Bakı [Azərbaycanın] paytaxtıdır". Bir neçə düzgün cavab: [Bakı/Baku].', fillPreview: 'Oyunçu görəcək', hotspotArea: 'Düzgün sahə', hotspotHint: 'Şəkildə düzgün yerə klikləyin, ölçüsünü sürgü ilə tənzimləyin', hotspotRadius: 'Radius', newTypes: 'Yeni növlər: uyğunlaşdırma, boşluq doldurma, şəkildə nöqtə', 
     title: 'Quiz adı',
     description: 'Təsvir',
     coverEmoji: 'Emoji',
@@ -298,7 +298,7 @@ export const az = {
     noQuestion: 'Sual seçin və ya yenisini əlavə edin',
     imageBad: 'Şəkil yüklənmədi',
     sec: (n: number) => `${n} s`,
-    errors: {
+    errors: { emptyPair: 'Hər cütün hər iki tərəfini doldurun', noBlanks: 'Mətndə ən azı bir boşluq olmalıdır: [cavab]', needImage: 'Bu sual üçün şəkil lazımdır', noHotspot: 'Şəkildə düzgün sahəni işarələyin', 
       emptyText: 'Sual mətni boşdur',
       emptyOption: 'Boş variant var',
       noCorrect: 'Düzgün cavab seçilməyib',
@@ -309,9 +309,9 @@ export const az = {
     },
     issues: (n: number) => `${n} sualda xəta var`,
   },
-  types: { single: 'Tək seçim', multi: 'Çox seçim', truefalse: 'Doğru / Yanlış', type: 'Cavabı yaz', poll: 'Sorğu', order: 'Sıralama', slider: 'Slayder', wordcloud: 'Söz buludu', open: 'Açıq cavab', slide: 'Slayd' },
+  types: { single: 'Tək seçim', multi: 'Çox seçim', truefalse: 'Doğru / Yanlış', type: 'Cavabı yaz', poll: 'Sorğu', order: 'Sıralama', slider: 'Slayder', wordcloud: 'Söz buludu', open: 'Açıq cavab', slide: 'Slayd', match: 'Uyğunlaşdırma', fill: 'Boşluq doldurma', hotspot: 'Şəkildə nöqtə' },
   pointsModes: { standard: 'Standart (1000)', double: 'İkiqat (2000)', none: 'Xalsız (0)' },
-  settings: {
+  settings: { confidence: 'Əminlik rejimi', confidenceHint: 'Oyunçu cavabdan sonra əminliyini seçir: əmin + düz ×1.5, əmin + səhv cərimə', 
     title: 'Ayarlar',
     mode: 'Oyun rejimi', modeHost: 'Host idarə edir', modeSelf: 'Öz tempində',
     modes: {

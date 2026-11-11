@@ -130,9 +130,9 @@ export function checkText(text: string, where: string): ModIssue[] {
 }
 
 // ---------- bütöv quiz ----------
-interface QLike { type?: string; text?: string; explanation?: string; imageUrl?: string; options?: { text?: string; imageUrl?: string }[]; accepted?: string[]; correct?: string[] }
+interface QLike { type?: string; text?: string; explanation?: string; imageUrl?: string; options?: { text?: string; imageUrl?: string; pair?: string }[]; accepted?: string[]; correct?: string[] }
 export interface QuizLike { title?: string; description?: string; tags?: string[]; questions?: QLike[] }
-const SCORED = new Set(['single', 'multi', 'truefalse', 'type', 'order', 'slider'])
+const SCORED = new Set(['single', 'multi', 'truefalse', 'type', 'order', 'slider', 'match', 'fill', 'hotspot'])
 
 export function moderateQuiz(q: QuizLike): ModResult {
   const issues: ModIssue[] = []
@@ -144,7 +144,7 @@ export function moderateQuiz(q: QuizLike): ModResult {
     const w = `q${i + 1}`
     add(x.text, w); add(x.explanation, `${w}.explanation`)
     ;(x.accepted ?? []).forEach((a) => add(a, `${w}.answer`))
-    ;(x.options ?? []).forEach((o, k) => { add(o.text, `${w}.option${k + 1}`); if (o.imageUrl) hasImages = true })
+    ;(x.options ?? []).forEach((o, k) => { add(o.text, `${w}.option${k + 1}`); add(o.pair, `${w}.option${k + 1}`); if (o.imageUrl) hasImages = true })
     if (x.imageUrl) hasImages = true
     if (SCORED.has(x.type ?? '')) {
       scored++

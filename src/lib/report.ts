@@ -1,12 +1,15 @@
 import { t } from '../i18n/az'
 import { fetchPlayers, loadSecret } from './gameEngine'
-import { rankPlayers, SCORED_TYPES } from './scoring'
+import { matchRightId, rankPlayers, SCORED_TYPES } from './scoring'
 import { toCsv } from './csv'
 import type { AnswerValue, Player, Question } from '../types'
 
 export function answerText(q: Question | undefined, v: AnswerValue | null | undefined): string {
   if (v === null || v === undefined) return ''
   if (!q) return String(v)
+  // uyğunlaşdırma: oyunçunun cütləri (sağ tərəfin gizli id-si → mətn)
+  if (q.type === 'match' && Array.isArray(v)) return q.options.map((o, i) => `${o.text} ⇄ ${q.options.find((x) => matchRightId(q.matchSalt ?? '', x.id) === v[i])?.pair ?? '—'}`).join('; ')
+  if (q.type === 'fill' && Array.isArray(v)) return v.join(' · ')
   if (Array.isArray(v)) return v.map((id) => q.options.find((o) => o.id === id)?.text ?? id).join(q.type === 'order' ? ' → ' : '; ')
   return String(v)
 }
@@ -27,7 +30,7 @@ export async function loadReport(gameId: string): Promise<GameReportData> {
     const times = answered.map((h) => h.timeMs ?? 0)
     const distribution: Record<string, number> = {}
     answered.forEach((h) => {
-      const vals = Array.isArray(h.answer) ? (q.type === 'order' ? [answerText(q, h.answer)] : h.answer) : [String(h.answer)]
+      const vals = Array.isArray(h.answer) ? (['order', 'match', 'fill'].includes(q.type) ? [answerText(q, h.answer)] : h.answer) : q.type === 'hotspot' ? [] : [String(h.answer)]
       vals.forEach((v) => (distribution[v] = (distribution[v] ?? 0) + 1))
     })
     let mostWrong: string | undefined

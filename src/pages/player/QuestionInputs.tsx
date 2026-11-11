@@ -107,8 +107,92 @@ export function OrderInput({ q, disabled, onSubmit }: Props) {
   )
 }
 
+/** Uyğunlaşdırma: hər sol element üçün sağ tərəfdən seçim (telefonda yerli seçici). */
+export function MatchInput({ q, disabled, onSubmit }: Props) {
+  const right = q.right ?? []
+  const [sel, setSel] = useState<string[]>(() => q.options.map(() => ''))
+  const used = new Set(sel.filter(Boolean))
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-center text-sm font-bold opacity-90">{t.game.matchHint}</p>
+      {q.options.map((o, i) => (
+        <div key={o.id} className="flex items-center gap-2 rounded-2xl p-2 text-white shadow-[0_4px_0_rgba(0,0,0,.25)]" style={{ background: TILE_COLORS[i % 6] }}>
+          <span className="min-w-0 flex-1 px-2 text-base font-extrabold">{o.text}</span>
+          <select className="input-dark min-h-12 w-[52%] text-base" value={sel[i]} disabled={disabled} aria-label={o.text}
+            onChange={(e) => setSel((s) => s.map((x, k) => (k === i ? e.target.value : x)))}>
+            <option value="">—</option>
+            {right.map((r) => <option key={r.id} value={r.id} disabled={used.has(r.id) && sel[i] !== r.id}>{r.text}</option>)}
+          </select>
+        </div>
+      ))}
+      <button type="button" className="btn btn-primary btn-lg" disabled={disabled || sel.some((x) => !x)} onClick={() => onSubmit(sel)}>{t.game.submit}</button>
+    </div>
+  )
+}
+
+/** Boşluq doldurma: mətnin içində sahələr. */
+export function FillInput({ q, disabled, onSubmit }: Props) {
+  const parts = q.text.split('___')
+  const n = Math.max(0, parts.length - 1)
+  const [v, setV] = useState<string[]>(() => Array.from({ length: n }, () => ''))
+  return (
+    <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); if (v.every((x) => x.trim())) onSubmit(v.map((x) => x.trim())) }}>
+      <p className="glass p-4 text-lg font-bold leading-[2.6rem]">
+        {parts.map((p, i) => (
+          <span key={i}>{p}{i < n && (
+            <input className="mx-1 inline-block w-36 rounded-lg border-2 border-white/40 bg-white/10 px-2 py-1 align-middle text-base text-white outline-none focus:border-orange-400"
+              value={v[i]} maxLength={40} disabled={disabled} aria-label={t.game.blank(i + 1)} placeholder={`${i + 1}`}
+              onChange={(e) => setV((s) => s.map((x, k) => (k === i ? e.target.value : x)))} />
+          )}</span>
+        ))}
+      </p>
+      <button className="btn btn-primary btn-lg" disabled={disabled || v.some((x) => !x.trim())}>{t.game.submit}</button>
+    </form>
+  )
+}
+
+/** Şəkil üzərində nöqtə: toxun → işarə, sonra təsdiq. */
+export function HotspotInput({ q, disabled, onSubmit }: Props) {
+  const [pt, setPt] = useState<{ x: number; y: number } | null>(null)
+  if (!q.imageUrl) return null
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-center text-sm font-bold opacity-90">{t.game.hotspotHint}</p>
+      <div className="relative mx-auto max-w-full cursor-crosshair select-none overflow-hidden rounded-2xl"
+        onClick={(e) => { if (disabled) return; const r = e.currentTarget.getBoundingClientRect(); setPt({ x: Math.round(((e.clientX - r.left) / r.width) * 1000) / 10, y: Math.round(((e.clientY - r.top) / r.height) * 1000) / 10 }) }}>
+        <img src={q.imageUrl} alt="" className="block max-h-[55vh] max-w-full" draggable={false} />
+        {pt && <span className="pointer-events-none absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white bg-orange-500 shadow-lg" style={{ left: `${pt.x}%`, top: `${pt.y}%` }} />}
+      </div>
+      <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !pt} onClick={() => pt && onSubmit(`${pt.x},${pt.y}`)}>{t.game.submit}</button>
+    </div>
+  )
+}
+
+/**
+ * Əminlik rejimi: cavab seçiləndən sonra "əminəm / əmin deyiləm".
+ * Əmin + düz → ×1.5, əmin + səhv → cərimə; "əmin deyiləm" → adi bal.
+ */
+export function ConfidenceGate({ enabled, children, onSubmit }: { enabled: boolean; children: (submit: (v: AnswerValue) => void) => React.ReactNode; onSubmit: (v: AnswerValue, conf?: boolean) => void }) {
+  const [pending, setPending] = useState<AnswerValue | null>(null)
+  if (!enabled) return <>{children((v) => onSubmit(v))}</>
+  if (pending !== null) return (
+    <div className="glass flex flex-col gap-3 p-5 text-center">
+      <p className="text-lg font-black">{t.game.confTitle}</p>
+      <p className="text-sm text-white/70">{t.game.confHint}</p>
+      <div className="grid grid-cols-2 gap-3">
+        <button type="button" className="btn btn-primary btn-lg" onClick={() => onSubmit(pending, true)}>💪 {t.game.confSure}</button>
+        <button type="button" className="btn btn-ghost btn-lg" onClick={() => onSubmit(pending, false)}>🤔 {t.game.confUnsure}</button>
+      </div>
+    </div>
+  )
+  return <>{children((v) => setPending(v))}</>
+}
+
 export function QuestionInput(props: Props) {
   switch (props.q.type) {
+    case 'match': return <MatchInput {...props} />
+    case 'fill': return <FillInput {...props} />
+    case 'hotspot': return <HotspotInput {...props} />
     case 'single': case 'truefalse': case 'poll': return <ChoiceInput {...props} />
     case 'multi': return <MultiInput {...props} />
     case 'type': return <TextInput {...props} max={60} />

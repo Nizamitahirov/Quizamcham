@@ -464,7 +464,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
       if (read) return c.isGameHost(gid)
       if (op === 'create') {
         const d = nd()
-        if (!(c.signedIn() && subId === `${c.uid}_${f(d, 'questionIndex')}` && keysOnly(d, ['uid', 'questionIndex', 'value', 'answeredAt'])
+        if (!(c.signedIn() && subId === `${c.uid}_${f(d, 'questionIndex')}` && keysOnly(d, ['uid', 'questionIndex', 'value', 'answeredAt', 'conf']) && typeof g(d, 'conf', false) === 'boolean'
           && f(d, 'uid') === c.uid && isReq(f(d, 'answeredAt'), now) && answerValueOk(f(d, 'value')))) return false
         const pp = `games/${gid}/players/${c.uid}`
         if (!(await c.exists(pp)) || f(await c.get(pp), 'kicked') !== false) return false

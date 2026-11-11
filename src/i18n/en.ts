@@ -40,7 +40,7 @@ export const en: Dict = {
     tips: ['Get ready! Faster answers earn more points ⚡', 'Consecutive correct answers give a streak bonus 🔥', 'Turn your phone’s sound on 🔊', 'Just tap a tile to answer 👆', 'Keep your screen on — the game can start any moment ⏳'],
     react: 'Send a reaction',
   },
-  game: {
+  game: { matchHint: 'Pick the matching answer for each row', blank: (n: number) => `Blank ${n}`, hotspotHint: 'Tap the correct spot on the image', confTitle: 'How sure are you?', confHint: 'Sure + right: ×1.5 points · Sure + wrong: you lose points', confSure: 'I am sure', confUnsure: 'Not sure', 
     questionOf: (i: number, n: number) => `Question ${i} / ${n}`, getReady: 'Get ready!', submitted: 'Answer received ✓', waitingOthers: 'Waiting for the others…',
     submit: 'Submit', typeHere: 'Type your answer…', selectMany: 'Select all that apply', dragToOrder: 'Drag the cards into the right order',
     timeUp: 'Time’s up ⏰', paused: 'Paused ⏸', correct: 'Correct!', wrong: 'Wrong', pointsPlus: (p: number) => `+${p} pts`,
@@ -100,7 +100,7 @@ export const en: Dict = {
     noQuestions: 'The quiz has no questions', downloadQr: 'Download QR (PNG)', permanentQr: 'Permanent QR (/play)',
     permanentQrHint: 'This QR always points to the latest active game — put it in your slides once.',
   },
-  editor: {
+  editor: { pairs: 'Pairs', pairsHint: 'Match the left side with the right side — players see the right side shuffled', pairLeft: (n: number) => `${n}. left`, pairRight: (n: number) => `${n}. right`, addPair: '+ Pair', fillHint: 'Write blanks in square brackets: "Baku is the [capital] of Azerbaijan". Several correct answers: [Baku/Bakı].', fillPreview: 'Players will see', hotspotArea: 'Correct area', hotspotHint: 'Click the correct spot on the image and adjust its size with the slider', hotspotRadius: 'Radius', newTypes: 'New types: matching, fill in the blanks, image hotspot', 
     title: 'Quiz title', description: 'Description', coverEmoji: 'Emoji', coverColor: 'Color', addQuestion: '+ Add question', preview: '👁 Preview', exportJson: '⬇ JSON',
     saved: (time: string) => `Saved ✓ ${time}`, saving: 'Saving…', unsaved: 'Unsaved changes', saveError: 'Could not save!', undo: '↶ Undo',
     questionText: 'Question text', imageUrl: 'Image URL (https)', explanation: 'Explanation (shown on reveal)', options: 'Options', option: (i: number) => `Option ${i}`,
@@ -109,12 +109,12 @@ export const en: Dict = {
     orderHint: 'Enter the options in the correct order — players will see them shuffled.', slideHint: 'Slide: title (question field) + text (explanation field) + image.',
     type: 'Type', time: 'Time', points: 'Points', shuffle: 'Shuffle options', shuffleInherit: 'Quiz setting', duplicate: 'Duplicate', delete: 'Delete', deleteQ: 'Delete this question?',
     quizSettings: '⚙ Quiz settings', questionSettings: 'Question settings', noQuestion: 'Select a question or add a new one', imageBad: 'Image failed to load', sec: (n: number) => `${n} s`,
-    errors: { emptyText: 'Question text is empty', emptyOption: 'There is an empty option', noCorrect: 'No correct answer selected', fewOptions: 'At least 2 options are needed', noAccepted: 'Enter at least one accepted answer', sliderRange: 'Invalid slider range', badImage: 'Image URL must start with https://' },
+    errors: { emptyPair: 'Fill in both sides of every pair', noBlanks: 'Add at least one blank to the text: [answer]', needImage: 'This question needs an image', noHotspot: 'Mark the correct area on the image',  emptyText: 'Question text is empty', emptyOption: 'There is an empty option', noCorrect: 'No correct answer selected', fewOptions: 'At least 2 options are needed', noAccepted: 'Enter at least one accepted answer', sliderRange: 'Invalid slider range', badImage: 'Image URL must start with https://' },
     issues: (n: number) => `${n} question${n === 1 ? ' has' : 's have'} errors`,
   },
-  types: { single: 'Single choice', multi: 'Multiple choice', truefalse: 'True / False', type: 'Type answer', poll: 'Poll', order: 'Ordering', slider: 'Slider', wordcloud: 'Word cloud', open: 'Open answer', slide: 'Slide' },
+  types: { single: 'Single choice', multi: 'Multiple choice', truefalse: 'True / False', type: 'Type answer', poll: 'Poll', order: 'Ordering', slider: 'Slider', wordcloud: 'Word cloud', open: 'Open answer', slide: 'Slide', match: 'Matching', fill: 'Fill in the blanks', hotspot: 'Image hotspot' },
   pointsModes: { standard: 'Standard (1000)', double: 'Double (2000)', none: 'No points (0)' },
-  settings: {
+  settings: { confidence: 'Confidence mode', confidenceHint: 'Players rate their confidence after answering: sure + right ×1.5, sure + wrong penalty', 
     title: 'Settings', mode: 'Game mode', modeHost: 'Host-led', modeSelf: 'Self-paced',
     modes: {
       host: { title: 'Trainer-led', desc: 'You advance every question — ideal for discussion and explanation.' },
