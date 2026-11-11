@@ -32,7 +32,7 @@ test('avtomatik rejimdə tam oyun: qoşulma → cavab → nəticə', async ({ br
   await host.getByRole('button', { name: 'Oyunu başlat' }).click()
   await host.waitForURL(/\/host\//)
   await host.getByText('Lobbini aç').click()
-  const pin = (await host.locator('.text-grad.tracking-\\[\\.12em\\]').innerText()).trim()
+  const pin = (await host.getByTestId('lobby-pin').innerText()).trim()
 
   const players: Page[] = []
   for (const [f, l] of [['Aysel', 'Məmmədova'], ['Tural', 'Əliyev']]) {
@@ -83,7 +83,7 @@ test('öz tempində: fərqli ardıcıllıq, dayanmadan sona qədər, nəticələ
   await host.getByRole('button', { name: 'Oyunu başlat' }).click()
   await host.waitForURL(/\/host\//)
   await host.getByText('Lobbini aç').click()
-  const pin = (await host.locator('.text-grad.tracking-\\[\\.12em\\]').innerText()).trim()
+  const pin = (await host.getByTestId('lobby-pin').innerText()).trim()
 
   const players: Page[] = []
   for (const [f, l] of [['Aysel', 'Məmmədova'], ['Tural', 'Əliyev']]) {

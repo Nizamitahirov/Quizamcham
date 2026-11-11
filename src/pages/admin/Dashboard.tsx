@@ -61,8 +61,8 @@ export default function Dashboard() {
         <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full opacity-60 blur-3xl" style={{ background: '#FF7A1A' }} />
         <div className="pointer-events-none absolute -bottom-28 left-10 h-72 w-72 rounded-full opacity-50 blur-3xl" style={{ background: '#E8202A' }} />
         <div className="relative flex flex-wrap items-center gap-6">
-          <div className="mr-auto">
-            <h1 className="text-2xl font-black sm:text-3xl">{t.admin.welcome(name)}</h1>
+          <div className="mr-auto min-w-0 max-w-full">
+            <h1 className="break-words text-2xl font-black sm:text-3xl">{t.admin.welcome(name)}</h1>
             <p className="mt-1 text-white/65">{t.admin.welcomeSub}</p>
           </div>
           {admin.perms.createQuiz && (

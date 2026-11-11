@@ -141,7 +141,7 @@ function Kpi({ icon: Icon, label, value, warn, good }: { icon: typeof Users; lab
   return (
     <div className="card flex items-center gap-4 p-4">
       <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${warn ? 'bg-amber-50 text-amber-700' : good ? 'bg-green-50 text-green-700' : 'text-brand'}`} style={warn || good ? undefined : { background: 'var(--grad-soft)' }}><Icon className="h-5 w-5" /></span>
-      <div className="min-w-0"><div className="font-display text-2xl font-black leading-none tabular-nums">{value}</div><div className="mt-1 truncate text-xs font-semibold text-muted">{label}</div></div>
+      <div className="min-w-0"><div className="font-display text-2xl font-black leading-none tabular-nums">{value}</div><div className="mt-1 text-xs font-semibold leading-tight text-muted sm:truncate">{label}</div></div>
     </div>
   )
 }

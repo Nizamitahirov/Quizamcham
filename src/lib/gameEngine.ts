@@ -633,6 +633,9 @@ export const heartbeat = (gameId: string, uid: string) => updateDoc(doc(db, 'gam
 
 export const activatePower = (gameId: string, uid: string, q: number, type: PowerType) =>
   updateDoc(doc(db, 'games', gameId, 'players', uid), { power: { q, type } })
+/** Cavab verilməmiş seçilmiş gücü ləğv edir (sayı yalnız cavab zamanı azalır, ona görə itki yoxdur). */
+export const cancelPower = (gameId: string, uid: string) =>
+  updateDoc(doc(db, 'games', gameId, 'players', uid), { power: null })
 
 /** Sənəd id-si 2 saniyəlik pəncərəyə bağlıdır — Rules oyunçu başına 2 s-də 1 reaksiyaya icazə verir. */
 export const sendReaction = (gameId: string, uid: string, emoji: string) =>

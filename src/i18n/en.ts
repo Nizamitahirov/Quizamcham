@@ -18,7 +18,7 @@ export const en: Dict = {
   },
   about: {
     title: 'About',
-    text: 'Jabr — a live quiz platform for AmCham Azerbaijan’s “NextGen HR Leaders” program.',
+    text: 'Jabr — a live interactive quiz platform for trainings, classes and events.',
     avatars: 'Avatars are generated with DiceBear (dicebear.com):',
     music: 'Music and sound effects are generated in the browser.',
   },
@@ -29,7 +29,7 @@ export const en: Dict = {
     chooseAvatar: 'Choose an avatar', random: 'Random', accessory: 'Sticker', noAccessory: 'None', go: 'Join', joining: 'Joining…', slow: 'Slow connection — still joining, please keep this page open…', retry: 'Could not connect. Please try again.', rejoin: 'Back to the game',
     kicked: 'You were removed from the game by the host', noActive: 'There is no active game right now. Ask the trainer for the PIN.', step1: 'PIN', step2: 'Profile', step3: 'Lobby', hello: 'Hi there! 👋',
   },
-  power: {
+  power: { tapToCancel: 'Tap again to cancel your choice',
     title: 'Power-ups', fifty: '50/50', fiftyDesc: 'Hides two wrong answers', double: '2x', doubleDesc: 'Double points on this question',
     shield: 'Shield', shieldDesc: 'Your streak survives a wrong answer', active: 'Active', used: (p: string) => `${p} used`,
     shielded: '🛡️ The shield saved your streak!', doubled: '⚡ 2x points!', waiting: 'Waiting…',
@@ -71,7 +71,7 @@ export const en: Dict = {
     live: 'LIVE', offline: 'No internet connection — the game may stall!', selfTitle: 'Self-paced — live monitor', timeLeft: 'Time left', done: 'Finished',
     progress: 'Progress', autoNext: (s: number) => `Auto-advance: ${s} s`,
   },
-  admin: {
+  admin: { secureLogin: 'Encrypted connection (HTTPS)',
     readOnly: 'This quiz belongs to another trainer — view only. Create your own copy to edit it.',
     makeCopy: 'Make a copy', view: 'View', locked: 'View only',
     share: 'Share to library', shared: 'In library', shareHint: 'All trainers can see a shared quiz and make a copy (but not edit it)',
@@ -385,8 +385,8 @@ export const en: Dict = {
     title: 'Privacy notice', short: 'By joining, you agree that your name and answers are used for this training session.', more: 'Details',
     body: [
       'Jabr is used to run live quizzes during trainings. When you join, only the first and last name you enter, your chosen avatar and your quiz answers are stored.',
-      'We do not ask for your email, phone number or other personal data. You are signed in with an anonymous account (Firebase Authentication).',
-      'Data is stored on Google Firebase servers (Europe region, eur3) and used only by the trainer to calculate results and prepare the training report.',
+      'We do not ask for your email, phone number or other personal data. You are signed in with a temporary anonymous account.',
+      'Data is stored on our server in the European Union (Germany) and used only by the trainer to calculate results and prepare the training report.',
       'Results (name, score, rank) are shown to other participants on screen during the game.',
       'Game data is deleted by the trainer after a period of time. If you want your data deleted, please contact the trainer.',
     ],

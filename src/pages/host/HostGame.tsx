@@ -322,17 +322,17 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
           <span className="text-lg text-white/60">{t.host.openLobbyHint}</span>
         </button>
       )}
-      <header className="relative z-20 flex items-center gap-4 px-8 pt-5">
+      <header className="relative z-20 flex items-center gap-2 px-4 pt-4 sm:gap-4 lg:px-8 lg:pt-5">
         <Logo size={36} mono={game.phase === 'podium'} />
         <span className="chip chip-dark"><span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />{t.host.live}</span>
         {game.phase !== 'lobby' && game.phase !== 'finished' && (
-          <div className="mx-6 h-2 flex-1 overflow-hidden rounded-full bg-white/10">
+          <div className="mx-2 h-2 flex-1 overflow-hidden rounded-full bg-white/10 lg:mx-6">
             <motion.div className="h-full rounded-full" style={{ background: 'var(--grad)' }} animate={{ width: `${progress * 100}%` }} />
           </div>
         )}
-        <span className="ml-auto flex items-center gap-3">
+        <span className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           <span className="chip chip-dark text-base"><Users className="h-4 w-4" />{active.length}</span>
-          <span className="font-display rounded-xl border border-white/15 bg-white/[.06] px-4 py-1.5 text-xl font-black tracking-widest">PIN {game.pin}</span>
+          <span className="font-display whitespace-nowrap rounded-xl border border-white/15 bg-white/[.06] px-2.5 py-1 text-base font-black tracking-widest sm:px-4 sm:py-1.5 sm:text-xl">PIN {game.pin}</span>
         </span>
       </header>
       {qaOpen && <HostQA gameId={gameId} onClose={() => setQaOpen(false)} />}

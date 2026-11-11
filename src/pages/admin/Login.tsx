@@ -57,7 +57,7 @@ export default function Login() {
             })}
           </ul>
         </div>
-        <p className="relative text-xs text-white/40">© {new Date().getFullYear()} Jabr · AmCham NextGen HR Leaders</p>
+        <p className="relative text-xs text-white/40">© {new Date().getFullYear()} Jabr</p>
       </div>
       <div className="flex items-center justify-center px-4 py-10">
         <motion.form initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="w-full max-w-sm">
@@ -88,7 +88,7 @@ export default function Login() {
             <button type="button" className="btn btn-secondary w-full" disabled={busy} onClick={() => void google()}><GoogleIcon />{t.acct.google}</button>
             <p className="text-center text-sm text-muted">{t.admin.noAccount} <Link to="/start" className="font-bold text-red-700 hover:underline">{t.acct.signUp} · {t.acct.freeTrial}</Link></p>
           </div>
-          <p className="mt-6 flex items-center gap-2 text-xs text-muted"><CheckCircle2 className="h-4 w-4 text-ok" />Firebase Auth</p>
+          <p className="mt-6 flex items-center gap-2 text-xs text-muted"><CheckCircle2 className="h-4 w-4 text-ok" />{t.admin.secureLogin}</p>
         </motion.form>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 > **Spesifikasiya (SPEC.md) · versiya 1.0 · 3 noyabr 2026**
 > Repo: `https://github.com/Nizamitahirov/Quizamcham`
-> Məqsəd: AmCham Azərbaycan “NextGen HR Leaders” proqramında süni intellekt təlimi üçün Kahoot / Wayground (keçmiş Quizizz) tipli, real vaxtda işləyən, mobil-öncəlikli quiz platforması.
+> Məqsəd: təlimlər və dərslər üçün Kahoot / Wayground (keçmiş Quizizz) tipli, real vaxtda işləyən, mobil-öncəlikli quiz platforması.
 
 Bu fayl **Claude Code** üçün yazılıb. Claude Code bu faylı əvvəldən sonadək oxumalı, aşağıdakı iş qaydalarına əməl etməli və tətbiqi mərhələ-mərhələ (bölmə 22) qurmalıdır.
 
@@ -445,7 +445,7 @@ Spark planında Firestore gündəlik limitləri təxminən: 50 000 oxuma, 20 000
 |---|---|---|
 | `--bg-deep` | `#0F1129` | Host ekranı fonu, tünd göy |
 | `--bg-grad` | `linear-gradient(135deg, #2B1055 0%, #7597DE 100%)` alternativ: `#E4202E → #FF7A1F` | Lobbi və podium fonları (yavaş hərəkət edən qradiyent + üzən formalar) |
-| `--brand` | `#E4202E` | Əsas aksent (AmCham/təlim deck-i ilə uyğun) |
+| `--brand` | `#E4202E` | Əsas aksent (brend rəngi) |
 | `--brand-2` | `#FF7A1F` | İkinci aksent |
 | `--ink` | `#0F1129` | Açıq fonda mətn |
 | `--paper` | `#FFFFFF` | Kartlar |
