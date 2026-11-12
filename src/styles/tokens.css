@@ -74,6 +74,8 @@
 * { box-sizing: border-box; }
 html, body, #root { min-height: 100%; }
 html { background: var(--canvas); }
+/* təhlükəsizlik toru: hansısa element ekrandan genişlənsə belə səhifə yana sürüşmür / mobil brauzer kiçilmir */
+html, body { overflow-x: clip; }
 body {
   margin: 0;
   font-family: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -154,7 +156,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
 .btn-sm.btn-icon { width: 34px; min-height: 34px; }
 
 /* ---------- Səthlər ---------- */
-.card { position: relative; background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0) 40%), var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.card { min-width: 0; position: relative; background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0) 40%), var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
 .card-hover { transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .card-hover:hover { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: var(--shadow-lg); }
 .raised { background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; }
