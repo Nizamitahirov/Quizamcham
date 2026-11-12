@@ -245,7 +245,7 @@ export function authRoutes(app: FastifyInstance) {
   })
 
   // Super admin: e-poçt göndərməni yoxlamaq üçün test məktubu (yalnız öz ünvanına)
-  app.post<{ Body: { lang?: string } }>('/api/mail/test', { preHandler: limit('mailtest', 5, 600_000) }, async (req) => {
+  app.post<{ Body: { lang?: string; provider?: string } }>('/api/mail/test', { preHandler: limit('mailtest', 5, 600_000) }, async (req) => {
     const { auth } = await authFrom(bearer(req))
     if (!auth) throw err('auth/unauthenticated', 401)
     const { loadDoc } = await import('./store.js')
@@ -258,7 +258,8 @@ export function authRoutes(app: FastifyInstance) {
     const { sendMail } = await import('./mailer.js')
     const { testEmail, pickLang } = await import('./emails.js')
     const m = testEmail(pickLang(req.body?.lang), process.env.PUBLIC_URL ?? '')
-    const res = await sendMail(to, m.subject, m.text, m.html)
+    const force = req.body?.provider === 'smtp' || req.body?.provider === 'brevo' ? req.body.provider : undefined
+    const res = await sendMail(to, m.subject, m.text, m.html, {}, force)
     return { ...res, to }
   })
 

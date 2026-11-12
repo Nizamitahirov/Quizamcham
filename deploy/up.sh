@@ -20,6 +20,12 @@ if [ -n "${GOOGLE_CLIENT_ID:-}" ]; then
   echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env.tmp
   chmod 600 .env.tmp && mv .env.tmp .env
 fi
+# serverin ictimai IP-si (mail diaqnostikası: SPF/PTR yoxlaması üçün)
+if [ -n "${SERVER_IP:-}" ]; then
+  grep -v '^SERVER_IP=' .env > .env.tmp || true
+  echo "SERVER_IP=$SERVER_IP" >> .env.tmp
+  chmod 600 .env.tmp && mv .env.tmp .env
+fi
 docker compose up -d --build --remove-orphans
 docker image prune -f >/dev/null
 sleep 5
@@ -29,4 +35,7 @@ docker compose exec -T api node dist/seed.js || true
 docker compose exec -T api node dist/maintenance.js || true
 echo "==> health:"
 curl -fsS http://127.0.0.1/api/health || (docker compose logs --tail=50 api; exit 1)
+echo
+echo "==> mail (DKIM açarı — DNS-ə əlavə olunmalıdır, Ayarlar → E-poçt göndərmə-də də görünür):"
+docker compose exec -T mail sh -c 'cat /var/lib/rspamd/dkim/*.txt 2>/dev/null' || true
 echo
