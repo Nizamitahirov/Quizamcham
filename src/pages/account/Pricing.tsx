@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Mail, MessageCircle, Phone, Send, Sparkles } from 'lucide-react'
+import { ArrowRight, Building2, Check, GraduationCap, Mail, MessageCircle, Phone, Send, Sparkles } from 'lucide-react'
 import { CONTACT, loadPricing, requestLicense, useAccount, type PricePlan } from '../../lib/account'
 import { t } from '../../i18n/az'
 import { FuturisticBg } from '../../components/FuturisticBg'
@@ -9,6 +9,7 @@ import { LangSwitch } from '../../components/LangSwitch'
 
 const A = t.acct
 type PlanKey = 'trainer' | 'pro' | 'business' | 'institution' | 'event' | 'custom'
+const P = t.pricing2
 
 /** Planlar, qiymətlər (konsoldan idarə olunur), lisenziya müraciəti və birbaşa əlaqə. */
 export default function Pricing() {
@@ -23,7 +24,7 @@ export default function Pricing() {
   useEffect(() => {
     if (!profile) return
     setF((x) => ({ ...x, name: x.name || `${profile.firstName} ${profile.lastName}`.trim(), phone: x.phone || profile.phone, organization: x.organization || profile.organization || profile.institution || '', seats: x.seats || profile.seats || '' }))
-    if (profile.type === 'institution') setPlan('institution')
+    if (profile.type === 'institution') setPlan('custom')
   }, [profile])
 
   const send = async (e: React.FormEvent) => {
@@ -48,6 +49,7 @@ export default function Pricing() {
         <div className="text-center">
           <h1 className="text-4xl font-black sm:text-5xl">{A.pricingTitle}</h1>
           <p className="mt-3 text-white/65">{A.pricingSub}</p>
+          <p className="mx-auto mt-3 inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-1.5 text-sm font-medium text-emerald-200"><GraduationCap className="h-4 w-4" />{P.studentsFree}</p>
         </div>
         {/* Təlimçi planları — iştirakçı sayına görə (host ödəyir, iştirakçı heç vaxt) */}
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -74,25 +76,15 @@ export default function Pricing() {
             )
           })}
         </section>
-        <section className="grid gap-4 lg:grid-cols-3">
-          {(['student', 'institution', 'event'] as const).map((k) => {
-            const p = A.plans[k], pr = price(k)
-            return (
-              <div key={k} className="glass flex flex-col gap-3 p-6">
-                <div className="flex items-baseline justify-between gap-3">
-                  <h2 className="text-xl font-black">{p.title}</h2>
-                  <span className="font-display text-xl font-black">{k === 'student' ? (pr?.price || A.free) : pr?.price ? <>{pr.price}<span className="text-sm font-semibold text-white/55"> {pr.period}</span></> : <span className="text-sm font-semibold text-white/70">{A.priceOnRequest}</span>}</span>
-                </div>
-                <p className="text-sm text-white/60">{p.desc}</p>
-                <ul className="flex flex-1 flex-col gap-1.5">
-                  {p.feats.map((x) => <li key={x} className="flex items-start gap-2 text-sm text-white/80"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />{x}</li>)}
-                </ul>
-                {k === 'student'
-                  ? <Link to={user ? '/learn' : '/start?next=/learn'} className="btn btn-ghost w-full">{A.start}</Link>
-                  : <a href="#request" onClick={() => setPlan(k)} className="btn btn-ghost w-full">{A.getLicense}</a>}
-              </div>
-            )
-          })}
+        {/* Qalan hər şey — fərdi paket (məktəb, şirkət, tədbir, böyük auditoriya) */}
+        <section className="card hairline-top relative grid items-center gap-6 overflow-hidden p-6 sm:p-8 lg:grid-cols-[1fr_auto]">
+          <span className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full opacity-20 blur-3xl" style={{ background: 'var(--grad)' }} />
+          <div className="relative">
+            <h2 className="flex items-center gap-2.5 text-2xl font-extrabold"><span className="icon-tile h-9 w-9"><Building2 className="h-[18px] w-[18px]" /></span>{P.customTitle}</h2>
+            <p className="mt-2 max-w-2xl text-fg2">{P.customText}</p>
+            <div className="mt-4 flex flex-wrap gap-2">{P.customTags.map((x) => <span key={x} className="chip chip-muted py-1">{x}</span>)}</div>
+          </div>
+          <a href="#request" onClick={() => setPlan('custom')} className="btn btn-primary btn-lg relative">{P.customCta}<ArrowRight /></a>
         </section>
 
         <section id="request" className="grid scroll-mt-6 gap-4 lg:grid-cols-[1.4fr_1fr]">
@@ -115,7 +107,7 @@ export default function Pricing() {
                   <div>
                     <span className="label-dark">{A.plan}</span>
                     <div className="flex flex-wrap gap-2">
-                      {(['trainer', 'pro', 'business', 'institution', 'event', 'custom'] as PlanKey[]).map((k) => (
+                      {(['trainer', 'pro', 'business', 'custom'] as PlanKey[]).map((k) => (
                         <button key={k} type="button" aria-pressed={plan === k} onClick={() => setPlan(k)} className={`rounded-xl border px-3 py-2 text-sm font-semibold ${plan === k ? 'border-transparent' : 'border-white/15 bg-white/5 text-white/75'}`} style={plan === k ? { background: 'var(--grad)' } : undefined}>
                           {k === 'custom' ? A.planCustom : A.plans[k].title}
                         </button>

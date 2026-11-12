@@ -499,6 +499,11 @@ export const ru: Dict = {app: { name: 'Jabr', tagline: 'Живой интера�
       hair: 'Причёска', hairColor: 'Цвет волос', facial: 'Борода / усы', hat: 'Головной убор', hatColor: 'Цвет убора', top: 'Верх', topColor: 'Основной цвет', topColor2: 'Дополнительный цвет', pattern: 'Узор', number: 'Номер',
       bottom: 'Низ', bottomColor: 'Цвет низа', shoes: 'Обувь', shoeColor: 'Цвет обуви', back: 'Сумка / спина', backColor: 'Цвет', neck: 'Шея', neckColor: 'Цвет', hand: 'В руке', pose: 'Поза', bg: 'Фон' },
   },
+  pricing2: {
+    studentsFree: 'Для учеников и игроков всегда бесплатно — платит только тренер.',
+    customTitle: 'Особые задачи? Индивидуальный пакет', customText: 'Соберём пакет под вас: число участников, аккаунты тренеров, срок, брендинг и условия оплаты — всё по договорённости.',
+    customTags: ['Школы и университеты', 'Компании и команды', 'Конференции и мероприятия', '1000+ участников', 'Счёт по ИНН'], customCta: 'Получить предложение',
+  },
   shell: { content: 'Контент', teaching: 'Обучение', manage: 'Управление', more: 'Ещё', plan: 'План', upgrade: 'Улучшить', menu: 'Меню' },
   dlg: { ok: 'Подтвердить', cancel: 'Отмена', save: 'Сохранить', delete: 'Удалить' },
   premium: { requires: (p: string) => `${p} plan`, locked: (p: string) => `Available on the ${p} plan and above.`, upgrade: 'Обновить план', yourPlan: 'Ваш план' },

@@ -499,6 +499,11 @@ export const en: Dict = {
       hair: 'Hairstyle', hairColor: 'Hair colour', facial: 'Beard / moustache', hat: 'Hat', hatColor: 'Hat colour', top: 'Top', topColor: 'Main colour', topColor2: 'Accent colour', pattern: 'Pattern', number: 'Number',
       bottom: 'Bottoms', bottomColor: 'Bottoms colour', shoes: 'Shoes', shoeColor: 'Shoe colour', back: 'Bag / back', backColor: 'Colour', neck: 'Neck', neckColor: 'Colour', hand: 'In hand', pose: 'Pose', bg: 'Background' },
   },
+  pricing2: {
+    studentsFree: 'Always free for students and players — only the trainer pays.',
+    customTitle: 'Need something specific? Custom package', customText: "We'll tailor a package for you: number of participants, trainer accounts, duration, branding and payment terms — all by agreement.",
+    customTags: ['Schools & universities', 'Companies & teams', 'Conferences & events', '1000+ participants', 'Invoice with tax ID'], customCta: 'Get a custom offer',
+  },
   shell: { content: 'Content', teaching: 'Teaching', manage: 'Manage', more: 'More', plan: 'Plan', upgrade: 'Upgrade', menu: 'Menu' },
   dlg: { ok: 'Confirm', cancel: 'Cancel', save: 'Save', delete: 'Delete' },
   premium: { requires: (p: string) => `${p} plan`, locked: (p: string) => `Available on the ${p} plan and above.`, upgrade: 'Upgrade plan', yourPlan: 'Your plan' },
