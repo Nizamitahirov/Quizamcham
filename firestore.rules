@@ -381,9 +381,40 @@ service cloud.firestore {
       match /tasks/{tid} {
         allow read: if classOwner(cid) || classMember(cid);
         allow create, update: if classOwner(cid)
-          && request.resource.data.keys().hasOnly(['kind','title','quizId','courseId','gameId','pin','dueAt','createdAt','note'])
-          && request.resource.data.kind in ['practice', 'course', 'game'] && str(request.resource.data.title, 120) && str(request.resource.data.get('note', ''), 300);
+          && request.resource.data.keys().hasOnly(['kind','title','quizId','courseId','gameId','pin','dueAt','createdAt','note','description','attachments','points','allowLate'])
+          && request.resource.data.kind in ['practice', 'course', 'game', 'assignment'] && str(request.resource.data.title, 120) && str(request.resource.data.get('note', ''), 300)
+          && str(request.resource.data.get('description', ''), 5000)
+          && request.resource.data.get('attachments', []) is list && request.resource.data.get('attachments', []).size() <= 10
+          && (!('points' in request.resource.data) || (request.resource.data.points is int && request.resource.data.points >= 1 && request.resource.data.points <= 1000))
+          && request.resource.data.get('allowLate', true) is bool;
         allow delete: if classOwner(cid);
+      }
+      // tapşırıq təhvili: tələbə öz işini yazır (qiymətə toxunmur), müəllim qiymətləndirir və qaytarır
+      match /submissions/{sid} {
+        function task() { return get(/databases/$(db)/documents/classes/$(cid)/tasks/$(request.resource.data.taskId)).data; }
+        function lateNow() { return task().get('dueAt', null) != null && request.time > task().dueAt; }
+        allow read: if classOwner(cid) || (registered() && resource.data.uid == request.auth.uid);
+        allow delete: if classOwner(cid);
+        allow update: if classOwner(cid) && sid == resource.data.uid + '_' + resource.data.taskId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grade','feedback','gradedAt','status'])
+          && request.resource.data.status in ['returned', 'submitted', 'draft']
+          && (request.resource.data.get('grade', null) == null || (request.resource.data.grade is int && request.resource.data.grade >= 0 && request.resource.data.grade <= task().get('points', 100)))
+          && str(request.resource.data.get('feedback', ''), 5000);
+        allow create, update: if classMember(cid) && sid == request.auth.uid + '_' + request.resource.data.taskId
+          && task().kind == 'assignment'
+          && request.resource.data.keys().hasOnly(['uid','name','taskId','text','files','status','submittedAt','late','grade','feedback','gradedAt','updatedAt'])
+          && request.resource.data.uid == request.auth.uid && str(request.resource.data.name, 80)
+          && str(request.resource.data.get('text', ''), 20000)
+          && request.resource.data.get('files', []) is list && request.resource.data.get('files', []).size() <= 10
+          && request.resource.data.status in ['draft', 'submitted']
+          && (resource == null
+              ? !('grade' in request.resource.data) && !('feedback' in request.resource.data) && !('gradedAt' in request.resource.data)
+              : !request.resource.data.diff(resource.data).affectedKeys().hasAny(['grade','feedback','gradedAt','uid','taskId']))
+          && (request.resource.data.status != 'submitted' || (
+              (!lateNow() || task().get('allowLate', true) == true)
+              && request.resource.data.get('late', false) == lateNow()
+              && request.resource.data.submittedAt == request.time))
+          && request.resource.data.updatedAt == request.time;
       }
       match /results/{rid} {
         allow read: if classOwner(cid) || (registered() && resource.data.uid == request.auth.uid);

@@ -40,6 +40,8 @@ const isNum = (v: J | undefined): v is number => typeof v === 'number'
 const isList = (v: J | undefined): v is J[] => Array.isArray(v)
 const size = (v: J | undefined): number => (isStr(v) ? [...v].length : isList(v) ? v.length : isMap(v) ? Object.keys(v).length : fail())
 const str = (v: J | undefined, n: number) => isStr(v) && size(v) <= n
+/** Fayl istinadı: { id (32 hex), name, size, type } */
+const fileRefOk = (a: J) => isMap(a) && keysOnly(a, ['id', 'name', 'size', 'type']) && isStr(a.id) && /^[a-f0-9]{32}$/.test(a.id) && str(a.name, 140) && isInt(a.size) && str(a.type, 8)
 const ms = (v: J | undefined): number => (isTs(v) ? v.__t : fail())
 const keysOnly = (d: J | undefined, allowed: string[]) => isMap(d) && Object.keys(d).every((k) => allowed.includes(k))
 const keysAny = (d: J | undefined, list: string[]) => isMap(d) && Object.keys(d).some((k) => list.includes(k))
@@ -424,8 +426,43 @@ async function evaluate(c: Ctx): Promise<boolean> {
       if (read) return (await classOwner(cid)) || (await classMember(cid))
       if (op === 'delete') return classOwner(cid)
       const d = nd()
-      return (await classOwner(cid)) && keysOnly(d, ['kind', 'title', 'quizId', 'courseId', 'gameId', 'pin', 'dueAt', 'createdAt', 'note'])
-        && inList(f(d, 'kind'), ['practice', 'course', 'game']) && str(f(d, 'title'), 120) && str(g(d, 'note', ''), 300)
+      const att = g(d, 'attachments', [])
+      return (await classOwner(cid)) && keysOnly(d, ['kind', 'title', 'quizId', 'courseId', 'gameId', 'pin', 'dueAt', 'createdAt', 'note', 'description', 'attachments', 'points', 'allowLate'])
+        && inList(f(d, 'kind'), ['practice', 'course', 'game', 'assignment']) && str(f(d, 'title'), 120) && str(g(d, 'note', ''), 300)
+        && str(g(d, 'description', ''), 5000) && isList(att) && att.length <= 10 && att.every((a) => fileRefOk(a))
+        && (!has(d, 'points') || (isInt(f(d, 'points')) && (f(d, 'points') as number) >= 1 && (f(d, 'points') as number) <= 1000))
+        && typeof g(d, 'allowLate', true) === 'boolean'
+    }
+    // tapşırıq təhvili: tələbə öz işini yazır (qiymətə toxuna bilmir), müəllim qiymətləndirir və qaytarır
+    if (path.length === 4 && sub === 'submissions') {
+      if (read) return (await classOwner(cid)) || (c.registered() && (await ok(() => f(rd(), 'uid') === c.uid)))
+      if (op === 'delete') return classOwner(cid)
+      const d = nd()
+      const task = await c.load(`classes/${cid}/tasks/${f(d, 'taskId')}`)
+      if (!task || f(task, 'kind') !== 'assignment') return false
+      const keys = ['uid', 'name', 'taskId', 'text', 'files', 'status', 'submittedAt', 'late', 'grade', 'feedback', 'gradedAt', 'updatedAt']
+      if (!keysOnly(d, keys) || subId !== `${f(d, 'uid')}_${f(d, 'taskId')}`) return false
+      if (await classOwner(cid)) {
+        // müəllim: yalnız qiymət, rəy və status (qaytarıldı / yenidən açıldı)
+        const grade = g(d, 'grade', null)
+        return op === 'update' && onlyAffected(d, rd(), ['grade', 'feedback', 'gradedAt', 'status'])
+          && inList(f(d, 'status'), ['returned', 'submitted', 'draft'])
+          && (grade === null || (isInt(grade) && (grade as number) >= 0 && (grade as number) <= (g(task, 'points', 100) as number)))
+          && str(g(d, 'feedback', ''), 5000)
+      }
+      if (!(await classMember(cid)) || f(d, 'uid') !== c.uid || !str(f(d, 'name'), 80)) return false
+      const files = g(d, 'files', [])
+      if (!str(g(d, 'text', ''), 20000) || !isList(files) || files.length > 10 || !files.every((a) => fileRefOk(a))) return false
+      if (!inList(f(d, 'status'), ['draft', 'submitted'])) return false
+      if (res && anyAffected(d, rd(), ['grade', 'feedback', 'gradedAt', 'uid', 'taskId'])) return false
+      if (!res && (has(d, 'grade') || has(d, 'feedback') || has(d, 'gradedAt'))) return false
+      const due = g(task, 'dueAt', null)
+      const late = isTs(due) && now > due.__t
+      if (f(d, 'status') === 'submitted') {
+        if (late && g(task, 'allowLate', true) === false) return false
+        if (g(d, 'late', false) !== late || !isReq(f(d, 'submittedAt'), now)) return false
+      }
+      return isReq(f(d, 'updatedAt'), now)
     }
     if (path.length === 4 && sub === 'results') {
       if (read) return (await classOwner(cid)) || (c.registered() && (await ok(() => f(rd(), 'uid') === c.uid)))

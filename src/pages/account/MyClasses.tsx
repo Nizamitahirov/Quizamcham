@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { BookOpen, CalendarClock, CheckCircle2, ClipboardList, Gamepad2, GraduationCap, LogIn, LogOut, Play } from 'lucide-react'
+import { BookOpen, CalendarClock, CheckCircle2, ClipboardList, FileText, Gamepad2, GraduationCap, LogIn, LogOut, Play } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { fmtDate } from '../../lib/format'
-import { joinClass, leaveClass, listTasks, loadClass, myMemberships, myResults, normCode, type ClassResult, type ClassTask, type Membership } from '../../lib/classes'
+import { joinClass, leaveClass, listTasks, loadClass, myMemberships, myResults, mySubmissions, normCode, type ClassResult, type ClassTask, type Membership, type Submission } from '../../lib/classes'
 import { confirmDialog, toast } from '../../components/dialogs'
 import { Progress } from '../../components/kit'
 import { SectionTitle } from '../../components/StudentShell'
 
 const C = t.cls
 const C2 = t.cls2
-const KIND_ICON = { practice: ClipboardList, course: BookOpen, game: Gamepad2 } as const
+const KIND_ICON = { practice: ClipboardList, course: BookOpen, game: Gamepad2, assignment: FileText } as const
 
 /** Tələbə: siniflərim — kodla qoşulma (və ya ?join=KOD linki), tapşırıqlar və öz nəticələri. */
 export function MyClasses({ name, email }: { name: string; email: string }) {
@@ -19,6 +19,7 @@ export function MyClasses({ name, email }: { name: string; email: string }) {
   const [names, setNames] = useState<Record<string, string>>({})
   const [tasks, setTasks] = useState<Record<string, ClassTask[]>>({})
   const [res, setRes] = useState<Record<string, ClassResult[]>>({})
+  const [subs, setSubs] = useState<Record<string, Submission[]>>({})
   const [code, setCode] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -28,6 +29,8 @@ export function MyClasses({ name, email }: { name: string; email: string }) {
     const tk: Record<string, ClassTask[]> = {}, rs: Record<string, ClassResult[]> = {}, nm: Record<string, string> = {}
     await Promise.all(m.map(async (x) => {
       tk[x.classId] = await listTasks(x.classId).catch(() => [])
+      const sb = tk[x.classId].some((y) => y.kind === 'assignment') ? await mySubmissions(x.classId) : []
+      setSubs((p) => ({ ...p, [x.classId]: sb }))
       rs[x.classId] = await myResults(x.classId).catch(() => [])
       nm[x.classId] = (await loadClass(x.classId).catch(() => null))?.name ?? x.className
     }))
@@ -91,23 +94,27 @@ export function MyClasses({ name, email }: { name: string; email: string }) {
                 {list.length === 0 ? <p className="px-5 py-6 text-sm text-muted">{C.noTasks}</p> : (
                   <ul className="divide-y divide-line">
                     {list.map((x) => {
+                      const sub = x.kind === 'assignment' ? (subs[m.classId] ?? []).find((y) => y.taskId === x.id) : undefined
+                      const turned = !!sub && sub.status !== 'draft'
                       const r = mine.find((y) => y.taskId === x.id)
                       const Icon = KIND_ICON[x.kind]
-                      const late = !r && x.dueAt && x.dueAt.toMillis() < Date.now()
-                      const href = x.kind === 'practice' ? `/learn/${x.quizId}?class=${m.classId}&task=${x.id}` : x.kind === 'course' ? `/learn/course/${x.courseId}` : `/join?pin=${x.pin}`
+                      const late = !r && !turned && x.dueAt && x.dueAt.toMillis() < Date.now()
+                      const href = x.kind === 'assignment' ? `/learn/class/${m.classId}/task/${x.id}` : x.kind === 'practice' ? `/learn/${x.quizId}?class=${m.classId}&task=${x.id}` : x.kind === 'course' ? `/learn/course/${x.courseId}` : `/join?pin=${x.pin}`
                       return (
                         <li key={x.id} className="flex items-center gap-3 px-5 py-3">
-                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${r ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300' : 'border-line bg-white/[.03] text-orange-300'}`}>{r ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span>
+                          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${r || turned ? 'border-emerald-500/25 bg-emerald-500/10 text-emerald-300' : 'border-line bg-white/[.03] text-orange-300'}`}>{r || turned ? <CheckCircle2 className="h-4 w-4" /> : <Icon className="h-4 w-4" />}</span>
                           <div className="min-w-0 flex-1">
                             <div className="break-words text-sm font-semibold">{x.title}</div>
                             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
-                              {r ? <span className="chip chip-ok">{C.yourScore(r.pct)}</span>
+                              {sub?.status === 'returned' && sub.grade != null ? <span className="chip chip-ok">{t.asg.gradeShow(sub.grade, x.points ?? 100)}</span>
+                                : turned ? <span className="chip chip-info">{t.asg.status[sub!.late ? 'late' : 'submitted']}</span>
+                                : r ? <span className="chip chip-ok">{C.yourScore(r.pct)}</span>
                                 : late ? <span className="chip chip-bad"><CalendarClock className="h-3 w-3" />{C2.overdue}</span>
                                 : x.dueAt ? <span className="chip chip-muted"><CalendarClock className="h-3 w-3" />{fmtDate(x.dueAt.toDate())}</span> : null}
                               {x.note && <span className="truncate text-muted">{x.note}</span>}
                             </div>
                           </div>
-                          <Link to={href} className={`btn btn-sm ${r ? 'btn-secondary' : 'btn-primary'}`}><Play className="fill-current" />{x.kind === 'course' ? C.openCourse : x.kind === 'game' ? C.openGame : r ? t.acct.again : C.start}</Link>
+                          <Link to={href} className={`btn btn-sm ${r || turned ? 'btn-secondary' : 'btn-primary'}`}>{x.kind === 'assignment' ? <><FileText />{t.asg.open}</> : <><Play className="fill-current" />{x.kind === 'course' ? C.openCourse : x.kind === 'game' ? C.openGame : r ? t.acct.again : C.start}</>}</Link>
                         </li>
                       )
                     })}
