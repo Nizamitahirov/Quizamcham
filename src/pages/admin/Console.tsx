@@ -1,4 +1,4 @@
-import { confirmDialog, alertDialog } from '../../components/dialogs'
+import { confirmDialog, alertDialog, toast } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Award, Eye, EyeOff, MoreHorizontal, Trash2, BellRing, BookOpen, Briefcase, ChevronDown, Copy, Coins, Rocket, CalendarClock, Clock, Download, GraduationCap, Hourglass, Inbox, Mail, MessageCircle, Phone, RefreshCw, Save, Search, ShieldCheck, Tag, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { t } from '../../i18n/az'
@@ -10,7 +10,8 @@ import {
   approveCatalog, convertToTrainer, extendTrial, grantLicense, hideCatalog, listReports, loadConsole, loadPricing, revokeLicense, savePricing, setLeadStatus, unpublish,
   type ConsoleData, type QuizReport, type LicenseInput, type LeadStatus, type LicenseRecord, type PricePlan,
 } from '../../lib/account'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useOutletContext } from 'react-router-dom'
+import type { AdminState } from '../../firebase/auth'
 import { PageHeader, Spinner } from '../../components/ui'
 import { DropMenu, Section, Segmented } from '../../components/kit'
 
@@ -29,6 +30,7 @@ interface Row {
 }
 
 export default function Console() {
+  const admin = useOutletContext<AdminState>()
   const [data, setData] = useState<ConsoleData | null>(null)
   const [err, setErr] = useState('')
   const load = useCallback(() => { setErr(''); void loadConsole().then(setData).catch((e) => { setErr(String((e as { code?: string }).code ?? e)); setData(null) }) }, [])
@@ -91,6 +93,7 @@ export default function Console() {
   return (
     <div className="mx-auto max-w-[1440px] p-4 sm:p-8">
       <PageHeader title={C.title} sub={C.sub}>
+        {admin.role === 'super' && <MailTestButton />}
         <button className="btn btn-secondary" onClick={load}><RefreshCw />{C.refresh}</button>
         <button className="btn btn-secondary" onClick={() => exportCsv()} disabled={!rows.length}><Download />{C.exportCsv}</button>
         <button className="btn btn-primary" onClick={() => exportCsv(true)} disabled={!rows.length}><Download />Excel</button>
@@ -485,4 +488,18 @@ function PricingEditor() {
       </div>
     </Section>
   )
+}
+
+/** Super admin: e-poçt quraşdırmasını yoxlamaq üçün öz ünvanına test məktubu. */
+function MailTestButton() {
+  const [busy, setBusy] = useState(false)
+  const run = async () => {
+    setBusy(true)
+    try {
+      const { mailTest } = await import('../../lib/ai')
+      const r = await mailTest()
+      if (r.sent) toast(t.mailTest.ok(r.to)); else toast(t.mailTest.fail(r.error || `HTTP ${r.status}`), 'error')
+    } catch (e) { toast(t.mailTest.fail((e as Error).message), 'error') } finally { setBusy(false) }
+  }
+  return <button className="btn btn-secondary" disabled={busy} onClick={() => void run()}><Mail className={busy ? 'animate-pulse' : ''} />{t.mailTest.btn}</button>
 }
