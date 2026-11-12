@@ -3,9 +3,10 @@ import { fmtDateTime } from '../../lib/format'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { Timestamp } from 'firebase/firestore'
-import { ArrowRight, Bot, Gamepad2, ListChecks, Plus, QrCode, Target, Users, Sparkles } from 'lucide-react'
+import { ArrowRight, Copy, Link2, Bot, Gamepad2, ListChecks, Plus, QrCode, Target, Users, Sparkles } from 'lucide-react'
 import { createQuiz, listGames, listQuizzes, parseQuizJson } from '../../firebase/db'
 import { t } from '../../i18n/az'
+import { toast } from '../../components/dialogs'
 import { Spinner } from '../../components/ui'
 import { QRDownload } from '../../components/QRBlock'
 import { AiImport } from '../../components/AiImport'
@@ -123,7 +124,11 @@ export default function Dashboard() {
             <h2 className="mb-1 flex items-center gap-2 text-lg font-bold"><QrCode className="h-5 w-5 text-brand" />{t.admin.permanentQr}</h2>
             <p className="mb-3 text-sm text-muted">{t.admin.permanentQrHint}</p>
 
-            <code className="mb-3 block truncate rounded-lg bg-surface px-3 py-2 text-sm">{`${window.location.origin}/play?t=${user?.uid}`}</code>
+            <div className="mb-3 flex items-center gap-2 rounded-xl border border-line bg-white/[.03] py-1.5 pl-3 pr-1.5">
+              <Link2 className="h-4 w-4 shrink-0 text-muted" />
+              <span className="min-w-0 flex-1 truncate text-sm text-fg2">{window.location.host}/play</span>
+              <button className="btn btn-ghost-dark btn-sm" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}/play?t=${user?.uid}`).then(() => toast(t.cls2.copiedLink), () => {})}><Copy />{t.cls.copy}</button>
+            </div>
             <QRDownload url={`${window.location.origin}/play?t=${user?.uid}`} filename="jabr-play-qr.png" label={t.admin.downloadQr} className="btn btn-primary w-full" />
           </div>
         </section>

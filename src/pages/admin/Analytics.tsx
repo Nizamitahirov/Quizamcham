@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { fmtDayMonth } from '../../lib/format'
 import type { Timestamp } from 'firebase/firestore'
-import { BarChart3, Brain, Gamepad2, Target, Trophy, Users } from 'lucide-react'
+import { BarChart3, Brain, Gamepad2, Play, Target, Trophy, Users } from 'lucide-react'
 import { listGames } from '../../firebase/db'
-import { useOutletContext } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import { orgGamesScope, scopeUid, visibleGames } from '../../lib/access'
 import type { AdminState } from '../../firebase/auth'
 import { LOCALE, t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
-import { Section } from '../../components/kit'
+import { EmptyState, Section } from '../../components/kit'
 import type { GameStats, LeaderEntry } from '../../types'
 
 type G = { id: string; hostUid?: string; title?: string; quizId?: string; phase?: string; playerCount?: number; createdAt?: Timestamp; stats?: GameStats | null; leaderboard?: LeaderEntry[] }
@@ -67,7 +67,7 @@ export default function Analytics() {
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">
       <PageHeader title={A.title} sub={A.sub} />
-      {data.count === 0 ? <p className="card p-8 text-center text-muted">{A.empty}</p> : (
+      {data.count === 0 ? <EmptyState icon={BarChart3} title={A.empty} action={<Link to="/admin/quizzes" className="btn btn-primary btn-sm"><Play className="fill-current" />{t.admin.launch}</Link>} /> : (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {kpis.map((k) => (

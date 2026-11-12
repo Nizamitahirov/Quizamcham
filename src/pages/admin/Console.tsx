@@ -1,6 +1,6 @@
 import { confirmDialog, alertDialog } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Award, BellRing, BookOpen, Briefcase, ChevronDown, Copy, Coins, Rocket, CalendarClock, Clock, Download, GraduationCap, Hourglass, Inbox, Mail, MessageCircle, Phone, RefreshCw, Save, Search, ShieldCheck, Tag, TrendingUp, UserPlus, Users } from 'lucide-react'
+import { Award, Eye, EyeOff, MoreHorizontal, Trash2, BellRing, BookOpen, Briefcase, ChevronDown, Copy, Coins, Rocket, CalendarClock, Clock, Download, GraduationCap, Hourglass, Inbox, Mail, MessageCircle, Phone, RefreshCw, Save, Search, ShieldCheck, Tag, TrendingUp, UserPlus, Users } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { fmtDate, fmtDateTime, fmtDayMonth } from '../../lib/format'
 import { toCsv, download } from '../../lib/csv'
@@ -10,9 +10,9 @@ import {
   approveCatalog, convertToTrainer, extendTrial, grantLicense, hideCatalog, listReports, loadConsole, loadPricing, revokeLicense, savePricing, setLeadStatus, unpublish,
   type ConsoleData, type QuizReport, type LicenseInput, type LeadStatus, type LicenseRecord, type PricePlan,
 } from '../../lib/account'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { PageHeader, Spinner } from '../../components/ui'
-import { Section, Segmented } from '../../components/kit'
+import { DropMenu, Section, Segmented } from '../../components/kit'
 
 const C = t.acct.console
 const A = t.acct
@@ -128,7 +128,7 @@ export default function Console() {
 
       <UsersTable rows={rows} reload={load} />
 
-      <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <Leads data={data} reload={load} />
         <div className="flex flex-col gap-4">
           <CatalogStats data={data} reload={load} />
@@ -431,26 +431,31 @@ function CatalogStats({ data, reload }: { data: ConsoleData; reload: () => void 
     return { c, n: at.length, avg, rep, flagged }
   }).sort((a, b) => Number(b.flagged) - Number(a.flagged) || b.n - a.n)
   const queue = stats.filter((x) => x.flagged).length
+  const nav = useNavigate()
   return (
     <Section icon={BookOpen} title={`${C.catalogTitle} · ${data.catalog.length}${queue ? ` · ${M.queue}: ${queue}` : ''}`} sub={C.catalogSub} bodyClassName="p-0">
       {stats.length === 0 ? <p className="p-5 text-sm text-muted">{A.emptyCatalog}</p> : (
         <ul className="divide-y divide-line">
           {stats.map(({ c, n, avg, rep, flagged }) => (
-            <li key={c.id} className={`flex flex-wrap items-center gap-3 px-5 py-3 text-sm ${flagged ? 'bg-amber-500/[.06]' : ''}`}>
-              <span className="text-xl">{c.coverEmoji ?? '🎯'}</span>
+            <li key={c.id} className={`flex items-start gap-3 px-5 py-3.5 text-sm ${flagged ? 'bg-amber-500/[.06]' : ''}`}>
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line bg-white/[.03] text-lg">{c.coverEmoji ?? '🎯'}</span>
               <div className="min-w-0 flex-1">
-                <div className="truncate font-semibold">{c.title}</div>
+                <div className="line-clamp-2 font-semibold">{c.title}</div>
                 <div className="text-xs text-muted">{c.author ? `${c.author} · ` : ''}{C.plays(n)} · {C.avgScore(avg)}</div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {c.hidden && <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-300">{c.hiddenReason === 'reports' ? M.autoHidden : M.hidden}</span>}
-                  {c.status === 'review' && <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-300">{M.review}</span>}
-                  {rep.length > 0 && <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs font-semibold" title={rep.map((r) => M.reasons[r.reason] + (r.note ? `: ${r.note}` : '')).join('\n')}>{M.reports(rep.length)} · {[...new Set(rep.map((r) => M.reasons[r.reason]))].join(', ')}</span>}
-                </div>
+                {(c.hidden || c.status === 'review' || rep.length > 0) && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {c.hidden && <span className="chip chip-bad">{c.hiddenReason === 'reports' ? M.autoHidden : M.hidden}</span>}
+                    {c.status === 'review' && <span className="chip chip-warn">{M.review}</span>}
+                    {rep.length > 0 && <span className="chip chip-muted" title={rep.map((r) => M.reasons[r.reason] + (r.note ? `: ${r.note}` : '')).join('\n')}>{M.reports(rep.length)} · {[...new Set(rep.map((r) => M.reasons[r.reason]))].join(', ')}</span>}
+                  </div>
+                )}
+                {flagged && <button className="btn btn-secondary btn-sm mt-2 text-emerald-300" disabled={busy === c.id} onClick={() => act(c.id, () => approveCatalog(c.id, reports))}>{c.hidden ? M.restore : M.approve}</button>}
               </div>
-              <Link to={`/learn/${c.id}`} className="btn btn-ghost-dark btn-sm">{A.toCatalog}</Link>
-              {flagged && <button className="btn btn-secondary btn-sm text-green-300" disabled={busy === c.id} onClick={() => act(c.id, () => approveCatalog(c.id, reports))}>{c.hidden ? M.restore : M.approve}</button>}
-              {!c.hidden && <button className="btn btn-ghost-dark btn-sm" disabled={busy === c.id} onClick={() => act(c.id, () => hideCatalog(c.id))}>{M.hide}</button>}
-              <button className="btn btn-ghost-dark btn-sm text-red-300" disabled={busy === c.id} onClick={async () => { if ((await confirmDialog({ title: `${A.unpublish}?`, danger: true }))) act(c.id, () => unpublish(c.id)) }}>{A.unpublish}</button>
+              <DropMenu label={t.ql.more} items={[
+                { label: A.toCatalog, icon: Eye, onClick: () => nav(`/learn/${c.id}`) },
+                { label: M.hide, icon: EyeOff, hidden: !!c.hidden, onClick: () => act(c.id, () => hideCatalog(c.id)) },
+                { label: A.unpublish, icon: Trash2, danger: true, onClick: async () => { if (await confirmDialog({ title: `${A.unpublish}?`, danger: true })) act(c.id, () => unpublish(c.id)) } },
+              ]}><MoreHorizontal /></DropMenu>
             </li>
           ))}
         </ul>

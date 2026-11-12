@@ -19,7 +19,7 @@ export default function Privacy() {
   return (
     <div className="noise relative min-h-dvh overflow-hidden bg-night text-white print:bg-panel print:text-black">
       <FuturisticBg floor={false} intensity={0.5} />
-      <header className="relative z-10 mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-6 print:hidden">
+      <header className="relative z-30 mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-6 print:hidden">
         <Link to="/" aria-label={t.app.home}><Logo size={32} /></Link>
         <LangSwitch />
       </header>

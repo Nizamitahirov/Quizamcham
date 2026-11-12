@@ -153,18 +153,18 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
           </>
         )}
       </div>
-      {q.type !== 'fill' && <h2 className="font-display text-center text-2xl font-black leading-snug">{q.text}</h2>}
+      {q.type !== 'fill' && <h2 className="font-display text-center text-2xl font-black leading-snug lg:mt-[8vh] lg:text-3xl">{q.text}</h2>}
       {q.imageUrl && q.type !== 'hotspot' && <img src={q.imageUrl} alt="" className="mx-auto max-h-48 rounded-2xl object-contain" />}
 
       {q.type === 'slide' ? (
-        <div className="mt-auto flex flex-col gap-4 text-center">
+        <div className="mt-auto flex flex-col gap-4 text-center lg:mt-10">
           {q.explanation && <p className="text-lg text-white/80">{q.explanation}</p>}
           <button className="btn btn-primary btn-lg" onClick={next}>{A.nextQ}<ArrowRight /></button>
         </div>
       ) : !answered ? (
-        <div className="mt-auto"><QuestionInput q={pub} uid={uid} disabled={false} onSubmit={(v) => submit(v)} /></div>
+        <div className="mt-auto lg:mt-10"><QuestionInput q={pub} uid={uid} disabled={false} onSubmit={(v) => submit(v)} /></div>
       ) : (
-        <div className="mt-auto flex flex-col gap-3">
+        <div className="mt-auto flex flex-col gap-3 lg:mt-10">
           <div className={`flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xl font-black ${answered.correct ? 'bg-green-500/20 text-green-200' : 'bg-red-500/20 text-red-200'}`} role="status">
             {answered.correct ? <CheckCircle2 /> : <XCircle />}{answered.timedOut ? A.timeUp : answered.correct ? A.correct : A.wrong}
             {answered.points > 0 && <span className="ml-2 text-base">+{answered.points}</span>}

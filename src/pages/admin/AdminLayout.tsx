@@ -5,13 +5,12 @@ import { ForcePasswordChange } from '../../components/ForcePasswordChange'
 import type { PermKey } from '../../lib/roles'
 import { useEffect, useState } from 'react'
 import { loadProfile } from '../../firebase/db'
-import { Avatar } from '../../components/Avatar'
 import type { TrainerProfile } from '../../types'
 import { logout, useAdmin, type AdminState } from '../../firebase/auth'
 import { LOCALE, t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
 import { Logo } from '../../components/Brand'
-import { LangSwitch } from '../../components/LangSwitch'
+import { AccountMenu, type MenuLink } from '../../components/AccountMenu'
 
 type NavItem = { to: string; end?: boolean; icon: typeof Settings; label: string; perm?: PermKey }
 const GROUPS: { label: string; items: NavItem[] }[] = [
@@ -74,20 +73,16 @@ function PlanCard({ admin }: { admin: AdminState }) {
   )
 }
 
-function UserBox({ admin, prof }: { admin: AdminState; prof: TrainerProfile | null }) {
+function useAdminMenu(admin: AdminState, prof: TrainerProfile | null) {
   const email = admin.user?.email ?? ''
-  return (
-    <div className="flex items-center gap-2 rounded-xl border border-line bg-white/[.02] p-2">
-      <NavLink to="/admin/profile" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 hover:bg-white/[.04]">
-        {prof?.photoUrl ? <img src={prof.photoUrl} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" /> : prof?.avatar ? <Avatar avatar={prof.avatar} size={32} /> : <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: 'var(--grad)' }}>{email[0]?.toUpperCase()}</span>}
-        <span className="min-w-0">
-          <span className="block truncate text-[13px] font-semibold">{prof?.name || email.split('@')[0]}</span>
-          <span className="block truncate text-[11px] text-muted">{prof?.title || email}</span>
-        </span>
-      </NavLink>
-      <button className="btn btn-ghost-dark btn-icon btn-sm" onClick={() => void logout()} aria-label={t.admin.logout} title={t.admin.logout}><LogOut className="h-4 w-4" /></button>
-    </div>
-  )
+  const role = admin.role === 'super' ? t.team.super : admin.role === 'admin' ? t.team.admin : t.team.trainer
+  const links: MenuLink[] = [
+    { to: '/admin/profile', label: t.menu.profile, icon: UserRound },
+    { to: '/avatar', label: t.menu.avatar, icon: Sparkles, hint: '3D' },
+    { to: '/learn', label: t.menu.learn, icon: BookOpen },
+    ...(admin.plan.selfServe && admin.org.role !== 'member' ? [{ to: '/account', label: t.acct.myAccount, icon: Settings }] : []),
+  ]
+  return { name: prof?.name || admin.user?.displayName || email.split('@')[0], email, photo: prof?.photoUrl || admin.user?.photoURL || null, badge: admin.plan.selfServe ? `${role} · ${t.acct.plans[admin.plan.tier]?.title ?? ''}` : role, links }
 }
 
 export default function AdminLayout() {
@@ -99,6 +94,7 @@ export default function AdminLayout() {
   useEffect(() => { if (uid) void loadProfile(uid).then(setProf) }, [uid])
   useEffect(() => { setSheet(false) }, [loc.pathname])
   const groups = useNav(admin)
+  const menu = useAdminMenu(admin, prof)
   if (admin.loading) return <div className="bg-app flex min-h-dvh items-center justify-center"><Spinner /></div>
   if (admin.disabled) {
     return (
@@ -126,15 +122,13 @@ export default function AdminLayout() {
         </nav>
         <div className="px-0 pt-3">
           <PlanCard admin={admin} />
-          <div className="mb-3 flex justify-center"><LangSwitch /></div>
-          <UserBox admin={admin} prof={prof} />
+          <AccountMenu uid={uid} {...menu} wide placement="up" />
         </div>
       </aside>
 
       <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-[#0B0C19]/85 px-4 py-2.5 backdrop-blur-xl lg:hidden">
         <Link to="/admin"><Logo size={26} dark /></Link>
-        <LangSwitch className="ml-auto" />
-        <button className="btn btn-ghost-dark btn-icon btn-sm" onClick={() => void logout()} aria-label={t.admin.logout}><LogOut className="h-4 w-4" /></button>
+        <div className="ml-auto"><AccountMenu uid={uid} {...menu} compact /></div>
       </header>
 
       <div className="pb-24 lg:pb-0 lg:pl-64">
@@ -173,7 +167,6 @@ export default function AdminLayout() {
                 </div>
               ))}
               <PlanCard admin={admin} />
-              <UserBox admin={admin} prof={prof} />
             </motion.div>
           </motion.div>
         )}

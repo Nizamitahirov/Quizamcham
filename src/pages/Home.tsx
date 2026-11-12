@@ -4,7 +4,9 @@ import { motion } from 'framer-motion'
 import { ArrowRight, Radio, Shield, Trophy, Zap, QrCode, Presentation, GraduationCap, Building2 } from 'lucide-react'
 import { t } from '../i18n/az'
 import { Logo } from '../components/Brand'
-import { CONTACT } from '../lib/account'
+import { CONTACT, useAccount } from '../lib/account'
+import { AccountMenu } from '../components/AccountMenu'
+import { useAccountLinks } from '../components/StudentShell'
 import { LangSwitch } from '../components/LangSwitch'
 import { FuturisticBg } from '../components/FuturisticBg'
 import { TILE_HEX, Shape } from '../components/AnswerTile'
@@ -18,17 +20,24 @@ const FEATURES = [
 export default function Home() {
   const nav = useNavigate()
   const [pin, setPin] = useState('')
+  const { user, profile } = useAccount()
+  const links = useAccountLinks()
+  const signedIn = !!user && !user.isAnonymous
+  const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : user?.displayName || user?.email?.split('@')[0] || ''
   const go = (e: React.FormEvent) => { e.preventDefault(); nav(pin.length === 6 ? `/join?pin=${pin}` : '/join') }
   return (
     <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night">
       <FuturisticBg />
-      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
+      <header className="relative z-30 mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <Logo size={38} />
-        <div className="flex items-center gap-2">
-          <LangSwitch />
-          <Link to="/pricing" className="btn btn-ghost btn-sm hidden md:inline-flex">{t.acct.pricingTitle}</Link>
-          <Link to="/start" className="btn btn-primary btn-sm whitespace-nowrap">{t.acct.signIn}<span className="hidden sm:inline"> / {t.acct.signUp}</span><ArrowRight /></Link>
-        </div>
+        <nav className="flex items-center gap-1.5 sm:gap-2" aria-label={t.menu.account}>
+          <Link to="/pricing" className="btn btn-ghost-dark btn-sm hidden md:inline-flex">{t.acct.pricingTitle}</Link>
+          {signedIn ? <AccountMenu uid={user!.uid} name={name} email={user!.email} photo={user!.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} /> : <>
+            <LangSwitch />
+            <Link to="/start" className="btn btn-ghost-dark btn-sm hidden sm:inline-flex">{t.acct.signIn}</Link>
+            <Link to="/start" className="btn btn-primary btn-sm whitespace-nowrap">{t.acct.signUp}<ArrowRight /></Link>
+          </>}
+        </nav>
       </header>
 
       <main className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 items-center gap-10 px-4 pb-10 sm:px-6 lg:grid-cols-[1.1fr_.9fr]">
