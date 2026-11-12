@@ -261,6 +261,20 @@ async function evaluate(c: Ctx): Promise<boolean> {
       return false
     }
   }
+  if (col === 'qr' && path.length === 2) {
+    if (op === 'get') return c.signedIn()
+    if (op === 'list' || !(await c.isAdmin())) return false
+    if (op === 'delete') return f(rd(), 'ownerUid') === c.uid || (await c.can('settings'))
+    const d = nd()
+    if (!keysOnly(d, ['ownerUid', 'activeGameId', 'pin', 'updatedAt'])) return false
+    if (op === 'create') return id.length === 8 && f(d, 'ownerUid') === c.uid
+    return f(rd(), 'ownerUid') === c.uid && f(d, 'ownerUid') === f(rd(), 'ownerUid')
+  }
+  if (col === 'qrOwners' && path.length === 2) {
+    if (!(await c.isAdmin()) || c.uid !== id) return false
+    if (read || op === 'delete') return true
+    return keysOnly(nd(), ['code', 'legacyOff', 'updatedAt'])
+  }
   if (col === 'sounds' && path.length === 2) {
     if (op === 'get') return c.signedIn()
     if (op === 'list') return c.isAdmin()

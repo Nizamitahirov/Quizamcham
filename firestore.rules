@@ -203,6 +203,20 @@ service cloud.firestore {
         || (!(doc in ['access', 'pricing']) && (can('settings') || (isAdmin() && ((doc == 'current' && !selfServe()) || doc == 'play_' + request.auth.uid))));
     }
 
+    // Təlimçinin daimi QR-ı: qr/{kod} → aktiv oyun (QR-da uid görünmür); qrOwners/{uid} → kod (yalnız sahib oxuyur)
+    match /qr/{code} {
+      allow get: if signedIn();
+      allow create: if isAdmin() && code.size() == 8 && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'activeGameId', 'pin', 'updatedAt']);
+      allow update: if isAdmin() && resource.data.ownerUid == request.auth.uid && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.keys().hasOnly(['ownerUid', 'activeGameId', 'pin', 'updatedAt']);
+      allow delete: if isAdmin() && (resource.data.ownerUid == request.auth.uid || can('settings'));
+    }
+    match /qrOwners/{uid} {
+      allow read: if isAdmin() && request.auth.uid == uid;
+      allow write: if isAdmin() && request.auth.uid == uid && (request.resource == null || request.resource.data.keys().hasOnly(['code', 'legacyOff', 'updatedAt']));
+    }
+
     match /sounds/{doc} {            // düz/səhv cavab səs parçaları (yalnız sahib dəyişir)
       allow get: if signedIn();
       allow list: if isAdmin();

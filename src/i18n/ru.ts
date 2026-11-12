@@ -522,6 +522,10 @@ export const ru: Dict = {app: { name: 'Jabr', tagline: 'Живой интера�
     streak: (n: number) => `Ваша серия из ${n} дн. под угрозой`, streakBody: 'Пройдите квиз сегодня, чтобы сохранить её', badge: (b: string) => `Новый значок: ${b}`, badgeBody: 'Поздравляем! Все значки — на странице обучения',
     avatarTip: 'Создайте свой 3D-аватар', avatarTipBody: 'Он появится в играх и в профиле',
   },
+  qr2: {
+    hint: 'Этот QR всегда ведёт на вашу текущую открытую игру — распечатайте один раз или добавьте на слайд.', liveNow: (pin: string) => `Сейчас: ведёт на игру PIN ${pin}`, idle: 'Сейчас открытой игры нет — QR покажет «игры нет»',
+    reset: 'Обновить QR', resetTitle: 'Обновить QR?', resetBody: 'Будет создан новый код. Старый напечатанный QR и старые ссылки сразу перестанут работать.', resetDone: 'Новый QR готов — старый отключён',
+  },
   shell: { content: 'Контент', teaching: 'Обучение', manage: 'Управление', more: 'Ещё', plan: 'План', upgrade: 'Улучшить', menu: 'Меню' },
   dlg: { ok: 'Подтвердить', cancel: 'Отмена', save: 'Сохранить', delete: 'Удалить' },
   premium: { requires: (p: string) => `${p} plan`, locked: (p: string) => `Available on the ${p} plan and above.`, upgrade: 'Обновить план', yourPlan: 'Ваш план' },

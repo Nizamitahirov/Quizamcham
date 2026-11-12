@@ -3,10 +3,11 @@ import { fmtDateTime } from '../../lib/format'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { Timestamp } from 'firebase/firestore'
-import { ArrowRight, Copy, Link2, Bot, Gamepad2, ListChecks, Plus, QrCode, Target, Users, Sparkles } from 'lucide-react'
+import { ArrowRight, Copy, Link2, RefreshCw, Bot, Gamepad2, ListChecks, Plus, QrCode, Target, Users, Sparkles } from 'lucide-react'
 import { createQuiz, listGames, listQuizzes, loadProfile, parseQuizJson } from '../../firebase/db'
 import { t } from '../../i18n/az'
-import { toast } from '../../components/dialogs'
+import { confirmDialog, toast } from '../../components/dialogs'
+import { getMyQr, qrUrl, rotate, type MyQr } from '../../lib/permQr'
 import { Spinner } from '../../components/ui'
 import { QRDownload } from '../../components/QRBlock'
 import { AiImport } from '../../components/AiImport'
@@ -122,21 +123,44 @@ export default function Dashboard() {
               <Link className="btn btn-secondary justify-start" to="/admin/quizzes"><ListChecks className="text-brand" />{t.admin.quizzes}</Link>
             </div>
           </div>
-          <div className="card p-5">
-            <h2 className="mb-1 flex items-center gap-2 text-lg font-bold"><QrCode className="h-5 w-5 text-brand" />{t.admin.permanentQr}</h2>
-            <p className="mb-3 text-sm text-muted">{t.admin.permanentQrHint}</p>
-
-            <div className="mb-3 flex items-center gap-2 rounded-xl border border-line bg-white/[.03] py-1.5 pl-3 pr-1.5">
-              <Link2 className="h-4 w-4 shrink-0 text-muted" />
-              <span className="min-w-0 flex-1 truncate text-sm text-fg2">{window.location.host}/play</span>
-              <button className="btn btn-ghost-dark btn-sm" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}/play?t=${user?.uid}`).then(() => toast(t.cls2.copiedLink), () => {})}><Copy />{t.cls.copy}</button>
-            </div>
-            <QRDownload url={`${window.location.origin}/play?t=${user?.uid}`} filename="jabr-play-qr.png" label={t.admin.downloadQr} className="btn btn-primary w-full" />
-          </div>
+          {user?.uid && <PermanentQr uid={user.uid} />}
         </section>
       </div>
       <AiImport open={ai} onClose={() => setAi(false)} onImport={importData} />
       <TemplateGallery open={tpl} onClose={() => setTpl(false)} onPick={async (raw) => { if (raw) await importData(raw); else nav(`/admin/quiz/${await createQuiz(user!.uid, { title: t.admin.untitled })}`) }} />
+    </div>
+  )
+}
+
+/** Təlimçinin daimi QR-ı: qısa kod linki, hazırda hara apardığı, PNG və "yenilə" (köhnəni ləğv et). */
+function PermanentQr({ uid }: { uid: string }) {
+  const [qr, setQr] = useState<MyQr | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { void getMyQr(uid).then(setQr).catch(() => setQr(null)) }, [uid])
+  const url = qr ? qrUrl(qr.code) : ''
+  const reset = async () => {
+    if (!(await confirmDialog({ title: t.qr2.resetTitle, body: t.qr2.resetBody, danger: true, ok: t.qr2.reset }))) return
+    setBusy(true)
+    try { setQr(await rotate(uid, true)); toast(t.qr2.resetDone) } catch { toast(t.app.error, 'error') } finally { setBusy(false) }
+  }
+  return (
+    <div className="card p-5">
+      <h2 className="mb-1 flex items-center gap-2 text-lg font-bold"><QrCode className="h-5 w-5 text-brand" />{t.admin.permanentQr.replace(/\s*\(\/play\)/, '')}</h2>
+      <p className="mb-3 text-sm text-muted">{t.qr2.hint}</p>
+      {!qr ? <div className="skeleton h-24" /> : <>
+        <p className={`mb-3 flex items-center gap-2 text-xs font-medium ${qr.pin ? 'text-emerald-300' : 'text-muted'}`}>
+          <span className={`h-2 w-2 rounded-full ${qr.pin ? 'bg-emerald-400' : 'bg-white/25'}`} />{qr.pin ? t.qr2.liveNow(qr.pin) : t.qr2.idle}
+        </p>
+        <div className="mb-3 flex items-center gap-2 rounded-xl border border-line bg-white/[.03] py-1.5 pl-3 pr-1.5">
+          <Link2 className="h-4 w-4 shrink-0 text-muted" />
+          <span className="min-w-0 flex-1 truncate font-mono text-sm text-fg2">{url.replace(/^https?:\/\//, '')}</span>
+          <button className="btn btn-ghost-dark btn-sm" onClick={() => void navigator.clipboard.writeText(url).then(() => toast(t.cls2.copiedLink), () => {})}><Copy />{t.cls.copy}</button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <QRDownload url={url} filename={`jabr-qr-${qr.code}.png`} label={t.admin.downloadQr} className="btn btn-primary flex-1" />
+          <button className="btn btn-ghost-dark" disabled={busy} onClick={() => void reset()}><RefreshCw className={busy ? 'animate-spin' : ''} />{t.qr2.reset}</button>
+        </div>
+      </>}
     </div>
   )
 }

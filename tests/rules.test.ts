@@ -793,3 +793,24 @@ describe('oyunda 3D avatar', () => {
     await assertSucceeds(updateDoc(doc(as(P1), 'games', 'g1', 'players', P1), { avatar: { style: 'fun-emoji', seed: 'y' } }))
   })
 })
+
+describe('daimi QR (qr/{kod}, qrOwners/{uid})', () => {
+  const ptr = (owner: string, extra = {}) => ({ ownerUid: owner, activeGameId: 'g1', pin: '123456', updatedAt: serverTimestamp(), ...extra })
+  it('təlimçi öz kodunu yaradır; başqası yönləndirə/silə bilmir; oyunçu oxuyur, siyahı yox; sahib qeydi gizlidir', async () => {
+    await assertFails(setDoc(doc(as(P1), 'qr', 'ABCD2345'), ptr(P1)))                    // oyunçu (admin deyil)
+    await assertFails(setDoc(doc(as(TRAINER), 'qr', 'ABCD2345'), ptr(TRAINER2)))         // başqasının adına
+    await assertFails(setDoc(doc(as(TRAINER), 'qr', 'SHORT'), ptr(TRAINER)))              // kod 8 simvol olmalıdır
+    await assertSucceeds(setDoc(doc(as(TRAINER), 'qr', 'ABCD2345'), ptr(TRAINER)))
+    await assertFails(setDoc(doc(as(TRAINER2), 'qr', 'ABCD2345'), ptr(TRAINER2, { pin: '999999' })))
+    await assertFails(updateDoc(doc(as(TRAINER2), 'qr', 'ABCD2345'), { pin: '999999' }))
+    await assertFails(deleteDoc(doc(as(TRAINER2), 'qr', 'ABCD2345')))
+    await assertSucceeds(getDoc(doc(as(P1), 'qr', 'ABCD2345')))
+    await assertFails(getDocs(collection(as(P1), 'qr')))
+    await assertSucceeds(updateDoc(doc(as(TRAINER), 'qr', 'ABCD2345'), { pin: null, activeGameId: null }))
+    await assertSucceeds(setDoc(doc(as(TRAINER), 'qrOwners', TRAINER), { code: 'ABCD2345', legacyOff: true, updatedAt: serverTimestamp() }))
+    await assertFails(getDoc(doc(as(TRAINER2), 'qrOwners', TRAINER)))
+    await assertFails(getDoc(doc(as(P1), 'qrOwners', TRAINER)))
+    await assertFails(setDoc(doc(as(TRAINER2), 'qrOwners', TRAINER), { code: 'ZZZZ2345', legacyOff: false, updatedAt: serverTimestamp() }))
+    await assertSucceeds(deleteDoc(doc(as(TRAINER), 'qr', 'ABCD2345')))
+  })
+})
