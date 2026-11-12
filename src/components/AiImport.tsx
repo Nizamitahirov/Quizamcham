@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Check, ClipboardCopy, FileText, Loader2, Sparkles, Upload, Wand2 } from 'lucide-react'
+import { AlertTriangle, Check, ClipboardCopy, FileText, Loader2, Minus, Plus, Sparkles, Upload, Wand2 } from 'lucide-react'
 import { currentLang, t } from '../i18n/az'
 import { buildAiPrompt } from '../lib/aiPrompt'
 import { aiGenerate, aiQuota, AiError, type AiLang, type AiQuota } from '../lib/ai'
 import { fileToText, MAX_TEXT } from '../lib/fileText'
 import { Modal } from './ui'
+import { Segmented } from './kit'
 
 type Tab = 'material' | 'topic' | 'json'
 const TYPES = ['single', 'multi', 'truefalse', 'type'] as const
@@ -22,6 +23,11 @@ export function AiImport({ open, onClose, onImport }: { open: boolean; onClose: 
   const [fileName, setFileName] = useState('')
   const [count, setCount] = useState(10)
   const [level, setLevel] = useState<'easy' | 'medium' | 'hard'>('medium')
+  const [mixed, setMixed] = useState(false)
+  const [mix, setMix] = useState<Record<'easy' | 'medium' | 'hard', number>>({ easy: 5, medium: 3, hard: 2 })
+  const [ordered, setOrdered] = useState(true)
+  const [timeByLevel, setTimeByLevel] = useState(true)
+  const mixTotal = mix.easy + mix.medium + mix.hard
   const [lang, setLang] = useState<AiLang>(currentLang() as AiLang)
   const [types, setTypes] = useState<string[]>(['single', 'truefalse'])
   const [quota, setQuota] = useState<AiQuota | null>(null)
@@ -46,7 +52,7 @@ export function AiImport({ open, onClose, onImport }: { open: boolean; onClose: 
   const generate = async () => {
     setErr(''); setBusy(true)
     try {
-      const r = await aiGenerate({ topic: tab === 'topic' ? topic : topic || undefined, text: tab === 'material' ? text : undefined, count, lang, level, types })
+      const r = await aiGenerate({ topic: tab === 'topic' ? topic : topic || undefined, text: tab === 'material' ? text : undefined, count: mixed ? mixTotal : count, lang, level, types, ...(mixed ? { mix, ordered, timeByLevel } : {}) })
       await onImport(r.quiz, true)
     } catch (e) { setErr(errText(e instanceof AiError ? e.code : 'ai-failed')) } finally { setBusy(false); void aiQuota().then(setQuota).catch(() => {}) }
   }
@@ -59,7 +65,7 @@ export function AiImport({ open, onClose, onImport }: { open: boolean; onClose: 
   }
   const prompt = buildAiPrompt(topic, count, t.admin.aiLevels[level])
   const left = quota ? Math.max(0, quota.limit - quota.used) : null
-  const canGen = !busy && !reading && (tab === 'material' ? text.trim().length >= 40 : topic.trim().length >= 3) && left !== 0 && types.length > 0
+  const canGen = !busy && !reading && (tab === 'material' ? text.trim().length >= 40 : topic.trim().length >= 3) && left !== 0 && types.length > 0 && (!mixed || (mixTotal >= 3 && mixTotal <= 30))
 
   return (
     <Modal open={open} onClose={onClose} title={t.admin.aiTitle} wide>
@@ -115,13 +121,48 @@ export function AiImport({ open, onClose, onImport }: { open: boolean; onClose: 
               <p className="mt-2 flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-300"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{A.topicWarn}</p>
             </>
           )}
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <div><label className="label">{t.admin.aiCount}</label><input type="number" min={3} max={30} className="input" value={count} onChange={(e) => setCount(Math.max(3, Math.min(30, Number(e.target.value) || 10)))} /></div>
-            <div><label className="label">{t.admin.aiLevel}</label>
-              <select className="input" value={level} onChange={(e) => setLevel(e.target.value as typeof level)}>
-                {(['easy', 'medium', 'hard'] as const).map((l) => <option key={l} value={l}>{t.admin.aiLevels[l]}</option>)}
-              </select>
+          <div className="mt-4 rounded-xl border border-line bg-white/[.02] p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="label mb-0 mr-auto">{A.mix.title}</span>
+              <Segmented size="sm" value={mixed ? 'mix' : 'one'} onChange={(v) => setMixed(v === 'mix')} options={[{ value: 'one', label: A.mix.one }, { value: 'mix', label: A.mix.mixed }]} />
             </div>
+            {mixed ? (
+              <>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {(['easy', 'medium', 'hard'] as const).map((l) => (
+                    <div key={l} className="rounded-xl border border-line bg-panel p-2 text-center">
+                      <div className={`mb-1.5 text-xs font-bold ${l === 'easy' ? 'text-emerald-300' : l === 'medium' ? 'text-amber-300' : 'text-red-300'}`}>{t.admin.aiLevels[l]}</div>
+                      <div className="flex items-center justify-center gap-1">
+                        <button type="button" className="btn btn-ghost-dark btn-icon btn-sm" aria-label="−" onClick={() => setMix((m) => ({ ...m, [l]: Math.max(0, m[l] - 1) }))}><Minus /></button>
+                        <input type="number" min={0} max={30} aria-label={t.admin.aiLevels[l]} className="input h-9 min-h-9 w-14 px-1 text-center font-bold tabular" value={mix[l]} onChange={(e) => setMix((m) => ({ ...m, [l]: Math.max(0, Math.min(30, Number(e.target.value) || 0)) }))} />
+                        <button type="button" className="btn btn-ghost-dark btn-icon btn-sm" aria-label="+" onClick={() => setMix((m) => ({ ...m, [l]: Math.min(30, m[l] + 1) }))}><Plus /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-white/[.06]" aria-hidden>
+                  <span className="bg-emerald-400" style={{ width: `${(mix.easy / Math.max(1, mixTotal)) * 100}%` }} />
+                  <span className="bg-amber-400" style={{ width: `${(mix.medium / Math.max(1, mixTotal)) * 100}%` }} />
+                  <span className="bg-red-400" style={{ width: `${(mix.hard / Math.max(1, mixTotal)) * 100}%` }} />
+                </div>
+                <p className={`mt-1.5 text-xs font-semibold ${mixTotal < 3 || mixTotal > 30 ? 'text-red-300' : 'text-muted'}`}>{A.mix.total(mixTotal)}{(mixTotal < 3 || mixTotal > 30) && ` — ${A.mix.range}`}</p>
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+                  <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={ordered} onChange={(e) => setOrdered(e.target.checked)} />{A.mix.ordered}</label>
+                  <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={timeByLevel} onChange={(e) => setTimeByLevel(e.target.checked)} />{A.mix.time}</label>
+                </div>
+              </>
+            ) : (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div><label className="label">{t.admin.aiCount}</label><input type="number" min={3} max={30} className="input" value={count} onChange={(e) => setCount(Math.max(3, Math.min(30, Number(e.target.value) || 10)))} /></div>
+                <div><label className="label">{t.admin.aiLevel}</label>
+                  <select className="input" value={level} onChange={(e) => setLevel(e.target.value as typeof level)}>
+                    {(['easy', 'medium', 'hard'] as const).map((l) => <option key={l} value={l}>{t.admin.aiLevels[l]}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div><label className="label">{A.lang}</label>
               <select className="input" value={lang} onChange={(e) => setLang(e.target.value as AiLang)}>
                 {(['az', 'ru', 'en'] as AiLang[]).map((l) => <option key={l} value={l}>{A.langs[l]}</option>)}

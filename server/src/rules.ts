@@ -433,7 +433,8 @@ async function evaluate(c: Ctx): Promise<boolean> {
       const d = nd()
       const total = f(d, 'total'), correct = f(d, 'correct'), pct = f(d, 'pct')
       return (await classMember(cid)) && subId === `${c.uid}_${f(d, 'taskId')}`
-        && keysOnly(d, ['uid', 'name', 'taskId', 'score', 'correct', 'total', 'pct', 'at'])
+        && keysOnly(d, ['uid', 'name', 'taskId', 'score', 'correct', 'total', 'pct', 'at', 'flags'])
+        && (!has(d, 'flags') || (keysOnly(f(d, 'flags'), ['tab', 'blur', 'paste', 'copy', 'dual', 'fast']) && Object.values(f(d, 'flags') as Doc).every((v) => isInt(v) && v >= 0 && v <= 1000)))
         && f(d, 'uid') === c.uid && str(f(d, 'name'), 80)
         && isInt(total) && (total as number) > 0 && (total as number) <= 200
         && isInt(correct) && (correct as number) >= 0 && (correct as number) <= (total as number)
@@ -607,7 +608,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
       if (read) return c.isGameHost(gid)
       if (op === 'create') {
         const d = nd()
-        if (!(c.signedIn() && subId === `${c.uid}_${f(d, 'questionIndex')}` && keysOnly(d, ['uid', 'questionIndex', 'value', 'answeredAt', 'conf']) && typeof g(d, 'conf', false) === 'boolean'
+        if (!(c.signedIn() && subId === `${c.uid}_${f(d, 'questionIndex')}` && keysOnly(d, ['uid', 'questionIndex', 'value', 'answeredAt', 'conf', 'away']) && typeof g(d, 'conf', false) === 'boolean' && typeof g(d, 'away', false) === 'boolean'
           && f(d, 'uid') === c.uid && isReq(f(d, 'answeredAt'), now) && answerValueOk(f(d, 'value')))) return false
         const pp = `games/${gid}/players/${c.uid}`
         if (!(await c.exists(pp)) || f(await c.get(pp), 'kicked') !== false) return false
@@ -619,6 +620,19 @@ async function evaluate(c: Ctx): Promise<boolean> {
       }
       if (op === 'delete') return c.isGameHost(gid)
       return false
+    }
+
+    // dürüstlük qeydləri: oyunçu yalnız öz sənədini yazır (sayğaclar azala bilməz), oxumaq yalnız host üçün
+    if (sub === 'integrity') {
+      if (read || op === 'delete') return c.isGameHost(gid)
+      const d = nd(), counts = f(d, 'counts'), events = f(d, 'events')
+      const kinds = ['tab', 'blur', 'paste', 'copy', 'dual', 'fast']
+      const prev = res ? g(res, 'counts', {}) : {}
+      return c.signedIn() && c.uid === subId && (await c.isPlayer(gid))
+        && keysOnly(d, ['uid', 'name', 'counts', 'events', 'updatedAt']) && f(d, 'uid') === c.uid && str(g(d, 'name', ''), 80)
+        && isMap(counts) && keysOnly(counts, kinds)
+        && Object.entries(counts as Doc).every(([k, v]) => isInt(v) && v >= 0 && v <= 10000 && v >= (g(prev, k, 0) as number))
+        && Array.isArray(events) && events.length <= 30 && isReq(f(d, 'updatedAt'), now)
     }
 
     if (sub === 'reactions') {

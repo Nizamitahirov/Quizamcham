@@ -15,7 +15,7 @@ export interface ClassRow { id: string; ownerUid: string; name: string; code: st
 export interface Member { uid: string; name: string; email?: string; joinedAt?: Timestamp }
 export type TaskKind = 'practice' | 'course' | 'game'
 export interface ClassTask { id: string; kind: TaskKind; title: string; quizId?: string; courseId?: string; gameId?: string; pin?: string; dueAt?: Timestamp | null; note?: string; createdAt?: Timestamp }
-export interface ClassResult { id: string; uid: string; name: string; taskId: string; score: number; correct: number; total: number; pct: number; at?: Timestamp }
+export interface ClassResult { id: string; uid: string; name: string; taskId: string; score: number; correct: number; total: number; pct: number; at?: Timestamp; flags?: Partial<Record<string, number>> }
 export interface Membership { id: string; uid: string; classId: string; className: string; joinedAt?: Timestamp }
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // qarışdırıla bilən 0/O, 1/I yoxdur
@@ -111,12 +111,13 @@ export async function myResults(classId: string): Promise<ClassResult[]> {
   return s?.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ClassResult, 'id'>) })) ?? []
 }
 /** Məşq bitəndə: sinif tapşırığının nəticəsi (ən yaxşısı saxlanılır). */
-export async function saveClassResult(classId: string, taskId: string, name: string, r: { score: number; correct: number; total: number }) {
+export async function saveClassResult(classId: string, taskId: string, name: string, r: { score: number; correct: number; total: number; flags?: Partial<Record<string, number>> }) {
   const ref = doc(db, 'classes', classId, 'results', `${uid()}_${taskId}`)
   const pct = r.total ? Math.round((r.correct / r.total) * 100) : 0
   const prev = await getDoc(ref).catch(() => null)
   if (prev?.exists() && Number(prev.get('pct')) >= pct) return
-  await setDoc(ref, { uid: uid(), name: name.slice(0, 80), taskId, score: Math.round(r.score), correct: r.correct, total: r.total, pct, at: serverTimestamp() })
+  const flags = Object.fromEntries(Object.entries(r.flags ?? {}).filter(([, v]) => typeof v === 'number' && v > 0).map(([k, v]) => [k, Math.min(1000, Math.round(v!))]))
+  await setDoc(ref, { uid: uid(), name: name.slice(0, 80), taskId, score: Math.round(r.score), correct: r.correct, total: r.total, pct, ...(Object.keys(flags).length ? { flags } : {}), at: serverTimestamp() })
 }
 
 // ---------- kurslar ----------

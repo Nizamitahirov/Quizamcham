@@ -301,7 +301,8 @@ export async function finishQuestion(game: Game, questions: Question[]) {
     const a = answers.get(p.uid)
     const answered = !!a
     const timeMs = a?.answeredAt ? Math.max(0, a.answeredAt.toMillis() - startFor(p.uid)) : null
-    const value = a?.value ?? null
+    // ciddi rejim: sual ərzində tabdan çıxıbsa cavab sayılmır
+    const value = settings.integrity === 'strict' && a?.away ? null : a?.value ?? null
     if (a) {
       if (Array.isArray(a.value)) a.value.forEach((v) => { if (v in distribution) distribution[v]++ })
       else if (q.type === 'single' || q.type === 'truefalse' || q.type === 'poll') { const v = String(a.value); if (v in distribution) distribution[v]++ }
@@ -496,7 +497,7 @@ export async function scoreSelfAnswer(game: Game, questions: Question[], player:
   const startedMs = (st.get('startedAt') as Timestamp | undefined)?.toMillis() ?? answer.answeredAt?.toMillis() ?? 0
   const raw = answer.answeredAt ? answer.answeredAt.toMillis() - startedMs : null
   const late = raw != null && raw > q.timeLimit * 1000 + GRACE_MS
-  const value = late || answer.value === null || answer.value === undefined ? null : answer.value
+  const value = late || answer.value === null || answer.value === undefined || (game.settings.integrity === 'strict' && answer.away) ? null : answer.value
   const timeMs = value === null ? null : Math.max(0, raw ?? 0)
   const settings = game.settings
   const ev0 = applyConfidence(evaluateAnswer(q, value, timeMs ?? q.timeLimit * 1000, settings.scoring), settings.confidence ? answer.conf : undefined, basePoints(q.points))
@@ -646,8 +647,13 @@ export function joinBlockReason(g: Pick<Game, 'phase' | 'locked' | 'settings' | 
   return null
 }
 
-export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value'] | null, conf?: boolean) =>
-  setDoc(doc(db, 'games', gameId, 'answers', `${uid}_${questionIndex}`), { uid, questionIndex, value, answeredAt: serverTimestamp(), ...(conf !== undefined ? { conf } : {}) })
+export const submitAnswer = (gameId: string, uid: string, questionIndex: number, value: Answer['value'] | null, conf?: boolean, away?: boolean) =>
+  setDoc(doc(db, 'games', gameId, 'answers', `${uid}_${questionIndex}`), { uid, questionIndex, value, answeredAt: serverTimestamp(), ...(conf !== undefined ? { conf } : {}), ...(away ? { away: true } : {}) })
+
+/** Dürüstlük qeydləri: games/{gid}/integrity/{uid} — oyunçu özü yazır, yalnız host oxuyur. */
+export const writeIntegrity = (gameId: string, uid: string, name: string, counts: Record<string, number>, events: { k: string; q: number; at: number }[]) =>
+  setDoc(doc(db, 'games', gameId, 'integrity', uid), { uid, name: name.slice(0, 80), counts, events: events.slice(-30), updatedAt: serverTimestamp() })
+export const integrityQuery = (gameId: string) => collection(db, 'games', gameId, 'integrity')
 
 export const heartbeat = (gameId: string, uid: string) => updateDoc(doc(db, 'games', gameId, 'players', uid), { lastSeen: serverTimestamp() })
 

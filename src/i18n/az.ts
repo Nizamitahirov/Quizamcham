@@ -681,6 +681,7 @@ export const az = {
   a11y: { soundOn: 'Səsi aç', soundOff: 'Səsi bağla', music: 'Musiqi', fullscreen: 'Tam ekran' },
   csvHead: { rank: 'Yer', first: 'Ad', last: 'Soyad', team: 'Komanda', score: 'Xal', correct: 'Düzgün', acc: 'Dəqiqlik %', avg: 'Orta vaxt (s)', streak: 'Ən uzun seriya', q: (i: number) => `S${i}`, pts: (i: number) => `S${i} xal` },
   ai: {
+    mix: { title: 'Çətinlik', one: 'Tək səviyyə', mixed: 'Qarışıq bölgü', total: (n: number) => `Cəmi: ${n} sual`, range: '3–30 arasında olmalıdır', ordered: 'Asandan çətinə sırala', time: 'Vaxt çətinliyə görə (20 / 30 / 40 san)' },
     tabs: { material: 'Materialdan', topic: 'Mövzudan', json: 'JSON' }, recommended: 'tövsiyə',
     materialHint: 'Dərs materialını yapışdırın və ya fayl yükləyin — suallar yalnız bu materialdakı məlumatlardan hazırlanır (ən dəqiq üsul).',
     upload: 'Fayl yüklə', formats: 'PDF, Word (.docx), PowerPoint (.pptx), TXT', pastePh: 'Mətni bura yapışdırın…',
@@ -836,6 +837,15 @@ export const az = {
       dkim: ['DKIM', 'Cloudflare → DNS → TXT qeydi əlavə edin.'],
       dmarc: ['DMARC', 'Cloudflare → DNS → TXT qeydi əlavə edin.'],
     } as Record<string, [string, string]>,
+  },
+  integrity: {
+    title: 'Dürüstlük nəzarəti', hint: 'Tab dəyişmə, yapışdırma, ikinci tab və qeyri-real sürətli cavablar qeydə alınır; nəticələrdə ⚠ ilə göstərilir.',
+    modes: { off: 'Söndürülüb', monitor: 'Müşahidə', strict: 'Ciddi' } as Record<string, string>,
+    modeHint: { off: 'Heç nə yoxlanılmır.', monitor: 'Hadisələr qeydə alınır, oyunçuya xəbərdarlıq göstərilir.', strict: 'Əlavə olaraq: sual ərzində başqa taba keçən oyunçunun həmin cavabı sayılmır; yapışdırma bloklanır.' } as Record<string, string>,
+    warn: { tab: 'Başqa taba/proqrama keçid qeydə alındı', blur: 'Oyun ekranından çıxış qeydə alındı', paste: 'Mətn yapışdırma qeydə alındı', copy: 'Sualı kopyalamaq olmaz', dual: 'Oyun ikinci tabda açıqdır', fast: 'Cavab qeyri-real sürətlə verildi' } as Record<string, string>,
+    seen: 'Müəllim bu qeydləri görür.', strictNote: 'Ciddi rejim: bu sualın cavabı sayılmayacaq.', lobby: 'Bu oyunda dürüstlük nəzarəti aktivdir — oyun zamanı başqa taba keçməyin.',
+    kinds: { tab: 'Tab dəyişmə', blur: 'Fokus itkisi', paste: 'Yapışdırma', copy: 'Kopyalama', dual: 'İkinci tab', fast: 'Çox sürətli' } as Record<string, string>,
+    flagged: (n: number) => `${n} şübhəli`, report: 'Dürüstlük hesabatı', none: 'Şübhəli hərəkət qeydə alınmayıb', player: 'İştirakçı', total: 'Cəmi', timeline: 'Son hadisələr', q: (n: number) => `S${n}`,
   },
   mailTest: { btn: 'Test məktubu', ok: (to: string) => `Test məktubu göndərildi: ${to} — gələn qutusunu yoxlayın`, fail: (e: string) => `Göndərilmədi: ${e}` },
   shell: { content: 'Məzmun', teaching: 'Tədris', manage: 'İdarəetmə', more: 'Daha çox', plan: 'Plan', upgrade: 'Yüksəlt', menu: 'Menyu' },

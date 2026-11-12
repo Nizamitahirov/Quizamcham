@@ -392,7 +392,8 @@ function ResultsTab({ members, tasks, results }: { members: Member[]; tasks: Cla
                     if (c.kind === 'course') { const n = courseProg.get(c.id)?.get(m.uid) ?? 0, total = courseLen.get(c.id) ?? 0; return <td key={c.id} className="text-center tabular">{total ? <span className={n === total ? 'font-semibold text-emerald-300' : 'text-fg2'}>{C.progress(n, total)}</span> : C.notDone}</td> }
                     const r = byKey.get(`${m.uid}_${c.id}`)
                     const late = !r && dueState(c.dueAt) === 'late'
-                    return <td key={c.id} className="text-center">{r ? <PctBadge pct={r.pct} /> : late ? <span className="chip chip-bad">{C2.status.late}</span> : <span className="text-muted">{C.notDone}</span>}</td>
+                    const fl = r?.flags ? Object.entries(r.flags).filter(([, v]) => (v ?? 0) > 0) : []
+                    return <td key={c.id} className="text-center">{r ? <span className="inline-flex items-center gap-1"><PctBadge pct={r.pct} />{fl.length > 0 && <span className="chip chip-warn px-1.5" title={fl.map(([k, v]) => `${t.integrity.kinds[k] ?? k}: ${v}`).join('\n')}>⚠ {fl.reduce((a, [, v]) => a + (v ?? 0), 0)}</span>}</span> : late ? <span className="chip chip-bad">{C2.status.late}</span> : <span className="text-muted">{C.notDone}</span>}</td>
                   })}
                   <td className="text-center font-semibold tabular">{pcts.length ? `${Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length)}%` : <span className="text-muted">{C.notDone}</span>}</td>
                 </tr>

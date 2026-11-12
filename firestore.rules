@@ -388,7 +388,8 @@ service cloud.firestore {
       match /results/{rid} {
         allow read: if classOwner(cid) || (registered() && resource.data.uid == request.auth.uid);
         allow create, update: if classMember(cid) && rid == request.auth.uid + '_' + request.resource.data.taskId
-          && request.resource.data.keys().hasOnly(['uid','name','taskId','score','correct','total','pct','at'])
+          && request.resource.data.keys().hasOnly(['uid','name','taskId','score','correct','total','pct','at','flags'])
+          && (!('flags' in request.resource.data) || (request.resource.data.flags is map && request.resource.data.flags.keys().hasOnly(['tab','blur','paste','copy','dual','fast'])))
           && request.resource.data.uid == request.auth.uid && str(request.resource.data.name, 80)
           && request.resource.data.total is int && request.resource.data.total > 0 && request.resource.data.total <= 200
           && request.resource.data.correct is int && request.resource.data.correct >= 0 && request.resource.data.correct <= request.resource.data.total
@@ -562,12 +563,24 @@ service cloud.firestore {
         allow delete: if isGameHost(gameId);   // oyun silinəndə host təmizləyir
       }
 
+      // dürüstlük qeydləri: oyunçu yalnız öz sənədini yazır, sayğaclar azala bilməz; oxumaq — host
+      match /integrity/{uid} {
+        allow read, delete: if isGameHost(gameId);
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && exists(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid))
+          && request.resource.data.keys().hasOnly(['uid','name','counts','events','updatedAt'])
+          && request.resource.data.uid == uid && request.resource.data.get('name', '') is string && request.resource.data.get('name', '').size() <= 80
+          && request.resource.data.counts is map && request.resource.data.counts.keys().hasOnly(['tab','blur','paste','copy','dual','fast'])
+          && request.resource.data.events is list && request.resource.data.events.size() <= 30
+          && request.resource.data.updatedAt == request.time;
+      }
       match /answers/{answerId} {
         allow read: if isGameHost(gameId);
         allow create: if signedIn()
           && answerId == request.auth.uid + '_' + string(request.resource.data.questionIndex)
-          && request.resource.data.keys().hasOnly(['uid','questionIndex','value','answeredAt','conf'])
+          && request.resource.data.keys().hasOnly(['uid','questionIndex','value','answeredAt','conf','away'])
           && request.resource.data.get('conf', false) is bool
+          && request.resource.data.get('away', false) is bool
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.answeredAt == request.time
           && answerValueOk(request.resource.data.value)

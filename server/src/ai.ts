@@ -86,7 +86,9 @@ async function groq(system: string, user: string, maxTokens = 8000, effort: 'low
 
 // ---------- quiz generasiyası ----------
 const TYPES = ['single', 'multi', 'truefalse', 'type'] as const
-type GenQ = { type?: string; text?: string; options?: unknown[]; correct?: unknown; answers?: unknown[]; explanation?: string }
+type GenQ = { type?: string; text?: string; options?: unknown[]; correct?: unknown; answers?: unknown[]; explanation?: string; level?: string }
+type Level = 'easy' | 'medium' | 'hard'
+const lvl = (v: unknown): Level => (v === 'easy' || v === 'hard' ? v : 'medium')
 
 const S = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '')
 /** Modelin cavabını tətbiqin quiz JSON formatına çevirir və yoxlayır (səhv sualları atır). */
@@ -98,14 +100,15 @@ function toQuiz(raw: Record<string, unknown>, allowed: Set<string>, time: number
     const text = S(q.text, 200)
     if (!type || !text) return []
     const explanation = S(q.explanation, 300)
+    const level = lvl(q.level)
     if (type === 'truefalse') {
       const c = q.correct === true || q.correct === 'true' || q.correct === 0 || q.correct === 't'
-      return [{ type, text, timeLimit: time, options: [{ id: 't', text: TF[lang][0] }, { id: 'f', text: TF[lang][1] }], correct: [c ? 't' : 'f'], explanation }]
+      return [{ type, text, timeLimit: time, options: [{ id: 't', text: TF[lang][0] }, { id: 'f', text: TF[lang][1] }], correct: [c ? 't' : 'f'], explanation, level }]
     }
     if (type === 'type') {
       const answers = (Array.isArray(q.answers) ? q.answers : [q.correct]).map((a) => S(a, 80)).filter(Boolean).slice(0, 6)
       if (!answers.length) return []
-      return [{ type, text, timeLimit: Math.max(time, 30), options: [], correct: [], accepted: answers, explanation }]
+      return [{ type, text, timeLimit: Math.max(time, 30), options: [], correct: [], accepted: answers, explanation, level }]
     }
     const raw = (Array.isArray(q.options) ? q.options : []).map((o) => S(o, 75)).filter(Boolean).slice(0, 6)
     const rawC = (Array.isArray(q.correct) ? q.correct : [q.correct]).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n < raw.length)
@@ -115,7 +118,7 @@ function toQuiz(raw: Record<string, unknown>, allowed: Set<string>, time: number
     const opts = order.map((i) => raw[i])
     const cIdx = rawC.map((c) => order.indexOf(c))
     const finalType = type === 'multi' && cIdx.length > 1 ? 'multi' : 'single'
-    return [{ type: finalType, text, timeLimit: time, options: opts.map((t, i) => ({ id: ids[i], text: t })), correct: (finalType === 'single' ? cIdx.slice(0, 1) : cIdx).map((i) => ids[i]), explanation }]
+    return [{ type: finalType, text, timeLimit: time, options: opts.map((t, i) => ({ id: ids[i], text: t })), correct: (finalType === 'single' ? cIdx.slice(0, 1) : cIdx).map((i) => ids[i]), explanation, level }]
   })
   return { title: S(raw.title, 80) || 'AI quiz', description: S(raw.description, 200), coverEmoji: S(raw.emoji, 4) || '🤖', questions }
 }
@@ -152,15 +155,25 @@ export function aiRoutes(app: FastifyInstance) {
     return { used: r.rows[0]?.count ?? 0, limit: TIER_AI[tier], tier, configured: !!process.env.GROQ_API_KEY }
   })
 
-  app.post<{ Body: { topic?: string; text?: string; count?: number; lang?: Lang; level?: keyof typeof LEVELS; types?: string[]; audience?: string } }>(
+  app.post<{ Body: { topic?: string; text?: string; count?: number; lang?: Lang; level?: keyof typeof LEVELS; types?: string[]; audience?: string; mix?: Partial<Record<Level, number>>; ordered?: boolean; timeByLevel?: boolean } }>(
     '/api/ai/generate', { preHandler: limit('ai', 20, 60_000, (r) => r.ip) }, async (req) => {
       const { uid, tier } = await who(req)
       const b = req.body ?? {}
       const topic = S(b.topic, 300), text = S(b.text, 100_000)
       if (!topic && text.length < 40) throw err('invalid-argument')
-      const count = Math.max(3, Math.min(30, Math.round(Number(b.count) || 10)))
       const lang: Lang = b.lang && b.lang in LANGS ? b.lang : 'az'
       const level = b.level && b.level in LEVELS ? b.level : 'medium'
+      // çətinlik bölgüsü: məs. 5 asan + 3 orta + 2 çətin (cəmi 3–30)
+      const n = (v: unknown) => Math.max(0, Math.min(30, Math.round(Number(v) || 0)))
+      const mixIn = b.mix ? { easy: n(b.mix.easy), medium: n(b.mix.medium), hard: n(b.mix.hard) } : null
+      const mixTotal = mixIn ? mixIn.easy + mixIn.medium + mixIn.hard : 0
+      if (mixIn && (mixTotal < 3 || mixTotal > 30)) throw err('invalid-argument')
+      const mix: Record<Level, number> = mixIn ?? { easy: 0, medium: 0, hard: 0, [level]: Math.max(3, Math.min(30, Math.round(Number(b.count) || 10))) }
+      const count = mix.easy + mix.medium + mix.hard
+      const want = (Object.keys(mix) as Level[]).filter((k) => mix[k] > 0)
+      const extra: Record<Level, number> = { easy: mix.easy ? mix.easy + Math.max(1, Math.ceil(mix.easy * 0.3)) : 0, medium: mix.medium ? mix.medium + Math.max(1, Math.ceil(mix.medium * 0.3)) : 0, hard: mix.hard ? mix.hard + Math.max(1, Math.ceil(mix.hard * 0.3)) : 0 }
+      const asked = extra.easy + extra.medium + extra.hard
+      const plan = want.map((k) => `${extra[k]} ${LEVELS[k]}`).join(' + ')
       const allowed = new Set((Array.isArray(b.types) ? b.types : ['single']).filter((t) => (TYPES as readonly string[]).includes(t)))
       if (!allowed.size) allowed.add('single')
       if (!(await take(uid, tier))) throw err('ai-quota', 429)
@@ -174,19 +187,38 @@ export function aiRoutes(app: FastifyInstance) {
           `- multi: {"type":"multi", ..., "correct": [bir neçə düzgün indeks]}`,
           `- truefalse: {"type":"truefalse","text": təsdiq cümləsi, "correct": true|false, "explanation":...}`,
           `- type: {"type":"type","text":..., "answers": [1-3 qəbul olunan qısa cavab (1-3 söz)], "explanation":...}`,
+          `Hər sualda "level" sahəsi olsun: "easy" | "medium" | "hard" — sualın həqiqi çətinliyinə uyğun.`,
+          `Çətinlik meyarları: easy — əsas anlayış/tərif, birbaşa xatırlama; medium — tətbiq, müqayisə, iki addımlı düşüncə; hard — təhlil, istisnalar, incə fərqlər, çoxaddımlı nəticə.`,
           `Qaydalar: sual mətni ≤160 simvol; faktlar dəqiq və yoxlanıla bilən olsun, şübhəli faktdan istifadə etmə; hər sualın birmənalı düzgün cavabı olsun;`,
           `yanlış variantlar inandırıcı olsun; düzgün cavabın yeri təsadüfi olsun; təkrar sual olmasın; "hamısı"/"heç biri" kimi variantlardan qaç; uyğunsuz məzmun yaratma.`,
         ].join('\n')
+        const dist = `Cəmi ${asked} sual: ${plan}. Hər səviyyədən dəqiq bu qədər sual yaz və "level" sahəsini düzgün qoy.`
         const user = text
-          ? `Aşağıdakı materiala əsasən ${count + 3} sual hazırla (yalnız materialdakı məlumatlardan istifadə et). Çətinlik: ${LEVELS[level]}.${topic ? ` Fokus: ${topic}.` : ''}${b.audience ? ` Auditoriya: ${S(b.audience, 100)}.` : ''}\n\n---MATERIAL---\n${text}`
-          : `Mövzu: ${topic}. ${count + 3} sual hazırla. Çətinlik: ${LEVELS[level]}.${b.audience ? ` Auditoriya: ${S(b.audience, 100)}.` : ''}`
+          ? `Aşağıdakı materiala əsasən sual hazırla (yalnız materialdakı məlumatlardan istifadə et). ${dist}${topic ? ` Fokus: ${topic}.` : ''}${b.audience ? ` Auditoriya: ${S(b.audience, 100)}.` : ''}\n\n---MATERIAL---\n${text}`
+          : `Mövzu: ${topic}. ${dist}${b.audience ? ` Auditoriya: ${S(b.audience, 100)}.` : ''}`
         // 1) generasiya (bir az artıq — yoxlamadan sonra bəziləri düşə bilər)
-        const draft = toQuiz(await groq(system, user, Math.min(16000, 600 + (count + 3) * 450)), allowed, 20, lang)
+        const draft = toQuiz(await groq(system, user, Math.min(16000, 600 + asked * 450)), allowed, 20, lang)
+        // tək səviyyə rejimində model fərqli "level" yazsa belə — hamısı seçilən səviyyədir
+        if (!mixIn) draft.questions.forEach((q) => { q.level = level })
         // 2) fakt yoxlaması: hər sual və işarələnmiş cavab ayrıca yoxlanılır; şübhəli olanlar atılır
-        const quiz = { ...draft, questions: await factCheck(draft.questions, text, lang) }
-        quiz.questions = quiz.questions.slice(0, count)
+        const checked = await factCheck(draft.questions, text, lang)
+        // 3) bölgüyə görə seçim; bir səviyyədə çatışmazlıq olarsa qonşu səviyyədən tamamlanır
+        const pool: Record<Level, typeof checked> = { easy: [], medium: [], hard: [] }
+        checked.forEach((q) => pool[q.level].push(q))
+        const picked: typeof checked = []
+        for (const k of want) picked.push(...pool[k].splice(0, mix[k]))
+        const near: Record<Level, Level[]> = { easy: ['medium', 'hard'], medium: ['easy', 'hard'], hard: ['medium', 'easy'] }
+        for (const k of want) {
+          let short = mix[k] - picked.filter((q) => q.level === k).length
+          for (const alt of near[k]) while (short > 0 && pool[alt].length) { picked.push({ ...pool[alt].shift()!, level: k }); short-- }
+        }
+        const rank = { easy: 0, medium: 1, hard: 2 }
+        if (b.ordered !== false && mixIn) picked.sort((x, y) => rank[x.level] - rank[y.level])
+        const TIME: Record<Level, number> = { easy: 20, medium: 30, hard: 40 }
+        const quiz = { ...draft, questions: picked.slice(0, count).map(({ level: lv, ...q }) => ({ ...q, ...(b.timeByLevel ? { timeLimit: q.type === 'type' ? Math.max(TIME[lv], 30) : TIME[lv] } : {}) })) }
         if (quiz.questions.length === 0) throw err('ai-failed', 502)
-        return { quiz, model: MODEL, dropped: draft.questions.length - quiz.questions.length }
+        const levels = picked.slice(0, count).reduce((m, q) => ({ ...m, [q.level]: (m[q.level] ?? 0) + 1 }), {} as Record<string, number>)
+        return { quiz, model: MODEL, dropped: Math.max(0, count - quiz.questions.length), levels }
       } catch (e) {
         await refund(uid)
         throw e

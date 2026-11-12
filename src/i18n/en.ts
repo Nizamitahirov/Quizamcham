@@ -416,6 +416,7 @@ export const en: Dict = {
   a11y: { soundOn: 'Unmute', soundOff: 'Mute', music: 'Music', fullscreen: 'Fullscreen' },
   csvHead: { rank: 'Rank', first: 'First name', last: 'Last name', team: 'Team', score: 'Score', correct: 'Correct', acc: 'Accuracy %', avg: 'Avg. time (s)', streak: 'Longest streak', q: (i: number) => `Q${i}`, pts: (i: number) => `Q${i} pts` },
   ai: {
+    mix: { title: 'Difficulty', one: 'Single level', mixed: 'Mixed', total: (n: number) => `Total: ${n} questions`, range: 'must be between 3 and 30', ordered: 'Order from easy to hard', time: 'Time by difficulty (20 / 30 / 40 s)' },
     tabs: { material: 'From material', topic: 'From topic', json: 'JSON' }, recommended: 'recommended',
     materialHint: 'Paste your lesson material or upload a file — questions are built only from facts in this material (the most accurate way).',
     upload: 'Upload file', formats: 'PDF, Word (.docx), PowerPoint (.pptx), TXT', pastePh: 'Paste text here…',
@@ -569,6 +570,15 @@ export const en: Dict = {
       dkim: ['DKIM', 'Cloudflare → DNS → add a TXT record.'],
       dmarc: ['DMARC', 'Cloudflare → DNS → add a TXT record.'],
     } as Record<string, [string, string]>,
+  },
+  integrity: {
+    title: 'Integrity monitoring', hint: 'Tab switching, pasting, a second tab and impossibly fast answers are logged and marked with ⚠ in the results.',
+    modes: { off: 'Off', monitor: 'Monitor', strict: 'Strict' } as Record<string, string>,
+    modeHint: { off: 'Nothing is checked.', monitor: 'Events are logged and the player sees a warning.', strict: 'Also: an answer given after switching tabs during that question does not count; pasting is blocked.' } as Record<string, string>,
+    warn: { tab: 'Switching to another tab/app was recorded', blur: 'Leaving the game screen was recorded', paste: 'Pasting text was recorded', copy: 'Copying the question is not allowed', dual: 'The game is open in a second tab', fast: 'The answer was impossibly fast' } as Record<string, string>,
+    seen: 'Your teacher can see these records.', strictNote: 'Strict mode: this answer will not count.', lobby: 'Integrity monitoring is on — do not switch tabs during the game.',
+    kinds: { tab: 'Tab switch', blur: 'Focus lost', paste: 'Paste', copy: 'Copy', dual: 'Second tab', fast: 'Too fast' } as Record<string, string>,
+    flagged: (n: number) => `${n} flagged`, report: 'Integrity report', none: 'No suspicious activity recorded', player: 'Player', total: 'Total', timeline: 'Recent events', q: (n: number) => `Q${n}`,
   },
   mailTest: { btn: 'Test email', ok: (to: string) => `Test email sent to ${to} — check the inbox`, fail: (e: string) => `Not sent: ${e}` },
   shell: { content: 'Content', teaching: 'Teaching', manage: 'Manage', more: 'More', plan: 'Plan', upgrade: 'Upgrade', menu: 'Menu' },
