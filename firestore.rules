@@ -381,14 +381,46 @@ service cloud.firestore {
       match /tasks/{tid} {
         allow read: if classOwner(cid) || classMember(cid);
         allow create, update: if classOwner(cid)
-          && request.resource.data.keys().hasOnly(['kind','title','quizId','courseId','gameId','pin','dueAt','createdAt','note'])
-          && request.resource.data.kind in ['practice', 'course', 'game'] && str(request.resource.data.title, 120) && str(request.resource.data.get('note', ''), 300);
+          && request.resource.data.keys().hasOnly(['kind','title','quizId','courseId','gameId','pin','dueAt','createdAt','note','description','attachments','points','allowLate'])
+          && request.resource.data.kind in ['practice', 'course', 'game', 'assignment'] && str(request.resource.data.title, 120) && str(request.resource.data.get('note', ''), 300)
+          && str(request.resource.data.get('description', ''), 5000)
+          && request.resource.data.get('attachments', []) is list && request.resource.data.get('attachments', []).size() <= 10
+          && (!('points' in request.resource.data) || (request.resource.data.points is int && request.resource.data.points >= 1 && request.resource.data.points <= 1000))
+          && request.resource.data.get('allowLate', true) is bool;
         allow delete: if classOwner(cid);
+      }
+      // tapşırıq təhvili: tələbə öz işini yazır (qiymətə toxunmur), müəllim qiymətləndirir və qaytarır
+      match /submissions/{sid} {
+        function task() { return get(/databases/$(db)/documents/classes/$(cid)/tasks/$(request.resource.data.taskId)).data; }
+        function lateNow() { return task().get('dueAt', null) != null && request.time > task().dueAt; }
+        allow read: if classOwner(cid) || (registered() && resource.data.uid == request.auth.uid);
+        allow delete: if classOwner(cid);
+        allow update: if classOwner(cid) && sid == resource.data.uid + '_' + resource.data.taskId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['grade','feedback','gradedAt','status'])
+          && request.resource.data.status in ['returned', 'submitted', 'draft']
+          && (request.resource.data.get('grade', null) == null || (request.resource.data.grade is int && request.resource.data.grade >= 0 && request.resource.data.grade <= task().get('points', 100)))
+          && str(request.resource.data.get('feedback', ''), 5000);
+        allow create, update: if classMember(cid) && sid == request.auth.uid + '_' + request.resource.data.taskId
+          && task().kind == 'assignment'
+          && request.resource.data.keys().hasOnly(['uid','name','taskId','text','files','status','submittedAt','late','grade','feedback','gradedAt','updatedAt'])
+          && request.resource.data.uid == request.auth.uid && str(request.resource.data.name, 80)
+          && str(request.resource.data.get('text', ''), 20000)
+          && request.resource.data.get('files', []) is list && request.resource.data.get('files', []).size() <= 10
+          && request.resource.data.status in ['draft', 'submitted']
+          && (resource == null
+              ? !('grade' in request.resource.data) && !('feedback' in request.resource.data) && !('gradedAt' in request.resource.data)
+              : !request.resource.data.diff(resource.data).affectedKeys().hasAny(['grade','feedback','gradedAt','uid','taskId']))
+          && (request.resource.data.status != 'submitted' || (
+              (!lateNow() || task().get('allowLate', true) == true)
+              && request.resource.data.get('late', false) == lateNow()
+              && request.resource.data.submittedAt == request.time))
+          && request.resource.data.updatedAt == request.time;
       }
       match /results/{rid} {
         allow read: if classOwner(cid) || (registered() && resource.data.uid == request.auth.uid);
         allow create, update: if classMember(cid) && rid == request.auth.uid + '_' + request.resource.data.taskId
-          && request.resource.data.keys().hasOnly(['uid','name','taskId','score','correct','total','pct','at'])
+          && request.resource.data.keys().hasOnly(['uid','name','taskId','score','correct','total','pct','at','flags'])
+          && (!('flags' in request.resource.data) || (request.resource.data.flags is map && request.resource.data.flags.keys().hasOnly(['tab','blur','paste','copy','dual','fast'])))
           && request.resource.data.uid == request.auth.uid && str(request.resource.data.name, 80)
           && request.resource.data.total is int && request.resource.data.total > 0 && request.resource.data.total <= 200
           && request.resource.data.correct is int && request.resource.data.correct >= 0 && request.resource.data.correct <= request.resource.data.total
@@ -562,12 +594,24 @@ service cloud.firestore {
         allow delete: if isGameHost(gameId);   // oyun silinəndə host təmizləyir
       }
 
+      // dürüstlük qeydləri: oyunçu yalnız öz sənədini yazır, sayğaclar azala bilməz; oxumaq — host
+      match /integrity/{uid} {
+        allow read, delete: if isGameHost(gameId);
+        allow create, update: if signedIn() && request.auth.uid == uid
+          && exists(/databases/$(db)/documents/games/$(gameId)/players/$(request.auth.uid))
+          && request.resource.data.keys().hasOnly(['uid','name','counts','events','updatedAt'])
+          && request.resource.data.uid == uid && request.resource.data.get('name', '') is string && request.resource.data.get('name', '').size() <= 80
+          && request.resource.data.counts is map && request.resource.data.counts.keys().hasOnly(['tab','blur','paste','copy','dual','fast'])
+          && request.resource.data.events is list && request.resource.data.events.size() <= 30
+          && request.resource.data.updatedAt == request.time;
+      }
       match /answers/{answerId} {
         allow read: if isGameHost(gameId);
         allow create: if signedIn()
           && answerId == request.auth.uid + '_' + string(request.resource.data.questionIndex)
-          && request.resource.data.keys().hasOnly(['uid','questionIndex','value','answeredAt','conf'])
+          && request.resource.data.keys().hasOnly(['uid','questionIndex','value','answeredAt','conf','away'])
           && request.resource.data.get('conf', false) is bool
+          && request.resource.data.get('away', false) is bool
           && request.resource.data.uid == request.auth.uid
           && request.resource.data.answeredAt == request.time
           && answerValueOk(request.resource.data.value)

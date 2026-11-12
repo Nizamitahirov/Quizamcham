@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowRight, Check, Clock, Flame, Hourglass, PartyPopper, Users, X } from 'lucide-react'
 import { LOCALE, t } from '../../i18n/az'
 import { audio } from '../../audio/AudioEngine'
 import { selfOrder, startSelfQuestion, submitAnswer } from '../../lib/gameEngine'
+import { IntegrityCtx } from '../../lib/integrity'
 import { serverNow } from '../../lib/timeSync'
 import { burst } from '../../components/Confetti'
 import { Sticker } from '../../components/Sticker'
@@ -97,6 +98,8 @@ export function SelfPlay({ game, player, uid }: { game: Game; player: Player; ui
 function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onSubmitted }: { game: Game; player: Player; uid: string; qi: number; q: PublicQuestion; waiting: boolean; onSent: () => void; onResult: () => void; onSubmitted?: () => void }) {
   const startRef = useRef<number>(Date.now())
   const sent = useRef(false)
+  const ig = useContext(IntegrityCtx)
+  useEffect(() => { ig?.setQ(qi) }, [ig, qi])
   const [remaining, setRemaining] = useState((q?.timeLimit ?? 30) * 1000)
   const [ready, setReady] = useState(false)
 
@@ -110,9 +113,10 @@ function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onS
     sent.current = true
     if (v !== null) audio.click()
     onSent()
-    try { await submitAnswer(game.id, uid, qi, v, conf) } catch { /* təkrar və ya gec — host nəticəni yazacaq */ }
+    if (v !== null) ig?.markAnswer(Date.now() - startRef.current)
+    try { await submitAnswer(game.id, uid, qi, v, conf, ig?.awayNow()) } catch { /* təkrar və ya gec — host nəticəni yazacaq */ }
     onSubmitted?.()
-  }, [game.id, uid, qi, onSent, onSubmitted])
+  }, [game.id, uid, qi, onSent, onSubmitted, ig])
 
   useEffect(() => {
     if (!q) return

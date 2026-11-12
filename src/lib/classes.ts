@@ -13,9 +13,19 @@ import { auth, db } from '../firebase/config'
 
 export interface ClassRow { id: string; ownerUid: string; name: string; code: string; archived?: boolean; ownerName?: string; createdAt?: Timestamp }
 export interface Member { uid: string; name: string; email?: string; joinedAt?: Timestamp }
-export type TaskKind = 'practice' | 'course' | 'game'
-export interface ClassTask { id: string; kind: TaskKind; title: string; quizId?: string; courseId?: string; gameId?: string; pin?: string; dueAt?: Timestamp | null; note?: string; createdAt?: Timestamp }
-export interface ClassResult { id: string; uid: string; name: string; taskId: string; score: number; correct: number; total: number; pct: number; at?: Timestamp }
+export type TaskKind = 'practice' | 'course' | 'game' | 'assignment'
+export interface FileRef { id: string; name: string; size: number; type: string }
+export interface ClassTask {
+  id: string; kind: TaskKind; title: string; quizId?: string; courseId?: string; gameId?: string; pin?: string; dueAt?: Timestamp | null; note?: string; createdAt?: Timestamp
+  /** tapşırıq (assignment): təsvir, müəllim materialları, maksimal bal, gecikmiş təhvilə icazə */
+  description?: string; attachments?: FileRef[]; points?: number; allowLate?: boolean
+}
+export type SubStatus = 'draft' | 'submitted' | 'returned'
+export interface Submission {
+  id: string; uid: string; name: string; taskId: string; text?: string; files?: FileRef[]; status: SubStatus
+  submittedAt?: Timestamp | null; late?: boolean; grade?: number | null; feedback?: string; gradedAt?: Timestamp | null; updatedAt?: Timestamp
+}
+export interface ClassResult { id: string; uid: string; name: string; taskId: string; score: number; correct: number; total: number; pct: number; at?: Timestamp; flags?: Partial<Record<string, number>> }
 export interface Membership { id: string; uid: string; classId: string; className: string; joinedAt?: Timestamp }
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // qarışdırıla bilən 0/O, 1/I yoxdur
@@ -71,7 +81,7 @@ export async function addTask(cid: string, t: Omit<ClassTask, 'id' | 'createdAt'
   return ref.id
 }
 export const deleteTask = (cid: string, tid: string) => deleteDoc(doc(db, 'classes', cid, 'tasks', tid))
-export const updateTask = (cid: string, tid: string, patch: { dueAt?: Timestamp | null; note?: string; title?: string }) =>
+export const updateTask = (cid: string, tid: string, patch: { dueAt?: Timestamp | null; note?: string; title?: string; description?: string; attachments?: FileRef[]; points?: number; allowLate?: boolean }) =>
   updateDoc(doc(db, 'classes', cid, 'tasks', tid), Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined)))
 /** Sinif kartları üçün: tələbə və tapşırıq sayı. */
 export async function classCounts(cid: string): Promise<{ members: number; tasks: number }> {
@@ -111,12 +121,13 @@ export async function myResults(classId: string): Promise<ClassResult[]> {
   return s?.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ClassResult, 'id'>) })) ?? []
 }
 /** Məşq bitəndə: sinif tapşırığının nəticəsi (ən yaxşısı saxlanılır). */
-export async function saveClassResult(classId: string, taskId: string, name: string, r: { score: number; correct: number; total: number }) {
+export async function saveClassResult(classId: string, taskId: string, name: string, r: { score: number; correct: number; total: number; flags?: Partial<Record<string, number>> }) {
   const ref = doc(db, 'classes', classId, 'results', `${uid()}_${taskId}`)
   const pct = r.total ? Math.round((r.correct / r.total) * 100) : 0
   const prev = await getDoc(ref).catch(() => null)
   if (prev?.exists() && Number(prev.get('pct')) >= pct) return
-  await setDoc(ref, { uid: uid(), name: name.slice(0, 80), taskId, score: Math.round(r.score), correct: r.correct, total: r.total, pct, at: serverTimestamp() })
+  const flags = Object.fromEntries(Object.entries(r.flags ?? {}).filter(([, v]) => typeof v === 'number' && v > 0).map(([k, v]) => [k, Math.min(1000, Math.round(v!))]))
+  await setDoc(ref, { uid: uid(), name: name.slice(0, 80), taskId, score: Math.round(r.score), correct: r.correct, total: r.total, pct, ...(Object.keys(flags).length ? { flags } : {}), at: serverTimestamp() })
 }
 
 // ---------- kurslar ----------
@@ -195,3 +206,56 @@ export async function listCourseProgress(courseId: string): Promise<CourseProgre
   return s.docs.map((d) => d.data() as CourseProgress)
 }
 export const dueLabel = (t?: Timestamp | null) => (t ? t.toDate() : null)
+
+// ---------- fayllar (server: /api/files) ----------
+export const MAX_FILE_MB = 25
+export const FILE_ACCEPT = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.odt,.ods,.odp,.txt,.csv,.md,.rtf,.png,.jpg,.jpeg,.gif,.webp,.heic,.mp3,.m4a,.wav,.mp4,.mov,.webm,.zip,.7z,.rar'
+export class FileError extends Error { constructor(public code: string) { super(code) } }
+const bearerHeader = async (): Promise<Record<string, string>> => { const tk = await auth.currentUser?.getIdToken().catch(() => ''); return tk ? { authorization: `Bearer ${tk}` } : {} }
+export async function uploadFile(file: File, classId: string, kind: 'resource' | 'submission', taskId?: string): Promise<FileRef> {
+  if (file.size > MAX_FILE_MB * 1024 * 1024) throw new FileError('file-too-large')
+  const qs = new URLSearchParams({ name: file.name, classId, kind, ...(taskId ? { taskId } : {}) })
+  const r = await fetch(`/api/files?${qs}`, { method: 'POST', headers: { ...(await bearerHeader()), 'content-type': 'application/octet-stream' }, body: file })
+  const j = await r.json().catch(() => null) as (FileRef & { code?: string; message?: string }) | null
+  if (!r.ok || !j?.id) throw new FileError(j?.message?.startsWith('file-') ? j.message : r.status === 413 ? 'file-too-large' : j?.code === 'permission-denied' ? 'permission-denied' : 'file-failed')
+  return { id: j.id, name: j.name, size: j.size, type: j.type }
+}
+/** Faylı açır (şəkil/PDF — yeni tabda) və ya endirir. Giriş serverdə yoxlanılır. */
+export async function openFile(f: FileRef, download = false) {
+  const w = download ? null : window.open('', '_blank')
+  const r = await fetch(`/api/files/${f.id}${download ? '?dl=1' : ''}`, { headers: await bearerHeader() })
+  if (!r.ok) { w?.close(); throw new FileError(r.status === 403 ? 'permission-denied' : 'not-found') }
+  const url = URL.createObjectURL(await r.blob())
+  if (w) w.location.href = url
+  else { const a = document.createElement('a'); a.href = url; a.download = f.name; a.click() }
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+export const deleteFile = async (id: string) => { await fetch(`/api/files/${id}`, { method: 'DELETE', headers: await bearerHeader() }).catch(() => {}) }
+export const fmtSize = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${Math.round(n / 1024)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`)
+
+// ---------- tapşırıq təhvilləri ----------
+const subRef = (cid: string, u: string, tid: string) => doc(db, 'classes', cid, 'submissions', `${u}_${tid}`)
+export async function mySubmission(cid: string, tid: string): Promise<Submission | null> {
+  const s = await getDoc(subRef(cid, uid(), tid)).catch(() => null)
+  return s?.exists() ? ({ id: s.id, ...(s.data() as Omit<Submission, 'id'>) }) : null
+}
+/** Tələbə: qaralama və ya təhvil (status 'submitted' — vaxt və gecikmə serverdə yoxlanılır). */
+export async function saveSubmission(cid: string, task: ClassTask, name: string, data: { text: string; files: FileRef[] }, status: 'draft' | 'submitted') {
+  const late = !!task.dueAt && Date.now() > task.dueAt.toMillis()
+  await setDoc(subRef(cid, uid(), task.id), {
+    uid: uid(), name: name.slice(0, 80), taskId: task.id, text: data.text.slice(0, 20000), files: data.files.slice(0, 10), status,
+    ...(status === 'submitted' ? { submittedAt: serverTimestamp(), late } : {}), updatedAt: serverTimestamp(),
+  }, { merge: true })
+}
+export async function mySubmissions(cid: string): Promise<Submission[]> {
+  const s = await getDocs(query(collection(db, 'classes', cid, 'submissions'), where('uid', '==', uid()))).catch(() => null)
+  return s?.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Submission, 'id'>) })) ?? []
+}
+export async function listSubmissions(cid: string, tid?: string): Promise<Submission[]> {
+  const q = tid ? query(collection(db, 'classes', cid, 'submissions'), where('taskId', '==', tid)) : collection(db, 'classes', cid, 'submissions')
+  const s = await getDocs(q)
+  return s.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Submission, 'id'>) }))
+}
+/** Müəllim: qiymət + rəy; "returned" — tələbəyə qaytarılır (yenidən təhvil verə bilər). */
+export const gradeSubmission = (cid: string, sub: Submission, grade: number | null, feedback: string, status: SubStatus) =>
+  updateDoc(doc(db, 'classes', cid, 'submissions', sub.id), { grade, feedback: feedback.slice(0, 5000), gradedAt: serverTimestamp(), status })

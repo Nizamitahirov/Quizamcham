@@ -12,6 +12,7 @@ import { limit } from './ratelimit.js'
 import { aiRoutes, migrateAi } from './ai.js'
 import { mailRoutes } from './campaigns.js'
 import { learnRoutes } from './learn.js'
+import { fileRoutes, migrateFiles } from './files.js'
 import { clearAll, commit, DbError, getDoc, migrate, pool, runQuery, type Query, type Write } from './store.js'
 
 const PORT = Number(process.env.PORT ?? 3000)
@@ -63,6 +64,7 @@ authRoutes(app)
 aiRoutes(app)
 mailRoutes(app)
 learnRoutes(app)
+fileRoutes(app)
 await realtimeRoutes(app)
 
 const shutdown = async () => { await app.close(); await pool.end(); process.exit(0) }
@@ -72,4 +74,5 @@ process.on('SIGINT', shutdown)
 await migrate()
 await migrateAuth()
 await migrateAi()
+await migrateFiles()
 await app.listen({ port: PORT, host: process.env.HOST ?? '0.0.0.0' })

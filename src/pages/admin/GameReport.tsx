@@ -1,3 +1,6 @@
+import { Section } from '../../components/kit'
+import { IntegrityTable, useIntegrityRows } from '../../components/IntegrityPanel'
+import { ShieldAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { fmtDateTime } from '../../lib/format'
 import { Link, useParams } from 'react-router-dom'
@@ -47,6 +50,8 @@ export default function GameReport() {
       {game.settings?.mode === 'assign' && game.phase === 'self' && <AssignmentPanel game={game} onGraded={() => setTick((x) => x + 1)} />}
 
       <AiInsightsPanel title={game.title} r={r} />
+
+      {(game.settings?.integrity ?? 'off') !== 'off' && <ReportIntegrity gameId={game.id} />}
 
       <div className="card mb-8 overflow-x-auto">
         <table className="w-full text-left text-sm">
@@ -140,3 +145,8 @@ function ExcelButton({ name, sheets }: { name: string; sheets: () => import('../
   return <button className="btn btn-primary" onClick={() => void import('../../lib/xlsx').then((m) => m.downloadXlsx(`${name}.xlsx`, sheets()))}><Download />Excel</button>
 }
 
+
+function ReportIntegrity({ gameId }: { gameId: string }) {
+  const rows = useIntegrityRows(gameId)
+  return <Section icon={ShieldAlert} title={t.integrity.report} sub={t.integrity.hint} className="mb-8" bodyClassName="p-0"><IntegrityTable rows={rows} /></Section>
+}

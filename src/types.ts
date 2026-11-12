@@ -58,6 +58,8 @@ export interface QuizSettings {
   readTime: number // sualı cavablardan əvvəl göstərmə (s)
   selfShuffle?: boolean // öz tempində / tapşırıq: hər iştirakçıya sualların fərqli ardıcıllığı
   selfFeedback?: boolean // öz tempində: hər sualdan sonra nəticə (false → nəticələr sonda)
+  /** dürüstlük nəzarəti: off | monitor (qeyd + xəbərdarlıq) | strict (tabdan çıxılan sualın cavabı sayılmır) */
+  integrity?: 'off' | 'monitor' | 'strict'
 }
 
 export type PowerType = 'fifty' | 'double' | 'shield'
@@ -202,7 +204,7 @@ export interface Player {
 
 export type AnswerValue = string[] | string | number
 
-export interface Answer { uid: string; questionIndex: number; value: AnswerValue | null; answeredAt: Timestamp | null; conf?: boolean }
+export interface Answer { uid: string; questionIndex: number; value: AnswerValue | null; answeredAt: Timestamp | null; conf?: boolean; away?: boolean }
 
 export interface AppSettings { defaultTime: number; musicVolume: number; brandText: string; bannedWords: string[] }
 

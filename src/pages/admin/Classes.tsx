@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import {
   ArchiveRestore, Archive, ArrowLeft, BookOpen, CalendarClock, CheckCircle2, ClipboardList, Copy, Download, Gamepad2, GraduationCap,
-  Pencil, Plus, QrCode, Share2, Target, Trash2, TrendingUp, UserMinus, Users,
+  FileText, Pencil, Plus, QrCode, Share2, Target, Trash2, TrendingUp, UserMinus, Users,
 } from 'lucide-react'
 import { Timestamp } from 'firebase/firestore'
 import { t } from '../../i18n/az'
@@ -10,11 +10,13 @@ import { fmtDate } from '../../lib/format'
 import { listGames } from '../../firebase/db'
 import {
   addTask, archiveClass, classCounts, courseProgressAll, createClass, deleteClass, deleteTask, listMembers, listMyClasses, listMyCourses, listResults, listTasks, loadClass,
-  loadCourse, removeMember, renameClass, updateTask, type ClassResult, type ClassRow, type ClassTask, type Course, type Member, type TaskKind,
+  listSubmissions, loadCourse, removeMember, renameClass, updateTask, type ClassResult, type ClassRow, type ClassTask, type Course, type FileRef, type Member, type Submission, type TaskKind,
 } from '../../lib/classes'
+import { FileDrop, FileList } from '../../components/Files'
+import { AssignmentReview } from './AssignmentReview'
 import { LockedCard, PremiumBadge, useFeature } from '../../components/Premium'
 import { Modal, PageHeader, Spinner } from '../../components/ui'
-import { EmptyState, Field, PctBadge, Progress, Segmented, Stat, Tabs } from '../../components/kit'
+import { EmptyState, Field, PctBadge, Progress, Segmented, Stat, SwitchRow, Tabs } from '../../components/kit'
 import { confirmDialog, promptDialog, toast } from '../../components/dialogs'
 import { QuizPicker, type PickedQuiz } from '../../components/QuizPicker'
 import { QRBlock } from '../../components/QRBlock'
@@ -31,7 +33,15 @@ export const initials = (s: string) => {
 }
 const HUES = ['#F0262F', '#FF7A1A', '#8B5CF6', '#0EA5E9', '#10B981', '#EC4899', '#F59E0B']
 export const hue = (s: string) => HUES[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length]
-const KIND_ICON = { practice: ClipboardList, course: BookOpen, game: Gamepad2 } as const
+const KIND_ICON = { practice: ClipboardList, course: BookOpen, game: Gamepad2, assignment: FileText } as const
+const A = t.asg
+/** Sinfin bütün təhvilləri (müəllim). */
+function useSubmissions(cid: string, tick: number) {
+  const [subs, setSubs] = useState<Submission[]>([])
+  useEffect(() => { void listSubmissions(cid).then(setSubs).catch(() => setSubs([])) }, [cid, tick])
+  return subs
+}
+const localInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 const DAY = 86_400_000
 
 function dueState(d?: Timestamp | null): 'late' | 'soon' | 'ok' | 'none' {
@@ -193,7 +203,7 @@ export function ClassDetail() {
       </div>
       {tab === 'tasks' && <TasksTab cid={cls.id} tasks={tasks} members={members} results={results} onChange={reload} />}
       {tab === 'members' && <MembersTab cls={cls} members={members} tasks={tasks} results={results} onChange={reload} onQr={() => setQr(true)} />}
-      {tab === 'results' && <ResultsTab members={members} tasks={tasks} results={results} />}
+      {tab === 'results' && <ResultsTab cid={cls.id} members={members} tasks={tasks} results={results} />}
 
       <Modal open={qr} onClose={() => setQr(false)} title={C2.qrTitle} sub={cls.name}>
         <div className="flex flex-col items-center gap-4 text-center">
@@ -214,14 +224,32 @@ function TaskForm({ cid, initial, onDone }: { cid: string; initial?: ClassTask; 
   const [courses, setCourses] = useState<Course[] | null>(null)
   const [games, setGames] = useState<{ id: string; title: string; pin: string }[] | null>(null)
   const [due, setDue] = useState(initial?.dueAt ? initial.dueAt.toDate().toISOString().slice(0, 10) : '')
+  const [dueAt2, setDueAt2] = useState(initial?.dueAt ? localInput(initial.dueAt.toDate()) : '')
   const [note, setNote] = useState(initial?.note ?? '')
+  const [title, setTitle] = useState(initial?.kind === 'assignment' ? initial.title : '')
+  const [desc, setDesc] = useState(initial?.description ?? '')
+  const [files, setFiles] = useState<FileRef[]>(initial?.attachments ?? [])
+  const [points, setPoints] = useState(initial?.points ?? 100)
+  const [allowLate, setAllowLate] = useState(initial?.allowLate ?? true)
   const [busy, setBusy] = useState(false)
   useEffect(() => {
     void listMyCourses().then(setCourses).catch(() => setCourses([]))
     void listGames(50, me).then((g) => setGames((g as { id: string; title: string; pin: string; phase?: string }[]).filter((x) => x.phase !== 'finished'))).catch(() => setGames([]))
   }, [me])
   const editing = !!initial
+  const isAsg = (initial?.kind ?? kind) === 'assignment'
   const save = async () => {
+    if (isAsg) {
+      setBusy(true)
+      try {
+        const dueAt = dueAt2 ? Timestamp.fromDate(new Date(dueAt2)) : null
+        const data = { title: title.trim(), description: desc.trim(), attachments: files, points: Math.max(1, Math.min(1000, Math.round(points) || 100)), allowLate, dueAt }
+        if (editing) await updateTask(cid, initial!.id, data)
+        else await addTask(cid, { kind: 'assignment', ...data })
+        toast(editing ? C2.saved : C2.added); onDone()
+      } catch { toast(t.app.error, 'error') } finally { setBusy(false) }
+      return
+    }
     if (!picked) return
     setBusy(true)
     try {
@@ -248,27 +276,45 @@ function TaskForm({ cid, initial, onDone }: { cid: string; initial?: ClassTask; 
       {!editing ? (
         <>
           <Field label={C.kind}>
-            <Segmented value={kind} onChange={(k) => { setKind(k); setPicked(null) }} options={(['practice', 'course', 'game'] as TaskKind[]).map((k) => ({ value: k, label: C.kinds[k] }))} />
+            <Segmented value={kind} onChange={(k) => { setKind(k); setPicked(null) }} options={(['assignment', 'practice', 'course', 'game'] as TaskKind[]).map((k) => ({ value: k, label: C.kinds[k] }))} />
           </Field>
-          <Field label={kind === 'practice' ? C.pickQuiz : kind === 'course' ? C.pickCourse : C.pickGame}>
+          {kind !== 'assignment' && <Field label={kind === 'practice' ? C.pickQuiz : kind === 'course' ? C.pickCourse : C.pickGame}>
             {kind === 'practice' && <QuizPicker me={me} author={displayName(admin)} selected={picked?.id} onPick={(q: PickedQuiz) => setPicked({ id: q.quizId, title: q.title })} />}
             {kind === 'course' && simple(courses && courses.map((c) => ({ id: c.id, title: c.title, sub: t.course.count(c.items.length) })), t.course.empty)}
             {kind === 'game' && simple(games && games.map((g) => ({ id: g.id, title: g.title, sub: `PIN ${g.pin}`, pin: g.pin })), C2.nothing)}
-          </Field>
+          </Field>}
         </>
-      ) : (
+      ) : isAsg ? null : (
         <div className="raised flex items-center gap-3 p-3">
           <span className="icon-tile h-9 w-9"><KindIcon className="h-4 w-4" /></span>
           <div className="min-w-0"><p className="truncate font-semibold">{initial!.title}</p><p className="text-xs text-muted">{C.kinds[initial!.kind]}</p></div>
         </div>
       )}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Field label={C.due}><input type="date" className="input" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
-        <Field label={C.note}><input className="input" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-      </div>
+      {isAsg ? (
+        <>
+          <Field label={A.title}><input className="input" maxLength={120} placeholder={A.titlePh} value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
+          <Field label={A.desc}><textarea className="input min-h-32" maxLength={5000} placeholder={A.descPh} value={desc} onChange={(e) => setDesc(e.target.value)} /></Field>
+          <Field label={`${A.materials} · ${files.length}/10`}>
+            <div className="flex flex-col gap-2">
+              <FileList files={files} onRemove={(f) => setFiles((x) => x.filter((y) => y.id !== f.id))} />
+              <FileDrop classId={cid} kind="resource" count={files.length} onUploaded={(f) => setFiles((x) => [...x, f])} />
+            </div>
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label={A.dueTime}><input type="datetime-local" className="input" value={dueAt2} onChange={(e) => setDueAt2(e.target.value)} /></Field>
+            <Field label={A.points}><input type="number" min={1} max={1000} className="input" value={points} onChange={(e) => setPoints(Number(e.target.value))} /></Field>
+          </div>
+          <div className="rounded-xl border border-line px-3"><SwitchRow checked={allowLate} onChange={setAllowLate} label={A.allowLate} desc={A.allowLateDesc} icon={CalendarClock} /></div>
+        </>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={C.due}><input type="date" className="input" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
+          <Field label={C.note}><input className="input" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+        </div>
+      )}
       <div className="flex justify-end gap-2 border-t border-line pt-4">
         <button className="btn btn-secondary" onClick={onDone}>{t.dlg.cancel}</button>
-        <button className="btn btn-primary" disabled={busy || !picked} onClick={() => void save()}>{editing ? t.dlg.save : <><Plus />{C.add}</>}</button>
+        <button className="btn btn-primary" disabled={busy || (isAsg ? title.trim().length < 2 : !picked)} onClick={() => void save()}>{editing ? t.dlg.save : <><Plus />{C.add}</>}</button>
       </div>
     </div>
   )
@@ -276,6 +322,9 @@ function TaskForm({ cid, initial, onDone }: { cid: string; initial?: ClassTask; 
 
 function TasksTab({ cid, tasks, members, results, onChange }: { cid: string; tasks: ClassTask[]; members: Member[]; results: ClassResult[]; onChange: () => void }) {
   const [form, setForm] = useState<{ edit?: ClassTask } | null>(null)
+  const [tick, setTick] = useState(0)
+  const subs = useSubmissions(cid, tick)
+  const [review, setReview] = useState<ClassTask | null>(null)
   const del = async (x: ClassTask) => { if (await confirmDialog({ title: C2.delTask, body: C2.delTaskBody, danger: true })) void deleteTask(cid, x.id).then(onChange) }
   const sorted = [...tasks].sort((a, b) => (a.dueAt?.toMillis() ?? Infinity) - (b.dueAt?.toMillis() ?? Infinity))
   const uids = new Set(members.map((m) => m.uid))
@@ -297,6 +346,19 @@ function TasksTab({ cid, tasks, members, results, onChange }: { cid: string; tas
                   <div className="flex flex-wrap items-center gap-2"><span className="break-words font-semibold">{x.title}</span><span className="chip chip-muted">{C.kinds[x.kind]}</span></div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted"><DueChip d={x.dueAt} />{x.note && <span className="truncate">{x.note}</span>}</div>
                 </div>
+                {x.kind === 'assignment' && (() => {
+                  const mine = subs.filter((u) => u.taskId === x.id && uids.has(u.uid))
+                  const turned = mine.filter((u) => u.status !== 'draft').length, graded = mine.filter((u) => u.status === 'returned').length
+                  return (
+                    <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+                      <div className="w-full sm:w-44">
+                        <div className="mb-1 flex justify-between text-xs"><span className="text-muted">{A.turnedIn(turned, members.length)}</span><span className="text-muted">{A.graded(graded)}</span></div>
+                        <Progress value={members.length ? (turned / members.length) * 100 : 0} />
+                      </div>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setReview(x)}><CheckCircle2 />{A.review}</button>
+                    </div>
+                  )
+                })()}
                 {x.kind === 'practice' && members.length > 0 && (
                   <div className="w-full sm:w-44">
                     <div className="mb-1 flex justify-between text-xs"><span className="text-muted">{C2.done(done.length, members.length)}</span>{avg != null && <span className="font-semibold tabular">{avg}%</span>}</div>
@@ -313,8 +375,11 @@ function TasksTab({ cid, tasks, members, results, onChange }: { cid: string; tas
           })}
         </ul>
       )}
-      <Modal open={!!form} onClose={() => setForm(null)} title={form?.edit ? C2.editTask : C.addTask} wide={!form?.edit}>
+      <Modal open={!!form} onClose={() => setForm(null)} title={form?.edit ? C2.editTask : C.addTask} wide={!form?.edit || form.edit.kind === 'assignment'}>
         {form && <TaskForm cid={cid} initial={form.edit} onDone={() => { setForm(null); onChange() }} />}
+      </Modal>
+      <Modal open={!!review} onClose={() => { setReview(null); setTick((n) => n + 1) }} title={review?.title ?? ''} sub={A.submissions} wide>
+        {review && <AssignmentReview cid={cid} task={review} members={members} subs={subs.filter((u) => u.taskId === review.id)} onChanged={() => setTick((n) => n + 1)} />}
       </Modal>
     </>
   )
@@ -353,8 +418,10 @@ function MembersTab({ cls, members, tasks, results, onChange, onQr }: { cls: Cla
   )
 }
 
-function ResultsTab({ members, tasks, results }: { members: Member[]; tasks: ClassTask[]; results: ClassResult[] }) {
+function ResultsTab({ cid, members, tasks, results }: { cid: string; members: Member[]; tasks: ClassTask[]; results: ClassResult[] }) {
   const cols = tasks.filter((x) => x.kind !== 'game')
+  const subs = useSubmissions(cid, 0)
+  const subOf = (u: string, tid: string) => subs.find((x) => x.uid === u && x.taskId === tid)
   const [courseProg, setCourseProg] = useState<Map<string, Map<string, number>>>(new Map())
   const [courseLen, setCourseLen] = useState<Map<string, number>>(new Map())
   useEffect(() => {
@@ -370,7 +437,7 @@ function ResultsTab({ members, tasks, results }: { members: Member[]; tasks: Cla
   }, [members, tasks])
   const byKey = useMemo(() => new Map(results.map((r) => [`${r.uid}_${r.taskId}`, r])), [results])
   if (!members.length || !cols.length) return <EmptyState icon={Target} title={!members.length ? C.noMembers : C.noTasks} />
-  const cell = (m: Member, c: ClassTask) => c.kind === 'course' ? `${courseProg.get(c.id)?.get(m.uid) ?? 0}/${courseLen.get(c.id) ?? 0}` : byKey.get(`${m.uid}_${c.id}`)?.pct ?? ''
+  const cell = (m: Member, c: ClassTask) => c.kind === 'assignment' ? (subOf(m.uid, c.id)?.grade ?? '') : c.kind === 'course' ? `${courseProg.get(c.id)?.get(m.uid) ?? 0}/${courseLen.get(c.id) ?? 0}` : byKey.get(`${m.uid}_${c.id}`)?.pct ?? ''
   const excel = () => void import('../../lib/xlsx').then((x) => x.downloadXlsx('jabr-class-results.xlsx', [{ name: C.tabs.results, rows: [[C.student, ...cols.map((c) => c.title)], ...members.map((m) => [m.name, ...cols.map((c) => cell(m, c))])] }]))
   const uids = new Set(members.map((m) => m.uid))
   const colAvg = (c: ClassTask) => { const r = results.filter((x) => x.taskId === c.id && uids.has(x.uid)); return r.length ? Math.round(r.reduce((a, x) => a + x.pct, 0) / r.length) : null }
@@ -389,10 +456,15 @@ function ResultsTab({ members, tasks, results }: { members: Member[]; tasks: Cla
                 <tr key={m.uid}>
                   <td className="sticky left-0 z-[1] bg-panel font-semibold">{m.name}</td>
                   {cols.map((c) => {
+                    if (c.kind === 'assignment') {
+                      const sb = subOf(m.uid, c.id)
+                      return <td key={c.id} className="text-center">{sb?.grade != null ? <span className="chip chip-ok tabular">{sb.grade}/{c.points ?? 100}</span> : sb && sb.status !== 'draft' ? <span className={`chip ${sb.late ? 'chip-warn' : 'chip-info'}`}>{A.status[sb.late ? 'late' : 'submitted']}</span> : <span className="text-muted">{C.notDone}</span>}</td>
+                    }
                     if (c.kind === 'course') { const n = courseProg.get(c.id)?.get(m.uid) ?? 0, total = courseLen.get(c.id) ?? 0; return <td key={c.id} className="text-center tabular">{total ? <span className={n === total ? 'font-semibold text-emerald-300' : 'text-fg2'}>{C.progress(n, total)}</span> : C.notDone}</td> }
                     const r = byKey.get(`${m.uid}_${c.id}`)
                     const late = !r && dueState(c.dueAt) === 'late'
-                    return <td key={c.id} className="text-center">{r ? <PctBadge pct={r.pct} /> : late ? <span className="chip chip-bad">{C2.status.late}</span> : <span className="text-muted">{C.notDone}</span>}</td>
+                    const fl = r?.flags ? Object.entries(r.flags).filter(([, v]) => (v ?? 0) > 0) : []
+                    return <td key={c.id} className="text-center">{r ? <span className="inline-flex items-center gap-1"><PctBadge pct={r.pct} />{fl.length > 0 && <span className="chip chip-warn px-1.5" title={fl.map(([k, v]) => `${t.integrity.kinds[k] ?? k}: ${v}`).join('\n')}>⚠ {fl.reduce((a, [, v]) => a + (v ?? 0), 0)}</span>}</span> : late ? <span className="chip chip-bad">{C2.status.late}</span> : <span className="text-muted">{C.notDone}</span>}</td>
                   })}
                   <td className="text-center font-semibold tabular">{pcts.length ? `${Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length)}%` : <span className="text-muted">{C.notDone}</span>}</td>
                 </tr>

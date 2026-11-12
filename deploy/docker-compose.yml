@@ -37,8 +37,10 @@ services:
       SERVER_IP: ${SERVER_IP:-}
       DKIM_DIR: /dkim
       DKIM_SELECTOR: jabr
+      FILES_DIR: /data/files
     volumes:
       - dkim:/dkim:ro
+      - files:/data/files
     depends_on:
       db:
         condition: service_healthy
@@ -71,6 +73,7 @@ services:
     volumes:
       - ./backup.sh:/backup.sh:ro
       - ../backups:/backups
+      - files:/files:ro
     depends_on:
       db:
         condition: service_healthy
@@ -93,6 +96,7 @@ services:
       - api
 
 volumes:
+  files:
   dkim:
   mailspool:
   pgdata:

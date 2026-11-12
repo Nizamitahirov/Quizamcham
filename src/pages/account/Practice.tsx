@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { parseBlanks } from '../../lib/scoring'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { useIntegrity } from '../../lib/integrity'
 import { createPortal } from 'react-dom'
 import { ArrowLeft, ArrowRight, Award, Play, CheckCircle2, Clock, Flag, RotateCcw, Trophy, X, XCircle } from 'lucide-react'
 import { loadCatalogItem, reportQuiz, saveAttempt, useAccount, type CatalogItem, type ReportReason } from '../../lib/account'
@@ -69,6 +70,8 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
   const q: Question | undefined = qs[i]
   const pub = useMemo(() => (q ? toPublic(q, { shuffleOptions: true } as never) : null), [q])
   const finished = i >= qs.length
+  // sinif tapşırığında dürüstlük qeydi (müşahidə rejimi): nəticə ilə birlikdə müəllimə gedir
+  const ig = useIntegrity({ mode: ctx.classId ? 'monitor' : 'off', channel: `practice-${item.id}`, q: i, active: !finished })
 
   const submit = useCallback((v: AnswerValue | null, timedOut = false) => {
     if (!q || answered) return
@@ -109,7 +112,7 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
     void (async () => {
       const { saveClassResult, loadCourse, markCourseItem } = await import('../../lib/classes')
       const name = ctx.name || ''
-      if (ctx.classId && ctx.taskId) await saveClassResult(ctx.classId, ctx.taskId, name, { score, correct, total }).catch(() => {})
+      if (ctx.classId && ctx.taskId) await saveClassResult(ctx.classId, ctx.taskId, name, { score, correct, total, flags: ig.counts }).catch(() => {})
       if (ctx.courseId) {
         const c = await loadCourse(ctx.courseId).catch(() => null)
         if (!c) return
@@ -162,6 +165,7 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
   const correctOpts = (q.options ?? []).map((o, idx) => ({ o, idx })).filter(({ o }) => q.correct.includes(o.id))
   return (
     <div className="flex flex-1 flex-col gap-4">
+      {ig.warning && <button type="button" onClick={ig.dismiss} className="rounded-xl border border-amber-400/40 bg-amber-500/90 px-3 py-2 text-left text-sm font-semibold text-black" role="alert">⚠ {t.integrity.warn[ig.warning]} · <span className="font-medium opacity-80">{t.integrity.seen}</span></button>}
       <div className="flex items-center gap-3">
         <span className="chip chip-dark">{A.qOf(i + 1, qs.length)}</span>
         {q.type !== 'slide' && (

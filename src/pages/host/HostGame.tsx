@@ -31,7 +31,10 @@ import HostSummary from './HostSummary'
 import { HostSelf } from './HostSelf'
 import { useSelfEngine } from './useSelfEngine'
 import { HostQA, useQA } from '../../components/QA'
-import { MessageCircleQuestion } from 'lucide-react'
+import { MessageCircleQuestion, ShieldAlert } from 'lucide-react'
+import { IntegrityTable, useIntegrityRows } from '../../components/IntegrityPanel'
+import { flagSevere } from '../../lib/integrity'
+import { Modal } from '../../components/ui'
 import type { Game, Player, Question } from '../../types'
 
 export default function HostGame() {
@@ -69,6 +72,7 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
   useLeaveGuard(running)
   const online = useOnline()
   const [qaOpen, setQaOpen] = useState(false)
+  const [igOpen, setIgOpen] = useState(false)
   const qaItems = useQA(gameId, game?.settings.qa !== false)
   const qaOpenCount = qaItems.filter((q) => !q.answered && !q.hidden).length
   useEffect(() => { void syncClock(`games/${gameId}/secret/clock`) }, [gameId])
@@ -365,6 +369,7 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
           <button className="btn btn-ghost btn-icon" aria-label={t.a11y.music} onClick={() => { audio.unlock(); audio.toggleMute() }}>{muted ? <VolumeX /> : <Volume2 />}</button>
           <button className="btn btn-ghost btn-icon" aria-label={t.a11y.fullscreen} onClick={toggleFs}><Maximize /></button>
           {game.settings.qa !== false && <button className="btn btn-ghost" onClick={() => setQaOpen((o) => !o)}><MessageCircleQuestion />{t.qa.hostTitle(qaOpenCount)}</button>}
+          {(game.settings.integrity ?? 'off') !== 'off' && <IntegrityButton gameId={game.id} open={igOpen} setOpen={setIgOpen} />}
           {game.phase !== 'lobby' && <button className="btn btn-ghost" onClick={endGame}><Flag />{t.host.endGame}</button>}
           <span className="ml-auto hidden text-xs text-white/40 xl:inline">{t.host.shortcuts}</span>
           {autoLeft != null && <span className="chip chip-dark text-sm">{t.host.autoNext(autoLeft)}</span>}
@@ -380,3 +385,15 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
 }
 
 export interface HostCtx { game: Game; questions: Question[]; players: Player[]; answered: Set<string>; busy: boolean }
+
+/** Host: dürüstlük qeydləri — şübhəli iştirakçıların sayı və cədvəl. */
+function IntegrityButton({ gameId, open, setOpen }: { gameId: string; open: boolean; setOpen: (v: boolean) => void }) {
+  const rows = useIntegrityRows(gameId)
+  const flagged = rows.filter((r) => flagSevere(r.counts) > 0).length
+  return (
+    <>
+      <button className={`btn ${flagged ? 'btn-danger' : 'btn-ghost'}`} onClick={() => setOpen(true)} title={t.integrity.report}><ShieldAlert />{flagged ? t.integrity.flagged(flagged) : t.integrity.title}</button>
+      <Modal open={open} onClose={() => setOpen(false)} title={t.integrity.report} wide><div className="-mx-6"><IntegrityTable rows={rows} /></div></Modal>
+    </>
+  )
+}

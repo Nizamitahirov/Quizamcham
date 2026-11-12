@@ -47,8 +47,9 @@ export const campPreview = (content: CampContent) => call<{ subject: string; htm
 export const campSend = (content: CampContent, filter: CampFilter, test = false) => call<{ id?: string; total?: number; test?: boolean; to?: string; sent?: boolean; error?: string }>('/api/campaigns/send', { content, filter, test })
 export const campList = () => call<{ items: CampItem[] }>('/api/campaigns')
 
-export interface GenInput { topic?: string; text?: string; count: number; lang: AiLang; level: 'easy' | 'medium' | 'hard'; types: string[]; audience?: string }
-export const aiGenerate = (input: GenInput) => call<{ quiz: Record<string, unknown>; dropped?: number }>('/api/ai/generate', input)
+export type AiLevel = 'easy' | 'medium' | 'hard'
+export interface GenInput { topic?: string; text?: string; count: number; lang: AiLang; level: AiLevel; types: string[]; audience?: string; mix?: Record<AiLevel, number>; ordered?: boolean; timeByLevel?: boolean }
+export const aiGenerate = (input: GenInput) => call<{ quiz: Record<string, unknown>; dropped?: number; levels?: Partial<Record<AiLevel, number>> }>('/api/ai/generate', input)
 
 export interface InsightInput { lang: AiLang; title: string; players: number; questions: { text: string; correctPct: number; avgTimeS?: number; topWrong?: string[] }[] }
 export interface Insights { summary: string; strengths: string[]; gaps: string[]; actions: string[] }

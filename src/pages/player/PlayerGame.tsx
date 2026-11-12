@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Clock, Flame, Hourglass, Trophy } from 'lucide-react'
+import { Clock, Flame, Hourglass, ShieldAlert, Trophy, X } from 'lucide-react'
 import { ensureAnonymous } from '../../firebase/auth'
 import { useGame, usePlayer, useInterval } from '../../lib/hooks'
-import { heartbeat, markSeenLate, sendReaction, submitAnswer } from '../../lib/gameEngine'
+import { heartbeat, markSeenLate, sendReaction, submitAnswer, writeIntegrity } from '../../lib/gameEngine'
+import { IntegrityCtx, useIntegrity, type FlagCounts, type FlagEvent, type Integrity } from '../../lib/integrity'
 import { serverNow, syncClock } from '../../lib/timeSync'
 import { shortName } from '../../lib/nameFilter'
 import { LOCALE, t } from '../../i18n/az'
@@ -77,6 +78,16 @@ export default function PlayerGame() {
   useEffect(() => { if (game?.phase === 'finished') setGame(null) }, [game?.phase, setGame])
   useWakeLock(!!game && game.phase !== 'finished')
   useWatchdog(game, player, uid)
+  // dürüstlük nəzarəti: tab dəyişmə, yapışdırma, ikinci tab, qeyri-real sürət → host görür
+  const nameRef = useRef('')
+  useEffect(() => { if (player) nameRef.current = shortName(player.firstName, player.lastName) }, [player])
+  const igTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onIg = useCallback((counts: FlagCounts, events: FlagEvent[]) => {
+    if (!gameId || !uid) return
+    if (igTimer.current) clearTimeout(igTimer.current)
+    igTimer.current = setTimeout(() => { void writeIntegrity(gameId, uid, nameRef.current, counts as Record<string, number>, events).catch(() => {}) }, 1200)
+  }, [gameId, uid])
+  const ig = useIntegrity({ mode: game?.settings.integrity ?? 'off', channel: gameId ?? '', q: game?.questionIndex ?? 0, active: phase === 'question' || phase === 'self', onChange: onIg })
   const stalled = useStall(game)
   // Admin yüklədiyi düz/səhv cavab səsləri
   useEffect(() => { void loadSounds().then((snd) => audio.loadClips(snd)) }, [])
@@ -116,12 +127,15 @@ export default function PlayerGame() {
         </div>
       </header>
       {game.settings.qa !== false && game.settings.mode !== 'assign' && !['question', 'countdown', 'self', 'finished'].includes(view.phase) && <PlayerQA gameId={game.id} uid={uid} name={shortName(player.firstName, player.lastName)} />}
+      <IntegrityWarning ig={ig} />
       <main className="relative z-10 mx-auto flex w-full max-w-md flex-1 flex-col p-4 pb-20">
-        <AnimatePresence mode="wait">
-          <motion.div key={view.phase + view.questionIndex} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
-            <PhaseView game={view} player={player} uid={uid} onReact={react} />
-          </motion.div>
-        </AnimatePresence>
+        <IntegrityCtx.Provider value={ig}>
+          <AnimatePresence mode="wait">
+            <motion.div key={view.phase + view.questionIndex} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.25 }}>
+              <PhaseView game={view} player={player} uid={uid} onReact={react} />
+            </motion.div>
+          </AnimatePresence>
+        </IntegrityCtx.Provider>
       </main>
     </div>
   )
@@ -172,7 +186,7 @@ function Message({ emoji, text }: { emoji: string; text: string }) {
 
 function PhaseView({ game, player, uid, onReact }: { game: Game; player: Player; uid: string; onReact: (e: string) => void }) {
   switch (game.phase) {
-    case 'lobby': return <LobbyView game={game} player={player} onReact={onReact} />
+    case 'lobby': return <>{(game.settings.integrity ?? 'off') !== 'off' && <p className="mb-3 flex items-start gap-2 rounded-2xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm font-semibold text-amber-200"><ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />{t.integrity.lobby}</p>}<LobbyView game={game} player={player} onReact={onReact} /></>
     case 'countdown': return game.preview ? <div className="m-auto w-full"><QuestionIntro preview={game.preview} total={game.totalQuestions} /></div> : <Spinner />
     case 'question': return <QuestionView game={game} uid={uid} player={player} />
     case 'reveal': return <RevealView game={game} player={player} />
@@ -243,6 +257,8 @@ function LobbyView({ game, player, onReact }: { game: Game; player: Player; onRe
 
 function QuestionView({ game, uid, player }: { game: Game; uid: string; player: Player }) {
   const q = game.currentQuestion
+  const ig = useContext(IntegrityCtx)
+  const shownAt = useRef(Date.now())
   const key = `qz.ans.${game.id}.${game.questionIndex}`
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'late' | 'error'>(() => { try { return sessionStorage.getItem(key) ? 'sent' : 'idle' } catch { return 'idle' } })
   const [remaining, setRemaining] = useState(Infinity)
@@ -283,7 +299,8 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
     let maybeSaved = false // əvvəlki cəhd şəbəkə xətası ilə bitibsə, cavab serverə çatmış ola bilər
     for (let attempt = 0; attempt < 6; attempt++) {
       try {
-        await submitAnswer(game.id, uid, game.questionIndex, v, conf)
+        if (attempt === 0) ig?.markAnswer(Date.now() - shownAt.current)
+        await submitAnswer(game.id, uid, game.questionIndex, v, conf, ig?.awayNow())
         return markSent()
       } catch (e) {
         const code = (e as { code?: string }).code
@@ -443,6 +460,22 @@ function PodiumWait({ player, game }: { player: Player; game: Game }) {
       <Sticker emoji="🏆" size={130} />
       <h2 className="text-3xl font-black">{t.game.gameOver}</h2>
       {r && r.rank > 0 && <p className="font-display text-grad text-6xl font-black">#{r.rank}</p>}
+    </div>
+  )
+}
+
+/** Oyunçuya xəbərdarlıq: şübhəli hərəkət qeydə alındı (müəllim görür). */
+function IntegrityWarning({ ig }: { ig: Integrity }) {
+  const W = t.integrity
+  useEffect(() => { if (!ig.warning) return; const id = setTimeout(ig.dismiss, 4500); return () => clearTimeout(id) }, [ig.warning, ig.dismiss, ig.counts])
+  if (!ig.warning) return null
+  const strictAway = ig.mode === 'strict' && (ig.warning === 'tab' || ig.warning === 'blur')
+  return (
+    <div className="fixed inset-x-3 top-3 z-[60] mx-auto max-w-md rounded-2xl border border-amber-400/40 bg-amber-500/95 p-3 text-sm font-semibold text-black shadow-2xl" role="alert">
+      <div className="flex items-start gap-2"><ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
+        <div className="min-w-0 flex-1"><p>{W.warn[ig.warning]}</p><p className="mt-0.5 text-xs font-medium opacity-80">{strictAway ? W.strictNote : W.seen}</p></div>
+        <button type="button" onClick={ig.dismiss} aria-label={t.dlg.cancel} className="rounded-lg p-1 hover:bg-black/10"><X className="h-4 w-4" /></button>
+      </div>
     </div>
   )
 }

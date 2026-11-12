@@ -9,7 +9,7 @@ import { t } from '../i18n/az'
 import type { AdminState } from '../firebase/auth'
 import { listGames } from '../firebase/db'
 import { listCatalog, listReports, myAttempts, myPlays } from './account'
-import { listMembers, listMyClasses, listResults, listTasks, myMemberships, myResults } from './classes'
+import { listMembers, listMyClasses, listResults, listTasks, myMemberships, myResults, mySubmissions } from './classes'
 import { aiQuota } from './ai'
 import { computeGamify } from './gamify'
 import { loadAvatar } from './avatar3d'
@@ -102,12 +102,17 @@ export async function studentNotices(uid: string): Promise<Notice[]> {
   const [ms0, attempts, plays, av] = await Promise.all([safe(myMemberships(), []), safe(myAttempts(uid), []), safe(myPlays(uid), []), safe(loadAvatar(uid), null)])
   for (const m of ms0.slice(0, 10)) {
     const [tasks, mine] = await Promise.all([safe(listTasks(m.classId), []), safe(myResults(m.classId), [])])
+    const subs = tasks.some((x) => x.kind === 'assignment') ? await safe(mySubmissions(m.classId), []) : []
     for (const tk of tasks) {
-      if (mine.some((r) => r.taskId === tk.id)) continue
+      const sub = subs.find((x) => x.taskId === tk.id)
+      const to = tk.kind === 'assignment' ? `/learn/class/${m.classId}/task/${tk.id}` : '/learn'
+      // qiymətləndirilmiş tapşırıq → bildiriş
+      if (sub?.status === 'returned' && sub.grade != null) { const at = ms(sub.gradedAt); if (at && now - at < WEEK) out.push({ id: `graded:${tk.id}:${at}`, title: N.graded(tk.title, sub.grade, tk.points ?? 100), body: sub.feedback?.slice(0, 120) || N.taskBody, at, to, tone: 'ok', icon: 'award' }); continue }
+      if (mine.some((r) => r.taskId === tk.id) || (sub && sub.status !== 'draft')) continue
       const due = ms(tk.dueAt), created = ms(tk.createdAt)
-      if (due && due < now && now - due < WEEK) out.push({ id: `overdue:${tk.id}`, title: N.overdue(tk.title), body: N.taskBody, at: due, to: '/learn', tone: 'bad', icon: 'calendar', sticky: true })
-      else if (due && due > now && due - now < DAY * 1.5) out.push({ id: `due:${tk.id}`, title: N.dueTomorrow(tk.title), body: N.taskBody, at: due - DAY, to: '/learn', tone: 'warn', icon: 'calendar' })
-      else if (created && now - created < WEEK) out.push({ id: `task:${tk.id}`, title: N.newTask(tk.title, m.className), body: N.taskBody, at: created, to: '/learn', tone: 'brand', icon: 'plus' })
+      if (due && due < now && now - due < WEEK) out.push({ id: `overdue:${tk.id}`, title: N.overdue(tk.title), body: N.taskBody, at: due, to, tone: 'bad', icon: 'calendar', sticky: true })
+      else if (due && due > now && due - now < DAY * 1.5) out.push({ id: `due:${tk.id}`, title: N.dueTomorrow(tk.title), body: N.taskBody, at: due - DAY, to, tone: 'warn', icon: 'calendar' })
+      else if (created && now - created < WEEK) out.push({ id: `task:${tk.id}`, title: N.newTask(tk.title, m.className), body: N.taskBody, at: created, to, tone: 'brand', icon: 'plus' })
     }
   }
   // seriya və nişanlar

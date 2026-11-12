@@ -13,6 +13,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY seed ./seed
 COPY package.json ./
+# tapşırıq faylları (docker həcmi; ilk yaradılanda bu sahiblik köçürülür)
+RUN mkdir -p /data/files && chown -R node:node /data
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://127.0.0.1:3000/api/health || exit 1

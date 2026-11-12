@@ -38,6 +38,7 @@ export function SettingsForm({ s, onChange, maxPlayersCap }: { s: QuizSettings; 
         {s.mode === 'assign' && <Field className="mt-4" label={S.assignDays}><Segmented value={s.assignDays ?? 7} options={ASSIGN_DAYS.map((n) => ({ value: n, label: S.days(n) }))} onChange={(assignDays) => onChange({ assignDays })} /></Field>}
         {s.mode === 'self' && <Field className="mt-4" label={S.selfMinutes}><Segmented value={s.selfMinutes ?? 15} options={SELF_MINUTES.map((n) => ({ value: n, label: S.minutes(n) }))} onChange={(selfMinutes) => onChange({ selfMinutes })} /></Field>}
         <ConfidenceRow s={s} onChange={onChange} />
+          <IntegrityRow s={s} onChange={onChange} />
         {(s.mode === 'self' || s.mode === 'assign') && (
           <div className={`mt-4 grid gap-2 ${s.mode === 'self' ? 'lg:grid-cols-2' : ''}`}>
             <div className="rounded-xl border border-line px-3"><SwitchRow icon={Shuffle} checked={s.selfShuffle !== false} onChange={(selfShuffle) => onChange({ selfShuffle })} label={S.selfShuffle} desc={S.selfShuffleHint} /></div>
@@ -109,6 +110,26 @@ function ConfidenceRow({ s, onChange }: { s: QuizSettings; onChange: (p: Partial
     <div className="mt-4 flex items-center gap-2 rounded-xl border border-line px-3">
       <div className="min-w-0 flex-1"><SwitchRow icon={Gauge} checked={allowed && !!s.confidence} onChange={(confidence) => allowed && onChange({ confidence })} label={t.settings.confidence} desc={t.settings.confidenceHint} /></div>
       {!allowed && <PremiumBadge feature="confidence" />}
+    </div>
+  )
+}
+
+/** Dürüstlük nəzarəti (Pro): tab dəyişmə, yapışdırma, ikinci tab, qeyri-real sürət. */
+function IntegrityRow({ s, onChange }: { s: QuizSettings; onChange: (p: Partial<QuizSettings>) => void }) {
+  const allowed = useFeature('antiCheat')
+  const I = t.integrity
+  const v = allowed ? s.integrity ?? 'off' : 'off'
+  return (
+    <div className="mt-4 rounded-xl border border-line p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-white/[.03] text-muted"><ShieldCheck className="h-4 w-4" /></span>
+        <div className="min-w-0 flex-1"><p className="text-sm font-semibold">{I.title}</p><p className="text-xs text-muted">{I.hint}</p></div>
+        {!allowed && <PremiumBadge feature="antiCheat" />}
+      </div>
+      <div className={`mt-3 ${allowed ? '' : 'pointer-events-none opacity-50'}`}>
+        <Segmented size="sm" value={v} onChange={(integrity) => allowed && onChange({ integrity })} options={(['off', 'monitor', 'strict'] as const).map((k) => ({ value: k, label: I.modes[k] }))} />
+        <p className="mt-1.5 text-xs text-muted">{I.modeHint[v]}</p>
+      </div>
     </div>
   )
 }
