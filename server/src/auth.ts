@@ -220,15 +220,17 @@ export function authRoutes(app: FastifyInstance) {
   })
 
   // Şifrə sıfırlama: link e-poçtla göndərilir (göndərmə mailer.ts-dən; hələlik jurnal)
-  app.post<{ Body: { email: string } }>('/api/auth/reset/request', { preHandler: limit('reset', 5, 600_000, (r) => `${r.ip}:${String((r.body as { email?: string } | undefined)?.email ?? '').toLowerCase()}`) }, async (req) => {
+  app.post<{ Body: { email: string; lang?: string } }>('/api/auth/reset/request', { preHandler: limit('reset', 5, 600_000, (r) => `${r.ip}:${String((r.body as { email?: string } | undefined)?.email ?? '').toLowerCase()}`) }, async (req) => {
     const email = String(req.body?.email ?? '').trim().toLowerCase()
     const r = await pool.query<UserRow>('select * from auth_users where email = $1 and password_hash is not null', [email])
     if (r.rows[0]) {
       const token = newToken()
       await pool.query("insert into password_resets (id, uid, expires_at) values ($1, $2, now() + interval '1 hour')", [sha(token), r.rows[0].uid])
       const { sendMail } = await import('./mailer.js')
+      const { resetEmail, pickLang } = await import('./emails.js')
       const base = process.env.PUBLIC_URL ?? ''
-      await sendMail(email, 'Jabr — şifrəni sıfırlama', `Şifrənizi sıfırlamaq üçün keçid (1 saat etibarlıdır):\n${base}/reset?token=${token}\n\nSiz istəməmisinizsə, bu məktubu nəzərə almayın.`)
+      const m = resetEmail(pickLang(req.body?.lang), `${base}/reset?token=${token}`, base)
+      await sendMail(email, m.subject, m.text, m.html)
     }
     return { ok: true } // e-poçtun mövcudluğu açıqlanmır
   })
@@ -243,7 +245,7 @@ export function authRoutes(app: FastifyInstance) {
   })
 
   // Super admin: e-poçt göndərməni yoxlamaq üçün test məktubu (yalnız öz ünvanına)
-  app.post('/api/mail/test', { preHandler: limit('mailtest', 5, 600_000) }, async (req) => {
+  app.post<{ Body: { lang?: string } }>('/api/mail/test', { preHandler: limit('mailtest', 5, 600_000) }, async (req) => {
     const { auth } = await authFrom(bearer(req))
     if (!auth) throw err('auth/unauthenticated', 401)
     const { loadDoc } = await import('./store.js')
@@ -254,7 +256,9 @@ export function authRoutes(app: FastifyInstance) {
     const to = r.rows[0]?.email
     if (!to) throw err('auth/invalid-email')
     const { sendMail } = await import('./mailer.js')
-    const res = await sendMail(to, 'Jabr — test məktubu', `Salam!\n\nBu, Jabr serverindən göndərilmiş test məktubudur. Gəlibsə, e-poçt göndərmə düzgün qurulub.\n\n${process.env.PUBLIC_URL ?? ''}`)
+    const { testEmail, pickLang } = await import('./emails.js')
+    const m = testEmail(pickLang(req.body?.lang), process.env.PUBLIC_URL ?? '')
+    const res = await sendMail(to, m.subject, m.text, m.html)
     return { ...res, to }
   })
 

@@ -132,7 +132,7 @@ export async function signOut(auth: Auth) {
 }
 
 export async function sendPasswordResetEmail(auth: Auth, email: string) {
-  await http(auth._base, '/api/auth/reset/request', { email }, {}, 'auth/')
+  await http(auth._base, '/api/auth/reset/request', { email, lang: (() => { try { return localStorage.getItem('qz.lang') ?? 'az' } catch { return 'az' } })() }, {}, 'auth/')
 }
 export async function confirmPasswordReset(auth: Auth, token: string, newPassword: string) {
   await http(auth._base, '/api/auth/reset/confirm', { token, newPassword }, {}, 'auth/')
