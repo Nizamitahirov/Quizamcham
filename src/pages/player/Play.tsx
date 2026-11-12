@@ -1,21 +1,27 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useSearchParams } from 'react-router-dom'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '../../firebase/config'
+import { Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { ensureAnonymous } from '../../firebase/auth'
+import { normQr, resolvePointer } from '../../lib/permQr'
 import { FullScreen, Spinner } from '../../components/ui'
 
-/** Daimi QR: /play → ən son aktiv oyun; /play?t=<təlimçi uid> → həmin təlimçinin aktiv oyunu. */
+/**
+ * Daimi QR:
+ *   /q/<kod>           → həmin təlimçinin hazırda açıq canlı oyunu (yeni, uid görünmür)
+ *   /play?t=<uid>      → köhnə çap olunmuş QR-lar (təlimçi QR-ı yeniləyibsə işləmir)
+ *   /play              → komanda üzrə ümumi QR
+ * Oyun həqiqətən açıq deyilsə "aktiv oyun yoxdur".
+ */
 export default function Play() {
   const [params] = useSearchParams()
+  const { code = '' } = useParams()
   const [to, setTo] = useState<string | null>(null)
   useEffect(() => {
-    const key = params.get('t') ? `play_${params.get('t')}` : 'current'
+    const path = code ? `qr/${normQr(code)}` : params.get('t') ? `settings/play_${params.get('t')}` : 'settings/current'
     void ensureAnonymous()
-      .then(() => getDoc(doc(db, 'settings', key)))
-      .then((s) => setTo(s.exists() && s.get('pin') ? `/join?pin=${s.get('pin')}` : '/join?none=1'))
+      .then(() => resolvePointer(path))
+      .then((pin) => setTo(pin ? `/join?pin=${pin}` : '/join?none=1'))
       .catch(() => setTo('/join?none=1'))
-  }, [params])
+  }, [params, code])
   if (to) return <Navigate to={to} replace />
   return <FullScreen><div className="m-auto"><Spinner /></div></FullScreen>
 }

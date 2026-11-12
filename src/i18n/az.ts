@@ -789,6 +789,10 @@ export const az = {
     streak: (n: number) => `${n} günlük seriyanız təhlükədədir`, streakBody: 'Seriyanı qorumaq üçün bu gün bir quiz keçin', badge: (b: string) => `Yeni nişan: ${b}`, badgeBody: 'Təbriklər! Bütün nişanlara Öyrən səhifəsində baxın',
     avatarTip: '3D avatarınızı yaradın', avatarTipBody: 'Oyunlarda və profilinizdə görünəcək',
   },
+  qr2: {
+    hint: 'Bu QR həmişə sizin hazırda açıq olan canlı oyununuza aparır — bir dəfə çap edin və ya slayda qoyun.', liveNow: (pin: string) => `İndi: PIN ${pin} oyununa aparır`, idle: 'Hazırda açıq oyununuz yoxdur — QR "oyun yoxdur" göstərəcək',
+    reset: 'QR-ı yenilə', resetTitle: 'QR yenilənsin?', resetBody: 'Yeni kod yaradılacaq. Köhnə çap olunmuş QR və köhnə linklər dərhal işləməyi dayandıracaq.', resetDone: 'Yeni QR hazırdır — köhnəsi ləğv olundu',
+  },
   shell: { content: 'Məzmun', teaching: 'Tədris', manage: 'İdarəetmə', more: 'Daha çox', plan: 'Plan', upgrade: 'Yüksəlt', menu: 'Menyu' },
   dlg: { ok: 'Təsdiq et', cancel: 'Ləğv et', save: 'Yadda saxla', delete: 'Sil' },
   premium: { requires: (p: string) => `${p} planında`, locked: (p: string) => `Bu imkan ${p} və daha yüksək planlarda mövcuddur.`, upgrade: 'Planı yüksəlt', yourPlan: 'Planınız' },

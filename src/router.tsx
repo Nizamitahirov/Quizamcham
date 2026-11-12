@@ -54,6 +54,7 @@ export const router = createBrowserRouter([
       { path: '/consent', element: S(<Privacy />) },
       { path: '/marketing-consent', element: S(<Privacy />) },
       { path: '/play', element: S(<Play />) },
+      { path: '/q/:code', element: S(<Play />) },
       { path: '/g/:gameId', element: S(<PlayerGame />) },
       { path: '/host/:gameId', element: S(<HostGame />) },
       { path: '/admin/login', element: S(<Login />) },

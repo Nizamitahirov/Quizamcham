@@ -1,6 +1,7 @@
 import {
   collection, doc, getDoc, getDocFromServer, getDocs, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch, query, where,
 } from 'firebase/firestore'
+import { pointQr, releaseQr } from './permQr'
 import { db } from '../firebase/config'
 import { loadQuiz, orgIdFor } from '../firebase/db'
 import type { Answer, AvatarData, Award, Fastest, Game, GameStats, HistoryItem, HostProfile, LeaderEntry, LobbyEntry, Player, PowerType, PublicQuestion, Question, QuizSettings, Reveal, TrainerProfile } from '../types'
@@ -72,7 +73,7 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   if (quiz.settings.mode !== 'assign') {
     // platforma üzrə ümumi QR yalnız komanda üzvləri üçündür — müştərilər bir-birinin QR-ını dəyişməsin
     if (!plan.selfServe) batch.set(doc(db, 'settings', 'current'), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
-    batch.set(doc(db, 'settings', `play_${hostUid}`), { activeGameId: gameRef.id, pin, updatedAt: serverTimestamp() })
+    await pointQr(batch, hostUid, gameRef.id, pin)
   }
   await batch.commit()
   void track('game_created', { mode: quiz.settings.mode, questions: questions.length })
@@ -574,11 +575,9 @@ export async function finishGame(game: Game, questions: Question[]) {
     currentQuestion: null, questionEndsAt: null, selfEndsAt: null,
   })
   // Daimi QR bu oyuna aparırdısa, boşalt (bitmiş oyuna yönləndirməsin)
-  for (const key of ['current', `play_${game.hostUid}`]) {
-    const ref = doc(db, 'settings', key)
-    const cur = await getDoc(ref).catch(() => null)
-    if (cur?.get('activeGameId') === game.id) batch.set(ref, { activeGameId: null, pin: null, updatedAt: serverTimestamp() })
-  }
+  const cur = await getDoc(doc(db, 'settings', 'current')).catch(() => null)
+  if (cur?.get('activeGameId') === game.id) batch.set(doc(db, 'settings', 'current'), { activeGameId: null, pin: null, updatedAt: serverTimestamp() })
+  await releaseQr(batch, game.hostUid, game.id).catch(() => {})
   // Düzgün cavablı icmal ayrıca sənəddədir: yalnız iştirakçılar və host oxuya bilər
   batch.set(doc(db, 'games', game.id, 'results', 'review'), { items: JSON.parse(JSON.stringify(review)) })
   batch.update(doc(db, 'pins', game.pin), { active: false })

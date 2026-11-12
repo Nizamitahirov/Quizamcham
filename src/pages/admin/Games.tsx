@@ -62,7 +62,7 @@ export default function Games() {
                   <td className="flex flex-wrap justify-end gap-2 p-3">
                     {g.phase !== 'finished' && <Link className="btn btn-soft btn-sm" to={`/host/${g.id}`}><MonitorPlay />{t.games.host}</Link>}
                     <Link className="btn btn-secondary btn-sm" to={`/admin/games/${g.id}`}><BarChart3 />{t.games.open}</Link>
-                    <button className="btn btn-ghost-dark btn-sm btn-icon text-red-300" onClick={async () => { if ((await confirmDialog({ title: `${t.games.delete}?`, danger: true }))) { try { await deleteGame(g.id, g.pin); void logAudit('game_deleted', { target: g.id, details: { pin: g.pin } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
+                    <button className="btn btn-ghost-dark btn-sm btn-icon text-red-300" aria-label={t.games.delete} title={t.games.delete} onClick={async () => { if ((await confirmDialog({ title: `${t.games.delete}?`, danger: true }))) { try { await deleteGame(g.id, g.pin); void logAudit('game_deleted', { target: g.id, details: { pin: g.pin } }) } catch { setMsg(t.admin.deleteFailed) } reload() } }}><Trash2 /></button>
                   </td>
                 </tr>
               ))}

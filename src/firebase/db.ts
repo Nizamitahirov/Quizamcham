@@ -285,6 +285,11 @@ export async function deleteGame(gameId: string, pin?: string) {
     }
   }
   if (pin) await deleteDoc(doc(db, 'pins', pin)).catch(() => {})
+  // daimi QR silinən oyuna aparmasın
+  const host = (await getDoc(doc(db, 'games', gameId)).catch(() => null))?.get('hostUid') as string | undefined
+  if (host) { const { releaseQr } = await import('../lib/permQr'); const b = writeBatch(db); await releaseQr(b, host, gameId).catch(() => {}); await b.commit().catch(() => {}) }
+  const cur = await getDoc(doc(db, 'settings', 'current')).catch(() => null)
+  if (cur?.get('activeGameId') === gameId) await setDoc(doc(db, 'settings', 'current'), { activeGameId: null, pin: null, updatedAt: serverTimestamp() }).catch(() => {})
   await deleteDoc(doc(db, 'games', gameId))
 }
 
