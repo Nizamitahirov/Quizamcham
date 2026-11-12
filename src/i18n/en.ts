@@ -493,7 +493,7 @@ export const en: Dict = {
   menu: { account: 'Account menu', avatar: 'Design my avatar', panel: 'Trainer panel', learn: 'Learning portal', language: 'Language', profile: 'Profile', student: 'Student', trainer: 'Trainer' },
   av: {
     title: 'Avatar studio', sub: 'Create your own 3D avatar — hair, face, hats, outfits, bags and more', save: 'Save', saving: 'Saving…', saved: 'Avatar saved',
-    random: 'Randomize', reset: 'Reset', rotate: 'Drag to rotate', unsaved: 'You have unsaved changes', custom: 'Custom', loginNeeded: 'Sign in to create an avatar',
+    mine: 'My 3D avatar', create: 'Create a 3D avatar', random: 'Randomize', reset: 'Reset', rotate: 'Drag to rotate', unsaved: 'You have unsaved changes', custom: 'Custom', loginNeeded: 'Sign in to create an avatar',
     cats: { body: 'Body', face: 'Face', hair: 'Hair', hat: 'Hat', outfit: 'Outfit', extras: 'Extras', scene: 'Scene' },
     f: { skin: 'Skin tone', build: 'Build', eyes: 'Eyes', eyeColor: 'Eye colour', brows: 'Eyebrows', mouth: 'Mouth', blush: 'Blush', freckles: 'Freckles', glasses: 'Glasses', glassesColor: 'Glasses colour',
       hair: 'Hairstyle', hairColor: 'Hair colour', facial: 'Beard / moustache', hat: 'Hat', hatColor: 'Hat colour', top: 'Top', topColor: 'Main colour', topColor2: 'Accent colour', pattern: 'Pattern', number: 'Number',

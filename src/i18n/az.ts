@@ -760,7 +760,7 @@ export const az = {
   menu: { account: 'Hesab menyusu', avatar: 'Avatarımı dizayn et', panel: 'Təlimçi paneli', learn: 'Öyrənmə portalı', language: 'Dil', profile: 'Profil', student: 'Tələbə', trainer: 'Təlimçi' },
   av: {
     title: 'Avatar studiyası', sub: 'Öz 3D avatarınızı yaradın — saç, üz, papaq, geyim, çanta və daha çoxu', save: 'Yadda saxla', saving: 'Saxlanılır…', saved: 'Avatar yadda saxlanıldı',
-    random: 'Təsadüfi', reset: 'Sıfırla', rotate: 'Fırlatmaq üçün sürüşdürün', unsaved: 'Yadda saxlanmamış dəyişikliklər var', custom: 'Öz rəngin', loginNeeded: 'Avatar yaratmaq üçün daxil olun',
+    mine: 'Mənim 3D avatarım', create: '3D avatar yarat', random: 'Təsadüfi', reset: 'Sıfırla', rotate: 'Fırlatmaq üçün sürüşdürün', unsaved: 'Yadda saxlanmamış dəyişikliklər var', custom: 'Öz rəngin', loginNeeded: 'Avatar yaratmaq üçün daxil olun',
     cats: { body: 'Bədən', face: 'Üz', hair: 'Saç', hat: 'Papaq', outfit: 'Geyim', extras: 'Aksesuar', scene: 'Səhnə' },
     f: { skin: 'Dəri rəngi', build: 'Bədən quruluşu', eyes: 'Gözlər', eyeColor: 'Göz rəngi', brows: 'Qaşlar', mouth: 'Ağız', blush: 'Yanaq qızartısı', freckles: 'Çillər', glasses: 'Eynək', glassesColor: 'Eynək rəngi',
       hair: 'Saç düzümü', hairColor: 'Saç rəngi', facial: 'Saqqal / bığ', hat: 'Papaq', hatColor: 'Papaq rəngi', top: 'Üst geyim', topColor: 'Əsas rəng', topColor2: 'Əlavə rəng', pattern: 'Naxış', number: 'Nömrə',

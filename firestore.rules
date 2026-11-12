@@ -63,6 +63,8 @@ service cloud.firestore {
     function registered() { return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
     function str(v, n) { return v is string && v.size() <= n; }
     function isOwner() { return can('allContent'); }
+    // 3D avatar yalnız oyunçunun öz avatarı ola bilər (başqasınınkını göstərmək olmaz)
+    function avatar3dOk(a) { return a.get('style', '') != '3d' || (registered() && a.get('seed', '') == request.auth.uid); }
     function game(gameId) { return get(/databases/$(db)/documents/games/$(gameId)).data; }
     function isGameHost(gameId) { return isAdmin() && (game(gameId).hostUid == request.auth.uid || isOwner() || (game(gameId).get('orgId', '') == request.auth.uid && isOrgOwner())); }
     function nameOk(v) { return v is string && v.size() >= 2 && v.size() <= 20; }
@@ -501,7 +503,7 @@ service cloud.firestore {
           && nameOk(request.resource.data.lastName)
           && (game(gameId).settings.get('nameFilter', true) == false || (nameAllowed(request.resource.data.firstName) && nameAllowed(request.resource.data.lastName)))
           && game(gameId).get('playerCount', 0) < game(gameId).settings.get('maxPlayers', 200)
-          && request.resource.data.avatar is map
+          && request.resource.data.avatar is map && avatar3dOk(request.resource.data.avatar)
           && request.resource.data.keys().hasOnly(['firstName','lastName','avatar','joinedAt','lastSeen','kicked','score','correctCount','streak','bestStreak','totalCorrectTimeMs','lastResult','history','powerups','power','fiftyHide','team'])
           && request.resource.data.score == 0
           && request.resource.data.correctCount == 0
@@ -514,6 +516,7 @@ service cloud.firestore {
         allow update: if isGameHost(gameId) || (signedIn() && request.auth.uid == uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['firstName','lastName','avatar','lastSeen','power'])
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['firstName','lastName','avatar']) || game(gameId).phase == 'lobby')
+          && avatar3dOk(request.resource.data.avatar)
           && nameOk(request.resource.data.firstName)
           && nameOk(request.resource.data.lastName)
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['power']) || request.resource.data.power == null

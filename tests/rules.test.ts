@@ -782,3 +782,14 @@ describe('3D avatar', () => {
     await assertSucceeds(deleteDoc(doc(stu('avA'), 'avatars', 'avA')))
   })
 })
+
+describe('oyunda 3D avatar', () => {
+  const anonP = () => env.authenticatedContext('anonX', { firebase: { sign_in_provider: 'anonymous' } }).firestore()
+  it('oyunçu yalnız öz 3D avatarı ilə qoşulur; başqasınınkı və anonim yox; lobbidə başqasınınkına dəyişmək olmur', async () => {
+    await assertFails(setDoc(doc(as(P1), 'games', 'g1', 'players', P1), player({ avatar: { style: '3d', seed: 'someoneElse' } })))
+    await assertFails(setDoc(doc(anonP(), 'games', 'g1', 'players', 'anonX'), player({ avatar: { style: '3d', seed: 'anonX' } })))
+    await assertSucceeds(setDoc(doc(as(P1), 'games', 'g1', 'players', P1), player({ avatar: { style: '3d', seed: P1 } })))
+    await assertFails(updateDoc(doc(as(P1), 'games', 'g1', 'players', P1), { avatar: { style: '3d', seed: 'someoneElse' } }))
+    await assertSucceeds(updateDoc(doc(as(P1), 'games', 'g1', 'players', P1), { avatar: { style: 'fun-emoji', seed: 'y' } }))
+  })
+})

@@ -324,6 +324,8 @@ async function evaluate(c: Ctx): Promise<boolean> {
       && (res === null || (await c.can('publish')) || f(res, 'publishedBy') === c.uid)
       && safe()
   }
+  /** 3D avatar yalnız oyunçunun özününkü ola bilər. */
+  const avatar3dOk = (a: J | undefined) => !isMap(a) || g(a, 'style', '') !== '3d' || (c.registered() && g(a, 'seed', '') === c.uid)
   if (col === 'avatars' && path.length === 2) {
     if (op === 'get') return c.signedIn()
     if (op === 'list') return false
@@ -547,7 +549,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
           && nameOk(f(d, 'firstName')) && nameOk(f(d, 'lastName'))
           && (g(f(gm, 'settings'), 'nameFilter', true) === false || ((await c.nameAllowed(f(d, 'firstName'))) && (await c.nameAllowed(f(d, 'lastName')))))
           && (g(gm, 'playerCount', 0) as number) < (g(f(gm, 'settings'), 'maxPlayers', 200) as number)
-          && isMap(f(d, 'avatar'))
+          && isMap(f(d, 'avatar')) && avatar3dOk(f(d, 'avatar'))
           && keysOnly(d, ['firstName', 'lastName', 'avatar', 'joinedAt', 'lastSeen', 'kicked', 'score', 'correctCount', 'streak', 'bestStreak', 'totalCorrectTimeMs', 'lastResult', 'history', 'powerups', 'power', 'fiftyHide', 'team'])
           && f(d, 'score') === 0 && f(d, 'correctCount') === 0 && size(f(d, 'history')) === 0
           && (!has(d, 'fiftyHide') || f(d, 'fiftyHide') === null)
@@ -562,6 +564,7 @@ async function evaluate(c: Ctx): Promise<boolean> {
         if (!onlyAffected(d, rd(), ['firstName', 'lastName', 'avatar', 'lastSeen', 'power'])) return false
         if (anyAffected(d, rd(), ['firstName', 'lastName', 'avatar']) && f(await game(), 'phase') !== 'lobby') return false
         if (!nameOk(f(d, 'firstName')) || !nameOk(f(d, 'lastName'))) return false
+        if (!avatar3dOk(f(d, 'avatar'))) return false
         if (!anyAffected(d, rd(), ['power']) || f(d, 'power') === null) return true
         const p = f(d, 'power'), gm = await game()
         return inList(f(p, 'type'), ['fifty', 'double', 'shield'])
