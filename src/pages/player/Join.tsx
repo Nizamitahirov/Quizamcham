@@ -117,14 +117,16 @@ export default function Join() {
     if (nameFilterOn && (!isNameAllowed(f, banned) || !isNameAllowed(l, banned))) return fail(t.join.badName)
     audio.unlock()
     setBusy(true)
+    // yadda qalmış 3D avatar yalnız həmin hesabın sahibinə aiddir (anonim girişdə və ya başqa hesabda adi avatar)
+    const av: AvatarData = avatar.style === '3d' && avatar.seed !== uid ? { ...randomAvatar(), accessory: avatar.accessory } : avatar
     try {
       // Qoşulma ilk dəfə "icazə yoxdur" ilə qayıdarsa (giriş tokeni hələ çatmayıb / keçici), bir dəfə yenidən cəhd
-      await joinGame(gameId, uid, f, l, avatar).catch(async (e) => {
+      await joinGame(gameId, uid, f, l, av).catch(async (e) => {
         if ((e as { code?: string }).code !== 'permission-denied') throw e
         await new Promise((r) => setTimeout(r, 1200))
-        await joinGame(gameId, uid, f, l, avatar)
+        await joinGame(gameId, uid, f, l, av)
       })
-      try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ firstName: f, lastName: l, avatar })) } catch { /* noop */ }
+      try { localStorage.setItem(PROFILE_KEY, JSON.stringify({ firstName: f, lastName: l, avatar: av })) } catch { /* noop */ }
       audio.pop()
       setGame(gameId)
       nav(`/g/${gameId}`)

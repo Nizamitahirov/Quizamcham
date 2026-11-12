@@ -1,5 +1,6 @@
 import { memo, useEffect, useState } from 'react'
 import type { AvatarData } from '../types'
+import { useAvatarThumb } from '../lib/avatar3d'
 
 type StyleMod = Parameters<typeof import('@dicebear/core').createAvatar>[0]
 
@@ -48,7 +49,24 @@ export async function avatarUri(style: string, seed: string): Promise<string> {
   return avatarUriSync(style, seed)!
 }
 
+/** 3D avatar (style "3d", seed = istifadəçi uid): saxlanmış portret; tapılmasa adi avatara qayıdır. */
+function Avatar3D({ avatar, size, className, dim }: { avatar: AvatarData; size: number; className: string; dim: boolean }) {
+  const thumb = useAvatarThumb(avatar.seed)
+  if (!thumb) return <Avatar2D avatar={{ style: 'fun-emoji', seed: avatar.seed, accessory: avatar.accessory }} size={size} className={className} dim={dim} />
+  return (
+    <span className={`relative inline-block shrink-0 ${className}`} style={{ width: size, height: size }}>
+      <img src={thumb} alt="" width={size} height={size} draggable={false} className={`rounded-full object-cover shadow-md ${dim ? 'opacity-50 grayscale' : ''}`} />
+      {avatar.accessory && <span className="absolute -right-1 -top-1 drop-shadow" style={{ fontSize: Math.max(14, size * 0.38) }} aria-hidden>{avatar.accessory}</span>}
+    </span>
+  )
+}
+
 export const Avatar = memo(function Avatar({ avatar, size = 64, className = '', dim = false }: { avatar: AvatarData; size?: number; className?: string; dim?: boolean }) {
+  if (avatar.style === '3d') return <Avatar3D avatar={avatar} size={size} className={className} dim={dim} />
+  return <Avatar2D avatar={avatar} size={size} className={className} dim={dim} />
+})
+
+const Avatar2D = memo(function Avatar2D({ avatar, size = 64, className = '', dim = false }: { avatar: AvatarData; size?: number; className?: string; dim?: boolean }) {
   const [state, setState] = useState(() => ({ key: `${avatar.style}:${avatar.seed}`, uri: avatarUriSync(avatar.style, avatar.seed) }))
   const k = `${avatar.style}:${avatar.seed}`
   const uri = state.key === k ? state.uri : avatarUriSync(avatar.style, avatar.seed)

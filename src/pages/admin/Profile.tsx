@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { Link, useOutletContext } from 'react-router-dom'
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth'
-import { Dices, KeyRound, Save, SlidersHorizontal, UserRound } from 'lucide-react'
+import { Dices, Sparkles, KeyRound, Save, SlidersHorizontal, UserRound } from 'lucide-react'
 import { loadProfile, saveProfile } from '../../firebase/db'
 import { withDefaults } from '../../lib/defaults'
 import { t } from '../../i18n/az'
@@ -9,12 +9,29 @@ import { PageHeader, Spinner } from '../../components/ui'
 import { Field, Section } from '../../components/kit'
 import { Avatar } from '../../components/Avatar'
 import { PRESETS, randomAvatar } from '../../components/AvatarPicker'
+import { useAvatarThumb } from '../../lib/avatar3d'
+import type { AvatarData } from '../../types'
+
+/** Profil üçün 3D avatar seçimi (varsa) və ya studiyaya keçid. */
+function My3D({ uid, selected, onPick }: { uid?: string; selected: boolean; onPick: (a: AvatarData) => void }) {
+  const thumb = useAvatarThumb(uid)
+  if (!uid) return null
+  if (!thumb) return <Link to="/avatar" className="btn btn-soft btn-sm"><Sparkles />{t.av.create}</Link>
+  return (
+    <button type="button" onClick={() => onPick({ style: '3d', seed: uid })} title={t.av.mine} aria-label={t.av.mine}
+      className={`relative rounded-full p-0.5 transition ${selected ? 'ring-2 ring-brand ring-offset-2 ring-offset-[#10122A]' : 'opacity-90 hover:opacity-100'}`}>
+      <Avatar avatar={{ style: '3d', seed: uid }} size={52} />
+      <span className="chip chip-brand absolute -bottom-1 -right-2 px-1.5 py-0 text-[9px]">3D</span>
+    </button>
+  )
+}
 import { SettingsForm } from '../../components/QuizSettingsForm'
 import type { AdminState } from '../../firebase/auth'
 import type { QuizSettings, TrainerProfile } from '../../types'
 
 export default function Profile() {
   const { user } = useOutletContext<AdminState>()
+  const uid3d = user?.uid
   const [p, setP] = useState<TrainerProfile | null>(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
@@ -83,6 +100,7 @@ export default function Profile() {
               <Field label={t.profile.bio} className="sm:col-span-2"><textarea className="input" rows={3} maxLength={280} value={p.bio ?? ''} onChange={(e) => set({ bio: e.target.value })} /></Field>
               <Field label={t.profile.avatar} className="sm:col-span-2">
                 <div className="flex flex-wrap items-center gap-2">
+                  <My3D uid={uid3d} selected={p.avatar?.style === '3d'} onPick={(a) => set({ avatar: a, photoUrl: '' })} />
                   {PRESETS.map((a) => {
                     const on = p.avatar?.seed === a.seed && p.avatar?.style === a.style
                     return <button key={a.style + a.seed} type="button" onClick={() => set({ avatar: a, photoUrl: '' })} className={`rounded-full p-0.5 transition ${on ? 'ring-2 ring-brand ring-offset-2' : 'opacity-80 hover:opacity-100'}`}><Avatar avatar={a} size={40} /></button>

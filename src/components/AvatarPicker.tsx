@@ -3,7 +3,10 @@ import { Dices } from 'lucide-react'
 import { t } from '../i18n/az'
 import type { AvatarData } from '../types'
 import { ACCESSORIES, AVATAR_STYLES, Avatar, preloadAvatarStyles } from './Avatar'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { Sparkles } from 'lucide-react'
+import { auth } from '../firebase/config'
+import { useAvatarThumb } from '../lib/avatar3d'
 
 const STYLES = [...AVATAR_STYLES]
 const SEEDS = ['Aysel', 'Murad', 'Leyla', 'Tural', 'Nigar', 'Elvin', 'Günay', 'Rauf']
@@ -16,7 +19,14 @@ export function randomAvatar(): AvatarData {
 
 export function AvatarPicker({ value, onChange }: { value: AvatarData; onChange: (a: AvatarData) => void }) {
   useEffect(() => { void preloadAvatarStyles() }, [])
-  useEffect(() => { void preloadAvatarStyles() }, [])
+  // qeydiyyatlı istifadəçinin 3D avatarı varsa — birinci seçim və avtomatik seçilir
+  const me = auth.currentUser && !auth.currentUser.isAnonymous ? auth.currentUser.uid : undefined
+  const thumb = useAvatarThumb(me)
+  const auto = useRef(false)
+  useEffect(() => {
+    if (me && thumb && !auto.current && value.style !== '3d') { auto.current = true; onChange({ style: '3d', seed: me, accessory: value.accessory }) }
+  }, [me, thumb, value.style, value.accessory, onChange])
+  const mine3d: AvatarData | null = me && thumb ? { style: '3d', seed: me } : null
   const isSel = (a: AvatarData) => a.style === value.style && a.seed === value.seed
   return (
     <div className="flex flex-col gap-4">
@@ -26,6 +36,19 @@ export function AvatarPicker({ value, onChange }: { value: AvatarData; onChange:
           <Avatar avatar={value} size={108} />
         </motion.div>
       </div>
+      {mine3d && (
+        <button type="button" role="radio" aria-checked={value.style === '3d'} onClick={() => onChange({ ...mine3d, accessory: value.accessory })}
+          className={`flex items-center gap-3 rounded-2xl border p-2.5 text-left transition ${value.style === '3d' ? 'border-orange-400/60 bg-orange-500/10' : 'border-line bg-white/[.03] hover:bg-white/[.06]'}`}>
+          <Avatar avatar={mine3d} size={44} />
+          <span className="flex-1 text-sm font-semibold">{t.av.mine}</span>
+          <span className="chip chip-brand">3D</span>
+        </button>
+      )}
+      {me && !thumb && (
+        <a href="/avatar" target="_blank" rel="noopener" className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-line-strong p-2.5 text-sm font-semibold text-fg2 hover:text-fg">
+          <Sparkles className="h-4 w-4 text-orange-300" />{t.av.create}
+        </a>
+      )}
       <div className="grid grid-cols-6 gap-2" role="radiogroup" aria-label={t.join.chooseAvatar}>
         {PRESETS.map((a) => (
           <motion.button type="button" key={a.style + a.seed} role="radio" aria-checked={isSel(a)} whileTap={{ scale: 0.85 }}
