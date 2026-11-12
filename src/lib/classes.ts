@@ -121,7 +121,14 @@ export async function saveClassResult(classId: string, taskId: string, name: str
 
 // ---------- kurslar ----------
 export interface CourseItem { quizId: string; title: string }
-export interface Course { id: string; ownerUid: string; ownerName?: string; title: string; description?: string; items: CourseItem[]; coverEmoji?: string; updatedAt?: Timestamp }
+export interface Course {
+  id: string; ownerUid: string; ownerName?: string; title: string; description?: string; items: CourseItem[]; coverEmoji?: string; updatedAt?: Timestamp
+  /** true — növbəti addım yalnız əvvəlki keçiləndən sonra açılır */
+  sequential?: boolean
+  /** addımın keçilmiş sayılması üçün minimum düzgün cavab faizi (standart 50) */
+  passPct?: number
+}
+export const coursePass = (c: Pick<Course, 'passPct'> | null | undefined) => (typeof c?.passPct === 'number' ? c.passPct : 50)
 export interface CourseProgress { uid: string; name?: string; done: string[]; completedAt?: Timestamp | null; at?: Timestamp }
 
 export async function saveCourse(c: Omit<Course, 'id' | 'ownerUid' | 'updatedAt'> & { id?: string }): Promise<string> {
@@ -130,6 +137,7 @@ export async function saveCourse(c: Omit<Course, 'id' | 'ownerUid' | 'updatedAt'
   await setDoc(ref, {
     ownerUid: uid(), ownerName: (c.ownerName ?? '').slice(0, 80), title: c.title.trim().slice(0, 120), description: (c.description ?? '').slice(0, 500),
     items: c.items.slice(0, 50).map((i) => ({ quizId: i.quizId, title: i.title.slice(0, 120) })), coverEmoji: c.coverEmoji ?? '📚',
+    sequential: !!c.sequential, passPct: Math.max(0, Math.min(100, Math.round(c.passPct ?? 50))),
     createdAt: prev?.exists() ? prev.get('createdAt') : serverTimestamp(), updatedAt: serverTimestamp(),
   })
   return ref.id
@@ -146,6 +154,21 @@ export const deleteCourse = (id: string) => deleteDoc(doc(db, 'courses', id))
 export async function myCourseProgress(courseId: string): Promise<CourseProgress | null> {
   const s = await getDoc(doc(db, 'courses', courseId, 'progress', uid())).catch(() => null)
   return s?.exists() ? (s.data() as CourseProgress) : null
+}
+/** Kursa başlamaq: irəliləyiş sənədi yaradılır (tələbənin "Kurslarım" siyahısında görünür, müəllim "başlayıb" sayır). */
+export async function enrollCourse(course: Course, name: string) {
+  const prev = await myCourseProgress(course.id)
+  if (prev) return prev
+  await setDoc(doc(db, 'courses', course.id, 'progress', uid()), { uid: uid(), name: name.slice(0, 80), done: [], at: serverTimestamp() })
+  return { uid: uid(), name, done: [] } as CourseProgress
+}
+/** Tələbənin başladığı kurslar (server: öz irəliləyiş sənədləri üzrə). */
+export async function myCourses(): Promise<{ course: Course; done: number; completed: boolean }[]> {
+  const token = await auth.currentUser?.getIdToken().catch(() => '')
+  const r = await fetch('/api/learn/courses', { headers: token ? { authorization: `Bearer ${token}` } : {} }).catch(() => null)
+  if (!r?.ok) return []
+  const j = await r.json() as { items: { course: Course; done: number; completed: boolean }[] }
+  return j.items ?? []
 }
 /** Kursun bir quizini bitirdi → irəliləyiş; hamısı bitəndə tamamlanma vaxtı. */
 export async function markCourseItem(course: Course, quizId: string, name: string) {

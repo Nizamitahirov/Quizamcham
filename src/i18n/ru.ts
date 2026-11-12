@@ -471,6 +471,11 @@ export const ru: Dict = {app: { name: 'Jabr', tagline: 'Живой интера�
     added: 'Задание добавлено', saved: 'Сохранено', copiedLink: 'Ссылка скопирована', none: 'Не выбрано', change: 'Изменить', pick: 'Выбрать',
   },
   course2: {
+    sequential: 'Последовательно', sequentialDesc: 'Следующий квиз открывается только после прохождения предыдущего', passPct: 'Проходной балл', passHint: (n: number) => `Шаг засчитывается при результате от ${n}%`,
+    preview: 'Посмотреть как студент', duplicate: 'Копировать', copySuffix: ' (копия)', duplicated: 'Курс скопирован', exportXlsx: 'Экспорт в Excel', avg: (n: number) => `Средний прогресс: ${n}%`,
+    locked: 'Закрыто', lockedHint: 'Сначала пройдите предыдущий шаг', myCourses: 'Мои курсы', continueCourse: 'Продолжить', completedChip: 'Пройден',
+    stepPassed: 'Шаг курса пройден ✓', stepFailed: (need: number, got: number) => `Для прохождения шага нужно не меньше ${need}% (ваш результат: ${got}%). Попробуйте снова.`,
+    nextStep: 'Следующий шаг', courseDone: 'Все шаги курса пройдены! 🎉', toCourse: 'К курсу',
     emptyText: 'Объедините несколько квизов в последовательность. Ученик получает сертификат, пройдя все.',
     cover: 'Обложка', copyLink: 'Скопировать ссылку', linkCopied: 'Ссылка на курс скопирована', progressBtn: 'Прогресс', progressTitle: 'Прогресс учеников',
     started: (n: number) => `Начали: ${n}`, finished: (n: number) => `Завершили: ${n}`, noProgress: 'Ещё никто не начал',
@@ -479,7 +484,7 @@ export const ru: Dict = {app: { name: 'Jabr', tagline: 'Живой интера�
   },
   ql: {
     create: 'Создать', import: 'Импорт', folders: 'Папки', noFolder: 'Без папки', renameFolder: 'Переименовать папку', deleteFolder: 'Удалить папку',
-    deleteFolderBody: 'Квизы не удаляются — они просто убираются из папки.', folderName: 'Название папки', newFolder: 'Новая папка', moveHint: 'Выберите папку или введите новое название. Оставьте пустым, чтобы убрать квиз из папки.',
+    deleteFolderBody: 'Квизы не удаляются — они просто убираются из папки.', folderName: 'Название папки', newFolder: 'Новая папка', others: 'Квизы других', folderExists: 'Папка с таким названием уже есть', folderActions: 'Действия с папкой', created: 'Папка создана', moveHint: 'Выберите папку или введите новое название. Оставьте пустым, чтобы убрать квиз из папки.',
     more: 'Ещё', count: (n: number) => `Квизов: ${n}`, nothing: 'Нет квизов под этот фильтр', clear: 'Сбросить фильтр', moved: 'Перемещено', duplicated: 'Копия создана', deleted: 'Удалено',
   },
   learn2: {
@@ -490,7 +495,7 @@ export const ru: Dict = {app: { name: 'Jabr', tagline: 'Живой интера�
     shuffle: 'Перемешать', progress: (a: number, b: number) => `Знаю: ${a} / ${b}`, keys: 'Пробел — перевернуть · → знаю · ← повторить', swipe: 'Вправо — знаю, влево — повторить',
     summary: 'Отлично!', summaryText: (n: number, r: number) => `Вы выучили карточек: ${n}${r ? `, повторили: ${r}` : ''}.`, practice: 'Пройти тест', reset: 'Сбросить',
   },
-  menu: { account: 'Меню аккаунта', avatar: 'Создать аватар', panel: 'Панель тренера', learn: 'Портал обучения', language: 'Язык', profile: 'Профиль', student: 'Ученик', trainer: 'Тренер' },
+  menu: { theme: 'Оформление', dark: 'Тёмная', light: 'Светлая', account: 'Меню аккаунта', avatar: 'Создать аватар', panel: 'Панель тренера', learn: 'Портал обучения', language: 'Язык', profile: 'Профиль', student: 'Ученик', trainer: 'Тренер' },
   av: {
     title: 'Студия аватаров', sub: 'Создайте свой 3D-аватар — причёска, лицо, головные уборы, одежда, сумки и многое другое', save: 'Сохранить', saving: 'Сохранение…', saved: 'Аватар сохранён',
     mine: 'Мой 3D-аватар', create: 'Создать 3D-аватар', random: 'Случайно', reset: 'Сбросить', rotate: 'Потяните, чтобы повернуть', unsaved: 'Есть несохранённые изменения', custom: 'Свой цвет', loginNeeded: 'Войдите, чтобы создать аватар',

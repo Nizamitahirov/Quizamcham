@@ -93,7 +93,8 @@ class Ctx {
   }
   async orgOf(): Promise<string> {
     if (!(await this.isAdmin())) return ''
-    const d = await this.me()
+    const d = await this.load(this.adminPath()) // super adminin admins sənədi olmaya bilər
+    if (!d) return ''
     if (g(d, 'source', 'team') === 'org') return g(d, 'orgId', '') as string
     return g(d, 'source', 'team') === 'signup' && g(d, 'plan', '') === 'institution' ? this.uid : ''
   }
@@ -466,7 +467,9 @@ async function evaluate(c: Ctx): Promise<boolean> {
       const items = f(d, 'items')
       return (await c.isAdmin()) && (await c.can('createQuiz')) && f(d, 'ownerUid') === c.uid
         && (res === null || f(res, 'ownerUid') === c.uid)
-        && keysOnly(d, ['ownerUid', 'ownerName', 'title', 'description', 'items', 'createdAt', 'updatedAt', 'coverEmoji'])
+        && keysOnly(d, ['ownerUid', 'ownerName', 'title', 'description', 'items', 'createdAt', 'updatedAt', 'coverEmoji', 'sequential', 'passPct'])
+        && (!has(d, 'sequential') || typeof f(d, 'sequential') === 'boolean')
+        && (!has(d, 'passPct') || (isInt(f(d, 'passPct')) && (f(d, 'passPct') as number) >= 0 && (f(d, 'passPct') as number) <= 100))
         && str(f(d, 'title'), 120) && size(f(d, 'title')) >= 3 && str(g(d, 'description', ''), 500)
         && Array.isArray(items) && items.length >= 1 && items.length <= 50
     }

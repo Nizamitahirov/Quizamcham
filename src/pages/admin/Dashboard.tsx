@@ -61,7 +61,7 @@ export default function Dashboard() {
   ]
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="noise clip-round relative isolate mb-6 overflow-hidden rounded-3xl bg-night p-6 text-white sm:p-8">
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="noise clip-round relative isolate mb-6 overflow-hidden rounded-3xl bg-night p-6 text-[#fff] sm:p-8">
         <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full opacity-60 blur-3xl" style={{ background: '#FF7A1A' }} />
         <div className="pointer-events-none absolute -bottom-28 left-10 h-72 w-72 rounded-full opacity-50 blur-3xl" style={{ background: '#E8202A' }} />
         <div className="relative flex flex-wrap items-center gap-6">
@@ -100,7 +100,7 @@ export default function Dashboard() {
               {games.slice(0, 6).map((g) => (
                 <li key={g.id}>
                   <Link to={g.phase === 'finished' ? `/admin/games/${g.id}` : `/host/${g.id}`} className="flex items-center gap-3 py-3 hover:opacity-80">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: 'var(--grad)' }}><Gamepad2 className="h-5 w-5" /></span>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#fff]" style={{ background: 'var(--grad)' }}><Gamepad2 className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{g.title}</span>
                       <span className="block truncate text-xs text-muted">{g.createdAt ? fmtDateTime(g.createdAt.toDate()) : ''} · PIN {g.pin}</span>

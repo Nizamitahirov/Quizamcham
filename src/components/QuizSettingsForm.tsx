@@ -66,7 +66,7 @@ export function SettingsForm({ s, onChange, maxPlayersCap }: { s: QuizSettings; 
       </Section>
 
       <Section icon={Music} title={S.music} sub={S.musicSub}
-        actions={<button type="button" role="switch" aria-checked={s.music.on} aria-label={S.music} onClick={() => onChange({ music: { ...s.music, on: !s.music.on } })} className={`relative h-7 w-12 shrink-0 rounded-full transition ${s.music.on ? '' : 'bg-white/15'}`} style={s.music.on ? { background: 'var(--grad)' } : undefined}><span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${s.music.on ? 'left-[1.4rem]' : 'left-0.5'}`} /></button>}>
+        actions={<button type="button" role="switch" aria-checked={s.music.on} aria-label={S.music} onClick={() => onChange({ music: { ...s.music, on: !s.music.on } })} className={`relative h-7 w-12 shrink-0 rounded-full transition ${s.music.on ? '' : 'bg-white/15'}`} style={s.music.on ? { background: 'var(--grad)' } : undefined}><span className={`absolute top-0.5 h-6 w-6 rounded-full bg-[#fff] shadow transition-all ${s.music.on ? 'left-[1.4rem]' : 'left-0.5'}`} /></button>}>
         <div className={s.music.on ? '' : 'pointer-events-none opacity-40'}>
           <MusicPicker value={s.music.theme} onChange={(theme) => onChange({ music: { ...s.music, theme } })} />
           <label className="mt-4 flex items-center gap-3">

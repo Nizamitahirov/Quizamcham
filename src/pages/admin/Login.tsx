@@ -92,7 +92,7 @@ export default function Login() {
   )
   return (
     <div className="grid min-h-dvh bg-app lg:grid-cols-2">
-      <div className="noise relative hidden flex-col justify-between overflow-hidden bg-night p-12 text-white lg:flex">
+      <div className="noise relative hidden flex-col justify-between overflow-hidden bg-night p-12 text-[#fff] lg:flex">
         <FuturisticBg />
         <div className="relative"><Logo size={44} sub="Live quiz platform" /></div>
         <div className="relative space-y-6">

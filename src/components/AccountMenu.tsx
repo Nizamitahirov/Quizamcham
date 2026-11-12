@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ChevronDown, Globe, LogOut, type LucideIcon } from 'lucide-react'
+import { ChevronDown, Globe, LogOut, Moon, Sun, type LucideIcon } from 'lucide-react'
+import { setTheme, useTheme } from '../lib/theme'
 import { currentLang, t } from '../i18n/az'
 import { logout } from '../firebase/auth'
 import { LangList, LANGS } from './LangSwitch'
@@ -19,7 +20,7 @@ export function UserAvatar({ uid, name, photo, size = 32, ring = false }: { uid?
     <span className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${ring ? 'ring-2 ring-white/10' : ''}`}
       style={{ width: size, height: size, background: src ? '#1F2340' : 'var(--grad)' }}>
       {src ? <img src={src} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" draggable={false} />
-        : <span className="font-semibold text-white" style={{ fontSize: size * 0.4 }}>{initials}</span>}
+        : <span className="font-semibold text-[#fff]" style={{ fontSize: size * 0.4 }}>{initials}</span>}
     </span>
   )
 }
@@ -61,6 +62,7 @@ export function AccountMenu({ uid, name, email, photo, badge, links, compact = f
           </Link>
         ))}
       </nav>
+      <ThemeRow />
       <div className="border-t border-line p-1.5">
         <p className="flex items-center gap-2 px-3 pb-1 pt-2 text-[10.5px] font-semibold uppercase tracking-[.12em] text-muted"><Globe className="h-3.5 w-3.5" />{t.menu.language}</p>
         <LangList onPick={close} />
@@ -111,6 +113,24 @@ export function AccountMenu({ uid, name, email, photo, badge, links, compact = f
               </motion.div>
             </motion.div>
       )}</AnimatePresence>, document.body)}
+    </div>
+  )
+}
+
+/** Rəng rejimi: tünd / açıq (seçim yadda qalır). */
+function ThemeRow() {
+  const theme = useTheme()
+  return (
+    <div className="border-t border-line p-1.5">
+      <div className="flex items-center gap-2 px-3 py-1.5">
+        <span className="flex-1 text-sm font-medium text-fg2">{t.menu.theme}</span>
+        <div className="inline-flex rounded-lg border border-line bg-white/[.03] p-0.5" role="radiogroup" aria-label={t.menu.theme}>
+          {([['dark', Moon, t.menu.dark], ['light', Sun, t.menu.light]] as const).map(([v, Icon, l]) => (
+            <button key={v} type="button" role="radio" aria-checked={theme === v} title={l} aria-label={l} onClick={() => setTheme(v)}
+              className={`flex h-7 w-8 items-center justify-center rounded-md transition ${theme === v ? 'bg-white/[.1] text-fg shadow-sm' : 'text-muted hover:text-fg'}`}><Icon className="h-4 w-4" /></button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

@@ -1,0 +1,16 @@
+# Jabr — canlı quiz platforması
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /host/
+Disallow: /g/
+Disallow: /q/
+Disallow: /play
+Disallow: /account
+Disallow: /avatar
+Disallow: /onboarding
+Disallow: /reset
+Disallow: /learn/
+
+Sitemap: https://jabr.az/sitemap.xml

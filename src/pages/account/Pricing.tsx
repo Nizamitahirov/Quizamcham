@@ -36,7 +36,7 @@ export default function Pricing() {
   const price = (k: string) => prices?.find((p) => p.key === k)
 
   return (
-    <div className="noise relative min-h-dvh overflow-hidden bg-night text-white">
+    <div className="noise relative min-h-dvh overflow-hidden bg-night text-[#fff]">
       <FuturisticBg floor={false} intensity={0.6} />
       <header className="relative z-30 mx-auto flex w-full max-w-7xl items-center justify-between px-4 pt-5 sm:px-8">
         <Link to="/" aria-label={t.app.home}><Logo size={32} /></Link>
@@ -57,7 +57,7 @@ export default function Pricing() {
             const p = A.plans[k], pr = price(k), hot = k === 'pro'
             return (
               <div key={k} className={`relative flex flex-col gap-4 p-6 ${hot ? 'glass-strong gradient-border' : 'glass'}`}>
-                {hot && <span className="chip absolute -top-3 left-6 bg-white text-onlight shadow-lg"><Sparkles className="h-3.5 w-3.5 text-brand" />{A.popular}</span>}
+                {hot && <span className="chip absolute -top-3 left-6 bg-[#fff] text-onlight shadow-lg"><Sparkles className="h-3.5 w-3.5 text-brand" />{A.popular}</span>}
                 <div>
                   <h2 className="text-2xl font-black">{p.title}</h2>
                   <p className="text-sm text-white/60">{p.desc}</p>

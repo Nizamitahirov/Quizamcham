@@ -45,7 +45,7 @@ function DueChip({ d }: { d?: Timestamp | null }) {
   return <span className={`chip ${s === 'late' ? 'chip-bad' : s === 'soon' ? 'chip-warn' : 'chip-muted'}`}><CalendarClock className="h-3 w-3" />{s === 'late' ? `${C2.overdue} · ` : ''}{fmtDate(d!.toDate())}</span>
 }
 const ClassAvatar = ({ name, size = 44 }: { name: string; size?: number }) => (
-  <span className="flex shrink-0 items-center justify-center rounded-xl font-display font-extrabold text-white" style={{ width: size, height: size, fontSize: size * 0.34, background: `linear-gradient(135deg, ${hue(name)}, ${hue(name + 'x')})` }}>{initials(name)}</span>
+  <span className="flex shrink-0 items-center justify-center rounded-xl font-display font-extrabold text-[#fff]" style={{ width: size, height: size, fontSize: size * 0.34, background: `linear-gradient(135deg, ${hue(name)}, ${hue(name + 'x')})` }}>{initials(name)}</span>
 )
 
 /** Siniflər siyahısı + yaratmaq (Təlimçi planı və yuxarı). */
@@ -336,7 +336,7 @@ function MembersTab({ cls, members, tasks, results, onChange, onQr }: { cls: Cla
               <tr key={m.uid}>
                 <td>
                   <div className="flex items-center gap-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: hue(m.name) }}>{initials(m.name)}</span>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[#fff]" style={{ background: hue(m.name) }}>{initials(m.name)}</span>
                     <div className="min-w-0"><div className="truncate font-semibold">{m.name}</div>{m.email && <div className="truncate text-xs text-muted">{m.email}</div>}</div>
                   </div>
                 </td>

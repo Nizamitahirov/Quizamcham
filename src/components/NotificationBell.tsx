@@ -71,7 +71,7 @@ export function NotificationBell({ load, align = 'right' }: { load: (() => Promi
       <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="dialog" aria-expanded={open} aria-label={unread ? `${N.open} (${N.unread(unread)})` : N.open} title={N.title}
         className={`relative flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white/[.04] text-fg2 transition hover:border-line-strong hover:text-fg ${open ? 'border-line-strong text-fg' : ''}`}>
         <Bell className="h-[18px] w-[18px]" />
-        {unread > 0 && <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white ring-2 ring-[#0B0C19]" style={{ background: 'var(--grad)' }}>{unread > 9 ? '9+' : unread}</span>}
+        {unread > 0 && <span className="absolute -right-1 -top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-[#fff] ring-2 ring-[#0B0C19]" style={{ background: 'var(--grad)' }}>{unread > 9 ? '9+' : unread}</span>}
       </button>
       <AnimatePresence>
         {open && (

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
@@ -45,7 +46,7 @@ export function OptionCards<T extends string | number>({ value, options, onChang
             <span className={on ? 'icon-tile-solid' : 'icon-tile'}>{o.icon ? <o.icon className="h-5 w-5" /> : <span className="text-lg">{o.emoji}</span>}</span>
             <span className="text-sm font-semibold">{o.title}</span>
             {o.desc && <span className="text-xs leading-relaxed text-muted">{o.desc}</span>}
-            {on && <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full text-white" style={{ background: 'var(--grad)' }}><Check className="h-3 w-3" strokeWidth={3} /></span>}
+            {on && <span className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full text-[#fff]" style={{ background: 'var(--grad)' }}><Check className="h-3 w-3" strokeWidth={3} /></span>}
           </motion.button>
         )
       })}
@@ -76,7 +77,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
   return (
     <button type="button" role="switch" aria-checked={checked} aria-label={label} onClick={() => onChange(!checked)}
       className={`relative h-6 w-11 shrink-0 rounded-full border transition ${checked ? 'border-transparent' : 'border-line-strong bg-white/10'}`} style={checked ? { background: 'var(--grad)' } : undefined}>
-      <span className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-white shadow transition-all ${checked ? 'left-[22px]' : 'left-[3px]'}`} />
+      <span className={`absolute top-[2px] h-[18px] w-[18px] rounded-full bg-[#fff] shadow transition-all ${checked ? 'left-[22px]' : 'left-[3px]'}`} />
     </button>
   )
 }
@@ -164,34 +165,50 @@ export function Progress({ value, className = '' }: { value: number; className?:
 export interface MenuItem { label: string; icon?: LucideIcon; onClick: () => void; danger?: boolean; hidden?: boolean; hint?: string }
 /** Açılan menyu (… düyməsi və ya istənilən tetikleyici). Klaviatura: Esc bağlayır. */
 export function DropMenu({ items, label, children, align = 'right', className = '', btnClass = 'btn btn-ghost-dark btn-icon btn-sm' }: { items: MenuItem[]; label: string; children: ReactNode; align?: 'left' | 'right'; className?: string; btnClass?: string }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; left?: number; right?: number; up: boolean } | null>(null)
+  const btn = useRef<HTMLButtonElement>(null)
+  const menu = useRef<HTMLDivElement>(null)
+  const open = !!pos
+  const close = () => setPos(null)
+  // Menyu portal ilə body-yə çəkilir: kartların overflow-hidden-i onu kəsmir; ekranın altına yaxındırsa yuxarı açılır
+  const place = () => {
+    const r = btn.current?.getBoundingClientRect()
+    if (!r) return
+    const h = Math.min(320, items.filter((i) => !i.hidden).length * 40 + 12)
+    const up = r.bottom + h + 8 > window.innerHeight && r.top - h - 8 > 0
+    setPos({ ...(up ? { bottom: window.innerHeight - r.top + 6 } : { top: r.bottom + 6 }), up, ...(align === 'right' ? { right: Math.max(8, window.innerWidth - r.right) } : { left: Math.max(8, r.left) }) })
+  }
   useEffect(() => {
     if (!open) return
-    const down = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false) }
+    const down = (e: MouseEvent) => { const t = e.target as Node; if (!menu.current?.contains(t) && !btn.current?.contains(t)) close() }
+    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { close(); btn.current?.focus() } }
+    const away = () => close()
     document.addEventListener('mousedown', down); document.addEventListener('keydown', key)
-    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key) }
+    window.addEventListener('scroll', away, true); window.addEventListener('resize', away)
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); window.removeEventListener('scroll', away, true); window.removeEventListener('resize', away) }
   }, [open])
   const visible = items.filter((i) => !i.hidden)
   return (
-    <div ref={ref} className={`relative ${className}`}>
-      <button type="button" className={btnClass} title={label} aria-haspopup="menu" aria-expanded={open} aria-label={label} onClick={(e) => { e.stopPropagation(); setOpen((o) => !o) }}>{children}</button>
-      <AnimatePresence>
-        {open && (
-          <motion.div role="menu" initial={{ opacity: 0, y: -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -4, scale: 0.97 }} transition={{ duration: 0.12 }}
-            className={`absolute top-full z-40 mt-1.5 min-w-52 overflow-hidden rounded-xl border border-line-strong bg-raised p-1 shadow-[var(--shadow-lg)] ${align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left'}`}>
-            {visible.map((it) => (
-              <button key={it.label} type="button" role="menuitem" onClick={(e) => { e.stopPropagation(); setOpen(false); it.onClick() }}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${it.danger ? 'text-red-300 hover:bg-red-500/10' : 'text-fg2 hover:bg-white/[.06] hover:text-fg'}`}>
-                {it.icon && <it.icon className="h-4 w-4 shrink-0 opacity-80" />}
-                <span className="flex-1">{it.label}</span>
-                {it.hint && <span className="text-xs text-muted">{it.hint}</span>}
-              </button>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className={`relative ${className}`}>
+      <button ref={btn} type="button" className={btnClass} title={label} aria-haspopup="menu" aria-expanded={open} aria-label={label}
+        onClick={(e) => { e.stopPropagation(); e.preventDefault(); if (open) close(); else place() }}>{children}</button>
+      {createPortal(
+        <AnimatePresence>
+          {pos && (
+            <motion.div ref={menu} role="menu" initial={{ opacity: 0, y: pos.up ? 4 : -4, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.97 }} transition={{ duration: 0.12 }}
+              style={{ position: 'fixed', top: pos.top, bottom: pos.bottom, left: pos.left, right: pos.right }}
+              className="z-[80] max-h-80 min-w-52 overflow-y-auto rounded-xl border border-line-strong bg-raised p-1 shadow-[var(--shadow-lg)]">
+              {visible.map((it) => (
+                <button key={it.label} type="button" role="menuitem" onClick={(e) => { e.stopPropagation(); close(); it.onClick() }}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition ${it.danger ? 'text-red-300 hover:bg-red-500/10' : 'text-fg2 hover:bg-white/[.06] hover:text-fg'}`}>
+                  {it.icon && <it.icon className="h-4 w-4 shrink-0 opacity-80" />}
+                  <span className="flex-1">{it.label}</span>
+                  {it.hint && <span className="text-xs text-muted">{it.hint}</span>}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>, document.body)}
     </div>
   )
 }

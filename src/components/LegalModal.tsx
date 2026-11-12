@@ -29,14 +29,14 @@ export function LegalModal({ ids, open, onClose, onAccept }: { ids: LegalId[]; o
   return createPortal(
     <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/60 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="legal-title">
       <motion.div initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#12142A] text-white shadow-2xl sm:rounded-3xl">
+        className="flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden theme-dark rounded-t-3xl border border-white/10 bg-[#12142A] text-[#fff] shadow-2xl sm:rounded-3xl">
         <header className="flex items-start gap-3 border-b border-white/10 px-5 py-4 sm:px-6">
           <div className="min-w-0 flex-1">
             {docs.length > 1 ? (
               <div className="flex flex-wrap gap-1" role="tablist">
                 {docs.map((d, i) => (
                   <button key={d.id} type="button" role="tab" aria-selected={i === tab} onClick={() => setTab(i)}
-                    className={`rounded-lg px-3 py-1.5 text-sm font-bold ${i === tab ? 'text-white' : 'text-white/55 hover:bg-white/10'}`} style={i === tab ? { background: 'var(--grad)' } : undefined}>{d.title}</button>
+                    className={`rounded-lg px-3 py-1.5 text-sm font-bold ${i === tab ? 'text-[#fff]' : 'text-white/55 hover:bg-white/10'}`} style={i === tab ? { background: 'var(--grad)' } : undefined}>{d.title}</button>
                 ))}
               </div>
             ) : <h2 id="legal-title" className="text-lg font-black">{doc.title}</h2>}
@@ -50,7 +50,7 @@ export function LegalModal({ ids, open, onClose, onAccept }: { ids: LegalId[]; o
           <div className="flex flex-col gap-5">
             {doc.sections.map((s) => (
               <section key={s.h}>
-                <h3 className="mb-1.5 font-bold text-white">{s.h}</h3>
+                <h3 className="mb-1.5 font-bold text-[#fff]">{s.h}</h3>
                 {s.p?.map((p) => <p key={p} className="mb-1.5">{p}</p>)}
                 {s.list && <ul className="list-disc space-y-1 pl-5">{s.list.map((x) => <li key={x}>{x}</li>)}</ul>}
               </section>

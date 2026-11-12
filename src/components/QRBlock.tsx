@@ -4,7 +4,7 @@ import { useRef } from 'react'
 /** Vektor (SVG) QR — istənilən ekranda (proyektor, retina, telefon) kəskin görünür, ölçüsü konteynerə sığır. */
 export function QRBlock({ url, size = 420, id }: { url: string; size?: number; id?: string }) {
   return (
-    <div className="inline-block max-w-full shrink-0 rounded-3xl bg-white p-3 shadow-2xl sm:p-4" style={{ width: size + 32 }}>
+    <div className="inline-block max-w-full shrink-0 rounded-3xl bg-[#fff] p-3 shadow-2xl sm:p-4" style={{ width: size + 32 }}>
       <QRCodeSVG id={id} value={url} size={size} level="M" marginSize={2} bgColor="#FFFFFF" fgColor="#0F1129" className="block h-auto w-full" />
     </div>
   )

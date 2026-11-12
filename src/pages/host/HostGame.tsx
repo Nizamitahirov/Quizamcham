@@ -317,7 +317,7 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
       <FloatingEmojis items={flying.items} size={64} />
       {!online && <div className="absolute inset-x-0 top-0 z-50 bg-red-600 py-2 text-center text-lg font-bold" role="alert">{t.host.offline}</div>}
       {!opened && game.phase !== 'finished' && (
-        <button className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-night/90 text-white backdrop-blur" onClick={() => { audio.unlock(); setOpened(true) }}>
+        <button className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-night/90 text-[#fff] backdrop-blur" onClick={() => { audio.unlock(); setOpened(true) }}>
           <Logo size={72} />
           <span className="btn btn-primary btn-lg text-2xl"><Play className="fill-current" />{t.host.openLobby}</span>
           <span className="text-lg text-white/60">{t.host.openLobbyHint}</span>

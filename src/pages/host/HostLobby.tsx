@@ -40,7 +40,7 @@ export function HostLobby({ game, players, onKick }: HostCtx & { onKick: (p: Pla
       <section className="glass-strong gradient-border flex shrink-0 flex-col items-center justify-center gap-3 p-4 sm:p-6 lg:gap-4 lg:p-8">
         <QRBlock url={url} size={qr} />
         <div className="min-w-0 max-w-full text-center">
-          <div className="flex flex-wrap items-center justify-center gap-x-2 text-base text-white/70 sm:text-xl"><Smartphone className="h-5 w-5" />{t.host.joinAt} <b className="break-all text-white">{short}</b></div>
+          <div className="flex flex-wrap items-center justify-center gap-x-2 text-base text-white/70 sm:text-xl"><Smartphone className="h-5 w-5" />{t.host.joinAt} <b className="break-all text-[#fff]">{short}</b></div>
           <div className="label-dark mt-2 lg:mt-3">PIN</div>
           <div data-testid="lobby-pin" className="font-display text-grad font-black leading-none tracking-[.1em]" style={{ fontSize: 'clamp(2.75rem, min(9vh, 12vw), 6rem)' }}>{game.pin}</div>
         </div>
@@ -85,7 +85,7 @@ export function HostLobby({ game, players, onKick }: HostCtx & { onKick: (p: Pla
                     className="glass group relative flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-5" title={idle ? t.host.idle : undefined}>
                     <span className="rounded-full" style={p.team != null && TEAMS[p.team] ? { boxShadow: `0 0 0 3px ${TEAMS[p.team].color}` } : undefined}><Avatar avatar={p.avatar} size={52} dim={idle} /></span>
                     <span className="max-w-44 truncate text-xl font-bold">{shortName(p.firstName, p.lastName)}</span>
-                    <button className="absolute -right-1 -top-1 hidden h-8 w-8 items-center justify-center rounded-full bg-red-600 text-white group-hover:flex" onClick={() => onKick(p)} aria-label={t.host.kick}><UserX className="h-4 w-4" /></button>
+                    <button className="absolute -right-1 -top-1 hidden h-8 w-8 items-center justify-center rounded-full bg-red-600 text-[#fff] group-hover:flex" onClick={() => onKick(p)} aria-label={t.host.kick}><UserX className="h-4 w-4" /></button>
                   </motion.div>
                 )
               })}

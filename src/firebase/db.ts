@@ -250,7 +250,16 @@ export const setSoundsEnabled = (enabled: boolean) => setDoc(doc(db, 'sounds', '
 export async function loadProfile(uid: string): Promise<TrainerProfile | null> {
   try { const s = await getDoc(doc(db, 'profiles', uid)); return s.exists() ? (s.data() as TrainerProfile) : null } catch { return null }
 }
-export const saveProfile = (uid: string, p: TrainerProfile) => setDoc(doc(db, 'profiles', uid), JSON.parse(JSON.stringify(p)))
+export const saveProfile = (uid: string, p: TrainerProfile) => setDoc(doc(db, 'profiles', uid), JSON.parse(JSON.stringify(p)), { merge: true })
+/** Təlimçinin qovluq siyahısı (boş qovluqlar da saxlanılır) — profiles/{uid}.quizFolders */
+export async function loadFolderList(uid: string): Promise<string[]> {
+  const s = await getDoc(doc(db, 'profiles', uid)).catch(() => null)
+  const v = s?.exists() ? s.get('quizFolders') : null
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
+}
+export const saveFolderList = (uid: string, names: string[]) => setDoc(doc(db, 'profiles', uid), { quizFolders: [...new Set(names)].slice(0, 200) }, { merge: true })
+/** Qovluq adı: kənar boşluqlar silinir, daxili boşluqlar birləşdirilir, 40 simvol. */
+export const normFolder = (s: string) => s.replace(/\s+/g, ' ').trim().slice(0, 40)
 
 // ---------------- Oyunlar (admin) ----------------
 
@@ -299,4 +308,4 @@ export const touchQuiz = (quizId: string) => updateDoc(doc(db, 'quizzes', quizId
 export const setQuizEditors = (quizId: string, emails: string[]) =>
   updateDoc(doc(db, 'quizzes', quizId), { editors: [...new Set(emails.map((e) => e.trim().toLowerCase()).filter(Boolean))].slice(0, 20) })
 /** Qovluq (boş — qovluqsuz). */
-export const setQuizFolder = (quizId: string, folder: string) => updateDoc(doc(db, 'quizzes', quizId), { folder: folder.trim().slice(0, 40) })
+export const setQuizFolder = (quizId: string, folder: string) => updateDoc(doc(db, 'quizzes', quizId), { folder: normFolder(folder) })

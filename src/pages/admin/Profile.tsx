@@ -74,7 +74,7 @@ export default function Profile() {
 
       <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
         {/* Önizləmə kartı — sağ sütunun hündürlüyünə uzanır, məzmun ortada */}
-        <div className="noise clip-round relative isolate flex min-h-80 flex-col justify-center overflow-hidden rounded-3xl bg-night p-6 text-white lg:h-full">
+        <div className="noise clip-round relative isolate flex min-h-80 flex-col justify-center overflow-hidden rounded-3xl bg-night p-6 text-[#fff] lg:h-full">
           <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full opacity-50 blur-3xl" style={{ background: '#E8202A' }} />
           <div className="absolute left-6 top-5 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40">{t.profile.previewHint}</div>
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full opacity-60 blur-3xl" style={{ background: '#FF7A1A' }} />

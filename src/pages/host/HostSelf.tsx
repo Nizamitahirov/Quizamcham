@@ -34,7 +34,7 @@ export function HostSelf({ game, players }: { game: Game; players: Player[] }) {
           <div className="glass p-5"><div className="label-dark">{t.host.participants}</div><div className="font-display text-5xl font-black">{players.length}</div></div>
           <div className="glass p-5"><div className="label-dark">{t.host.done}</div><div className="font-display text-5xl font-black">{done}</div></div>
         </div>
-        <p className="text-lg text-white/60">PIN <b className="text-white">{game.pin}</b> · {window.location.host}</p>
+        <p className="text-lg text-white/60">PIN <b className="text-[#fff]">{game.pin}</b> · {window.location.host}</p>
       </section>
       <section className="scrollbar-thin min-h-0 flex-1 overflow-auto pr-2">
         <div className="label-dark">{t.host.progress}</div>

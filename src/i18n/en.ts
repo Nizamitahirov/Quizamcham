@@ -471,6 +471,11 @@ export const en: Dict = {
     added: 'Task added', saved: 'Saved', copiedLink: 'Link copied', none: 'Not selected', change: 'Change', pick: 'Pick',
   },
   course2: {
+    sequential: 'Sequential', sequentialDesc: 'The next quiz unlocks only after the previous one is passed', passPct: 'Pass mark', passHint: (n: number) => `A step counts as passed at ${n}% or higher`,
+    preview: 'View as student', duplicate: 'Duplicate', copySuffix: ' (copy)', duplicated: 'Course duplicated', exportXlsx: 'Export to Excel', avg: (n: number) => `Average progress: ${n}%`,
+    locked: 'Locked', lockedHint: 'Pass the previous step first', myCourses: 'My courses', continueCourse: 'Continue', completedChip: 'Completed',
+    stepPassed: 'Course step passed ✓', stepFailed: (need: number, got: number) => `You need at least ${need}% to pass this step (your score: ${got}%). Try again.`,
+    nextStep: 'Next step', courseDone: 'All course steps completed! 🎉', toCourse: 'View course',
     emptyText: 'Combine several quizzes into a sequence. Students get a certificate when they finish all of them.',
     cover: 'Cover', copyLink: 'Copy link', linkCopied: 'Course link copied', progressBtn: 'Progress', progressTitle: 'Student progress',
     started: (n: number) => `${n} started`, finished: (n: number) => `${n} finished`, noProgress: 'Nobody has started yet',
@@ -479,7 +484,7 @@ export const en: Dict = {
   },
   ql: {
     create: 'Create', import: 'Import', folders: 'Folders', noFolder: 'No folder', renameFolder: 'Rename folder', deleteFolder: 'Delete folder',
-    deleteFolderBody: 'Quizzes are not deleted — they are just taken out of the folder.', folderName: 'Folder name', newFolder: 'New folder', moveHint: 'Pick an existing folder or type a new name. Leave empty to remove the quiz from its folder.',
+    deleteFolderBody: 'Quizzes are not deleted — they are just taken out of the folder.', folderName: 'Folder name', newFolder: 'New folder', others: 'Others\' quizzes', folderExists: 'A folder with this name already exists', folderActions: 'Folder actions', created: 'Folder created', moveHint: 'Pick an existing folder or type a new name. Leave empty to remove the quiz from its folder.',
     more: 'More', count: (n: number) => `${n} quizzes`, nothing: 'No quizzes match this filter', clear: 'Clear filter', moved: 'Moved', duplicated: 'Copy created', deleted: 'Deleted',
   },
   learn2: {
@@ -490,7 +495,7 @@ export const en: Dict = {
     shuffle: 'Shuffle', progress: (a: number, b: number) => `${a} / ${b} known`, keys: 'Space — flip · → know · ← again', swipe: 'Swipe right — know, left — again',
     summary: 'Great work!', summaryText: (n: number, r: number) => `You learned ${n} cards${r ? ` and repeated ${r} of them` : ''}.`, practice: 'Take the quiz now', reset: 'Reset',
   },
-  menu: { account: 'Account menu', avatar: 'Design my avatar', panel: 'Trainer panel', learn: 'Learning portal', language: 'Language', profile: 'Profile', student: 'Student', trainer: 'Trainer' },
+  menu: { theme: 'Appearance', dark: 'Dark', light: 'Light', account: 'Account menu', avatar: 'Design my avatar', panel: 'Trainer panel', learn: 'Learning portal', language: 'Language', profile: 'Profile', student: 'Student', trainer: 'Trainer' },
   av: {
     title: 'Avatar studio', sub: 'Create your own 3D avatar — hair, face, hats, outfits, bags and more', save: 'Save', saving: 'Saving…', saved: 'Avatar saved',
     mine: 'My 3D avatar', create: 'Create a 3D avatar', random: 'Randomize', reset: 'Reset', rotate: 'Drag to rotate', unsaved: 'You have unsaved changes', custom: 'Custom', loginNeeded: 'Sign in to create an avatar',

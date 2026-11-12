@@ -11,7 +11,7 @@ export function NewTypeReveal({ type, rv, imageUrl, points = [], big = false }: 
   if (type === 'match' && rv.pairs?.length) return (
     <ul className={`flex flex-col ${big ? 'gap-3' : 'gap-1.5'}`}>
       {rv.pairs.map((p, i) => (
-        <li key={i} className={`flex items-center gap-3 rounded-2xl bg-green-600/90 font-bold text-white ${big ? 'px-6 py-3 text-3xl' : 'px-3 py-2 text-sm'}`}>
+        <li key={i} className={`flex items-center gap-3 rounded-2xl bg-green-600/90 font-bold text-[#fff] ${big ? 'px-6 py-3 text-3xl' : 'px-3 py-2 text-sm'}`}>
           <span className="min-w-0 flex-1">{p.left}</span><span aria-hidden>⇄</span><span className="min-w-0 flex-1 text-right">{p.right}</span>
         </li>
       ))}
@@ -33,7 +33,7 @@ export function NewTypeReveal({ type, rv, imageUrl, points = [], big = false }: 
           const [x, y] = p.split(',').map(Number)
           if (!Number.isFinite(x) || !Number.isFinite(y)) return null
           const ok = Math.hypot(x - h.x, y - h.y) <= h.r
-          return <span key={i} className={`pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white ${ok ? 'bg-green-500' : 'bg-red-500'}`} style={{ left: `${x}%`, top: `${y}%` }} />
+          return <span key={i} className={`pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#fff] ${ok ? 'bg-green-500' : 'bg-red-500'}`} style={{ left: `${x}%`, top: `${y}%` }} />
         })}
       </div>
     )

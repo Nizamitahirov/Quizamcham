@@ -49,18 +49,18 @@ export function AnswerTile({ index, text, onClick, selected, dimmed, checked, co
       whileTap={disabled ? undefined : { scale: 0.95 }}
       aria-pressed={selected || checked}
       aria-label={`${TILE_NAMES[index]}: ${text}`}
-      className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl text-left font-bold text-white shadow-[0_6px_0_rgba(0,0,0,.28),0_12px_24px_-10px_rgba(0,0,0,.5)] disabled:cursor-default ${big ? 'min-h-28 p-6 text-3xl' : 'min-h-[68px] p-3.5 text-base'} ${selected || checked ? 'ring-4 ring-white' : ''}`}
+      className={`group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl text-left font-bold text-[#fff] shadow-[0_6px_0_rgba(0,0,0,.28),0_12px_24px_-10px_rgba(0,0,0,.5)] disabled:cursor-default ${big ? 'min-h-28 p-6 text-3xl' : 'min-h-[68px] p-3.5 text-base'} ${selected || checked ? 'ring-4 ring-[#fff]' : ''}`}
       style={{ background: tileBg(index) }}
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/18 to-transparent" />
       <span className={`relative flex shrink-0 items-center justify-center rounded-xl bg-black/20 ${big ? 'h-16 w-16' : 'h-11 w-11'}`}><Shape i={index} size={big ? 36 : 22} /></span>
       <span className="relative min-w-0 flex-1 leading-snug [overflow-wrap:break-word] [hyphens:auto]" lang="az">{text}</span>
       {checked !== undefined && (
-        <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-white ${checked ? 'bg-white text-onlight' : ''}`} aria-hidden>
+        <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-[#fff] ${checked ? 'bg-[#fff] text-onlight' : ''}`} aria-hidden>
           {checked && <Check className="h-5 w-5" strokeWidth={3.5} />}
         </span>
       )}
-      {correct === true && <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-green-700"><Check className="h-6 w-6" strokeWidth={3.5} /></span>}
+      {correct === true && <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#fff] text-green-700"><Check className="h-6 w-6" strokeWidth={3.5} /></span>}
       {correct === false && <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/30"><X className="h-6 w-6" strokeWidth={3.5} /></span>}
       {count !== undefined && <span className="relative shrink-0 rounded-full bg-black/25 px-3 py-1 text-2xl">{count}</span>}
     </motion.button>

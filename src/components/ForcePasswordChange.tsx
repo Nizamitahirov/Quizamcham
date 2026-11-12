@@ -47,7 +47,7 @@ export function ForcePasswordChange({ user }: { user: User }) {
           <Logo size={30} dark={false} />
           <button type="button" className="btn btn-ghost-dark btn-sm" onClick={() => void logout()}><LogOut className="h-4 w-4" />{t.admin.logout}</button>
         </div>
-        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl text-white" style={{ background: 'var(--grad)' }}><KeyRound /></span>
+        <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl text-[#fff]" style={{ background: 'var(--grad)' }}><KeyRound /></span>
         <h2 id="pw-title" className="text-2xl font-black">{A.pwTitle}</h2>
         <p className="mt-1 text-sm text-muted">{A.pwText}</p>
         <div className="mt-5 flex flex-col gap-3">

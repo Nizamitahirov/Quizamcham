@@ -42,7 +42,7 @@ service cloud.firestore {
     function isOrgOwner() { return isAdmin() && me().get('source', 'team') == 'signup' && me().get('plan', '') == 'institution' && planOk(); }
     // istifadəçinin təşkilatı: müəssisə təlimçisi → orgId, müəssisə sahibi → öz uid-i, digərləri → ''
     function orgOf() {
-      return !isAdmin() ? '' : me().get('source', 'team') == 'org' ? me().get('orgId', '')
+      return (!isAdmin() || !exists(adminDoc())) ? '' : me().get('source', 'team') == 'org' ? me().get('orgId', '')
         : (me().get('source', 'team') == 'signup' && me().get('plan', '') == 'institution' ? request.auth.uid : '');
     }
     // Pulsuz plan: sınaq/lisenziya bitib → oyunda maksimum 10 iştirakçı
@@ -420,7 +420,9 @@ service cloud.firestore {
       allow read: if registered() || isAdmin();
       allow create, update: if isAdmin() && can('createQuiz') && request.resource.data.ownerUid == request.auth.uid
         && (resource == null || resource.data.ownerUid == request.auth.uid)
-        && request.resource.data.keys().hasOnly(['ownerUid','ownerName','title','description','items','createdAt','updatedAt','coverEmoji'])
+        && request.resource.data.keys().hasOnly(['ownerUid','ownerName','title','description','items','createdAt','updatedAt','coverEmoji','sequential','passPct'])
+        && (!('sequential' in request.resource.data) || request.resource.data.sequential is bool)
+        && (!('passPct' in request.resource.data) || (request.resource.data.passPct is int && request.resource.data.passPct >= 0 && request.resource.data.passPct <= 100))
         && str(request.resource.data.title, 120) && request.resource.data.title.size() >= 3 && str(request.resource.data.get('description', ''), 500)
         && request.resource.data.items is list && request.resource.data.items.size() >= 1 && request.resource.data.items.size() <= 50;
       allow delete: if isAdmin() && resource.data.ownerUid == request.auth.uid;

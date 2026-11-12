@@ -22,7 +22,7 @@ function Choice({ value, options, onChange, label }: { value?: string; options: 
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
           <button key={o} type="button" onClick={() => onChange(o)} aria-pressed={value === o}
-            className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${value === o ? 'border-transparent text-white' : 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10'}`}
+            className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${value === o ? 'border-transparent text-[#fff]' : 'border-white/15 bg-white/5 text-white/75 hover:bg-white/10'}`}
             style={value === o ? { background: 'var(--grad)' } : undefined}>{o}</button>
         ))}
       </div>
@@ -98,7 +98,7 @@ export default function Onboarding() {
   }
 
   return (
-    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-white">
+    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-[#fff]">
       <FuturisticBg floor={false} intensity={0.7} />
       <header className="relative z-10 mx-auto flex w-full max-w-3xl items-center justify-between px-4 pt-5">
         <Link to="/" aria-label={t.app.home}><Logo size={32} /></Link>
@@ -189,7 +189,7 @@ export default function Onboarding() {
                   {A.interestOptions.map((o) => {
                     const on = d.interests?.includes(o)
                     return <button key={o} type="button" aria-pressed={on} onClick={() => set({ interests: on ? d.interests!.filter((x) => x !== o) : [...(d.interests ?? []), o].slice(0, 12) })}
-                      className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${on ? 'border-transparent text-white' : 'border-white/15 bg-white/5 text-white/70 hover:bg-white/10'}`} style={on ? { background: 'var(--grad)' } : undefined}>{o}</button>
+                      className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${on ? 'border-transparent text-[#fff]' : 'border-white/15 bg-white/5 text-white/70 hover:bg-white/10'}`} style={on ? { background: 'var(--grad)' } : undefined}>{o}</button>
                   })}
                 </div>
               </div>

@@ -114,7 +114,7 @@ export default function AdminLayout() {
   const all = groups.flatMap((g) => g.items)
   return (
     <div className="bg-app min-h-dvh">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-[#0B0C19]/90 px-3 py-4 backdrop-blur-xl lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-canvas/90 px-3 py-4 backdrop-blur-xl lg:flex">
         <div className="flex items-start justify-between px-3 py-2"><Link to="/admin"><Logo size={32} dark sub="Live quiz" /></Link><NotificationBell load={notices} align="left" /></div>
         <nav className="mt-6 flex flex-1 flex-col gap-5 overflow-y-auto px-3 scrollbar-thin">
           {groups.filter((g) => g.items.length).map((g) => (
@@ -130,7 +130,7 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-[#0B0C19]/85 px-4 py-2.5 backdrop-blur-xl lg:hidden">
+      <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-canvas/85 px-4 py-2.5 backdrop-blur-xl lg:hidden">
         <Link to="/admin"><Logo size={26} dark /></Link>
         <div className="ml-auto flex items-center gap-2"><NotificationBell load={notices} /><AccountMenu uid={uid} {...menu} compact /></div>
       </header>
@@ -141,7 +141,7 @@ export default function AdminLayout() {
         {admin.mustChangePassword && admin.user && <ForcePasswordChange user={admin.user} />}
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-[#0B0C19]/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-canvas/92 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden">
         {MOBILE.map((to) => all.find((n) => n.to === to)).filter(Boolean).map((n) => (
           <NavLink key={n!.to} end={n!.end} to={n!.to} className={({ isActive }) => `flex flex-col items-center gap-1 py-2.5 text-[10.5px] font-semibold ${isActive ? 'text-orange-300' : 'text-muted'}`}>
             {n && <n.icon className="h-5 w-5" />}<span className="max-w-full truncate px-1">{n!.label}</span>

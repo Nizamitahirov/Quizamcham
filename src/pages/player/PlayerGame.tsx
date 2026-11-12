@@ -320,7 +320,7 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
             <motion.div animate={{ rotate: [0, 180, 360] }} transition={{ repeat: Infinity, duration: 2.4, ease: 'linear' }}><Hourglass className="h-14 w-14 text-orange-400" /></motion.div>
             <p className="text-2xl font-black">{t.game.submitted}</p>
             <p className="text-white/60">{t.game.waitingOthers}</p>
-            {player.power?.q === game.questionIndex && <span className="chip chip-brand bg-white">{POWERS.find((p) => p.type === player.power?.type)?.label} · {t.power.active}</span>}
+            {player.power?.q === game.questionIndex && <span className="chip chip-brand bg-[#fff]">{POWERS.find((p) => p.type === player.power?.type)?.label} · {t.power.active}</span>}
           </motion.div>
         ) : state === 'late' || timeUp ? (
           <p className="py-10 text-center text-3xl font-black">{t.game.timeUp}</p>

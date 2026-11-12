@@ -7,7 +7,7 @@ import type { TeamEntry } from '../types'
 export function TeamChip({ team, className = '' }: { team?: number; className?: string }) {
   if (team == null || !TEAMS[team]) return null
   const tm = TEAMS[team]
-  return <span className={`chip text-white ${className}`} style={{ background: tm.color }}>{tm.emoji} {tm.name}</span>
+  return <span className={`chip text-[#fff] ${className}`} style={{ background: tm.color }}>{tm.emoji} {tm.name}</span>
 }
 
 /** Komanda reytinqi (orta xal üzrə). */
