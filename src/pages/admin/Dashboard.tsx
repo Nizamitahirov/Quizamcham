@@ -4,7 +4,7 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { Timestamp } from 'firebase/firestore'
 import { ArrowRight, Copy, Link2, Bot, Gamepad2, ListChecks, Plus, QrCode, Target, Users, Sparkles } from 'lucide-react'
-import { createQuiz, listGames, listQuizzes, parseQuizJson } from '../../firebase/db'
+import { createQuiz, listGames, listQuizzes, loadProfile, parseQuizJson } from '../../firebase/db'
 import { t } from '../../i18n/az'
 import { toast } from '../../components/dialogs'
 import { Spinner } from '../../components/ui'
@@ -49,7 +49,9 @@ export default function Dashboard() {
     const { quiz, questions } = parseQuizJson(raw)
     nav(`/admin/quiz/${await createQuiz(user!.uid, quiz, questions)}`)
   }
-  const name = (user?.email ?? '').split('@')[0]
+  const [profName, setProfName] = useState('')
+  useEffect(() => { if (user?.uid) void loadProfile(user.uid).then((p) => setProfName(p?.name?.split(' ')[0] ?? '')).catch(() => {}) }, [user?.uid])
+  const name = profName || user?.displayName?.split(' ')[0] || (user?.email ?? '').split('@')[0]
   const cards = [
     { icon: ListChecks, label: t.admin.kpiQuizzes, value: quizCount ?? '–' },
     { icon: Gamepad2, label: t.admin.kpiGames, value: games ? kpi.games : '–' },
@@ -58,7 +60,7 @@ export default function Dashboard() {
   ]
   return (
     <div className="mx-auto max-w-7xl p-4 sm:p-8">
-      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="noise relative mb-6 overflow-hidden rounded-3xl bg-night p-6 text-white sm:p-8">
+      <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="noise clip-round relative isolate mb-6 overflow-hidden rounded-3xl bg-night p-6 text-white sm:p-8">
         <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full opacity-60 blur-3xl" style={{ background: '#FF7A1A' }} />
         <div className="pointer-events-none absolute -bottom-28 left-10 h-72 w-72 rounded-full opacity-50 blur-3xl" style={{ background: '#E8202A' }} />
         <div className="relative flex flex-wrap items-center gap-6">

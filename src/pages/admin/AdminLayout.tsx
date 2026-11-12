@@ -3,7 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Ban, Crown, Menu, BarChart3, BookOpen, Building2, Gauge, GraduationCap, Sparkles, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
 import { ForcePasswordChange } from '../../components/ForcePasswordChange'
 import type { PermKey } from '../../lib/roles'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { NotificationBell } from '../../components/NotificationBell'
+import { trainerNotices } from '../../lib/notifications'
 import { loadProfile } from '../../firebase/db'
 import type { TrainerProfile } from '../../types'
 import { logout, useAdmin, type AdminState } from '../../firebase/auth'
@@ -95,6 +97,7 @@ export default function AdminLayout() {
   useEffect(() => { setSheet(false) }, [loc.pathname])
   const groups = useNav(admin)
   const menu = useAdminMenu(admin, prof)
+  const notices = useCallback(() => trainerNotices(admin), [admin])
   if (admin.loading) return <div className="bg-app flex min-h-dvh items-center justify-center"><Spinner /></div>
   if (admin.disabled) {
     return (
@@ -111,7 +114,7 @@ export default function AdminLayout() {
   return (
     <div className="bg-app min-h-dvh">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-line bg-[#0B0C19]/90 px-3 py-4 backdrop-blur-xl lg:flex">
-        <Link to="/admin" className="px-3 py-2"><Logo size={32} dark sub="Live quiz" /></Link>
+        <div className="flex items-start justify-between px-3 py-2"><Link to="/admin"><Logo size={32} dark sub="Live quiz" /></Link><NotificationBell load={notices} align="left" /></div>
         <nav className="mt-6 flex flex-1 flex-col gap-5 overflow-y-auto px-3 scrollbar-thin">
           {groups.filter((g) => g.items.length).map((g) => (
             <div key={g.label}>
@@ -128,7 +131,7 @@ export default function AdminLayout() {
 
       <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-[#0B0C19]/85 px-4 py-2.5 backdrop-blur-xl lg:hidden">
         <Link to="/admin"><Logo size={26} dark /></Link>
-        <div className="ml-auto"><AccountMenu uid={uid} {...menu} compact /></div>
+        <div className="ml-auto flex items-center gap-2"><NotificationBell load={notices} /><AccountMenu uid={uid} {...menu} compact /></div>
       </header>
 
       <div className="pb-24 lg:pb-0 lg:pl-64">
