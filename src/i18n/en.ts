@@ -526,6 +526,7 @@ export const en: Dict = {
     hint: 'This QR always leads to your currently open live game — print it once or put it on a slide.', liveNow: (pin: string) => `Now: leads to game PIN ${pin}`, idle: 'No open game right now — the QR will show "no game"',
     reset: 'Reset QR', resetTitle: 'Reset the QR?', resetBody: 'A new code will be created. The old printed QR and old links will stop working immediately.', resetDone: 'New QR is ready — the old one was revoked',
   },
+  mailTest: { btn: 'Test email', ok: (to: string) => `Test email sent to ${to} — check the inbox`, fail: (e: string) => `Not sent: ${e}` },
   shell: { content: 'Content', teaching: 'Teaching', manage: 'Manage', more: 'More', plan: 'Plan', upgrade: 'Upgrade', menu: 'Menu' },
   dlg: { ok: 'Confirm', cancel: 'Cancel', save: 'Save', delete: 'Delete' },
   premium: { requires: (p: string) => `${p} plan`, locked: (p: string) => `Available on the ${p} plan and above.`, upgrade: 'Upgrade plan', yourPlan: 'Your plan' },

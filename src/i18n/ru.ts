@@ -526,6 +526,7 @@ export const ru: Dict = {app: { name: 'Jabr', tagline: 'Живой интера�
     hint: 'Этот QR всегда ведёт на вашу текущую открытую игру — распечатайте один раз или добавьте на слайд.', liveNow: (pin: string) => `Сейчас: ведёт на игру PIN ${pin}`, idle: 'Сейчас открытой игры нет — QR покажет «игры нет»',
     reset: 'Обновить QR', resetTitle: 'Обновить QR?', resetBody: 'Будет создан новый код. Старый напечатанный QR и старые ссылки сразу перестанут работать.', resetDone: 'Новый QR готов — старый отключён',
   },
+  mailTest: { btn: 'Тестовое письмо', ok: (to: string) => `Тестовое письмо отправлено: ${to} — проверьте почту`, fail: (e: string) => `Не отправлено: ${e}` },
   shell: { content: 'Контент', teaching: 'Обучение', manage: 'Управление', more: 'Ещё', plan: 'План', upgrade: 'Улучшить', menu: 'Меню' },
   dlg: { ok: 'Подтвердить', cancel: 'Отмена', save: 'Сохранить', delete: 'Удалить' },
   premium: { requires: (p: string) => `${p} plan`, locked: (p: string) => `Available on the ${p} plan and above.`, upgrade: 'Обновить план', yourPlan: 'Ваш план' },

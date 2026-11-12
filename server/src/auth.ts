@@ -242,6 +242,22 @@ export function authRoutes(app: FastifyInstance) {
     return { ok: true }
   })
 
+  // Super admin: e-poçt göndərməni yoxlamaq üçün test məktubu (yalnız öz ünvanına)
+  app.post('/api/mail/test', { preHandler: limit('mailtest', 5, 600_000) }, async (req) => {
+    const { auth } = await authFrom(bearer(req))
+    if (!auth) throw err('auth/unauthenticated', 401)
+    const { loadDoc } = await import('./store.js')
+    const { SUPER } = await import('./rules.js')
+    const me = await loadDoc(`admins/${auth.uid}`)
+    if (auth.uid !== SUPER && me?.role !== 'super') throw Object.assign(new Error('permission-denied'), { statusCode: 403, code: 'permission-denied' })
+    const r = await pool.query<{ email: string | null }>('select email from auth_users where uid = $1', [auth.uid])
+    const to = r.rows[0]?.email
+    if (!to) throw err('auth/invalid-email')
+    const { sendMail } = await import('./mailer.js')
+    const res = await sendMail(to, 'Jabr — test məktubu', `Salam!\n\nBu, Jabr serverindən göndərilmiş test məktubudur. Gəlibsə, e-poçt göndərmə düzgün qurulub.\n\n${process.env.PUBLIC_URL ?? ''}`)
+    return { ...res, to }
+  })
+
   // Öz hesabını silmək (Firestore məlumatlarını klient əvvəlcədən silir)
   app.post('/api/auth/delete', async (req) => {
     const { auth } = await authFrom(bearer(req))

@@ -793,6 +793,7 @@ export const az = {
     hint: 'Bu QR həmişə sizin hazırda açıq olan canlı oyununuza aparır — bir dəfə çap edin və ya slayda qoyun.', liveNow: (pin: string) => `İndi: PIN ${pin} oyununa aparır`, idle: 'Hazırda açıq oyununuz yoxdur — QR "oyun yoxdur" göstərəcək',
     reset: 'QR-ı yenilə', resetTitle: 'QR yenilənsin?', resetBody: 'Yeni kod yaradılacaq. Köhnə çap olunmuş QR və köhnə linklər dərhal işləməyi dayandıracaq.', resetDone: 'Yeni QR hazırdır — köhnəsi ləğv olundu',
   },
+  mailTest: { btn: 'Test məktubu', ok: (to: string) => `Test məktubu göndərildi: ${to} — gələn qutusunu yoxlayın`, fail: (e: string) => `Göndərilmədi: ${e}` },
   shell: { content: 'Məzmun', teaching: 'Tədris', manage: 'İdarəetmə', more: 'Daha çox', plan: 'Plan', upgrade: 'Yüksəlt', menu: 'Menyu' },
   dlg: { ok: 'Təsdiq et', cancel: 'Ləğv et', save: 'Yadda saxla', delete: 'Sil' },
   premium: { requires: (p: string) => `${p} planında`, locked: (p: string) => `Bu imkan ${p} və daha yüksək planlarda mövcuddur.`, upgrade: 'Planı yüksəlt', yourPlan: 'Planınız' },
