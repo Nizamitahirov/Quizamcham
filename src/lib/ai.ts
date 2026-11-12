@@ -25,7 +25,7 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 
 export const aiQuota = () => call<AiQuota>('/api/ai/quota')
 /** Super admin: e-poçt göndərməni yoxlamaq (öz ünvanına test məktubu). */
-export const mailTest = () => call<{ sent: boolean; status: number; error?: string; to: string }>('/api/mail/test', {})
+export const mailTest = () => call<{ sent: boolean; status: number; error?: string; to: string }>('/api/mail/test', { lang: (() => { try { return localStorage.getItem('qz.lang') ?? 'az' } catch { return 'az' } })() })
 
 export interface GenInput { topic?: string; text?: string; count: number; lang: AiLang; level: 'easy' | 'medium' | 'hard'; types: string[]; audience?: string }
 export const aiGenerate = (input: GenInput) => call<{ quiz: Record<string, unknown>; dropped?: number }>('/api/ai/generate', input)
