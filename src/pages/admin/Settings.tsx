@@ -10,8 +10,12 @@ import { t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
 import { Field, Section, Segmented } from '../../components/kit'
 import type { AppSettings } from '../../types'
+import { useOutletContext } from 'react-router-dom'
+import type { AdminState } from '../../firebase/auth'
+import { MailSettings } from './MailSettings'
 
 export default function Settings() {
+  const admin = useOutletContext<AdminState>()
   const [s, setS] = useState<AppSettings | null>(null)
   const [words, setWords] = useState('')
   const [msg, setMsg] = useState('')
@@ -39,6 +43,7 @@ export default function Settings() {
         <Section icon={ShieldCheck} title={S.nameFilter}>
           <Field label={S.bannedWords}><textarea className="input" rows={3} value={words} onChange={(e) => setWords(e.target.value)} /></Field>
         </Section>
+        {admin.role === 'super' && <MailSettings />}
         <DataSection />
         <p className="text-xs leading-relaxed text-muted">{t.admin.credits}</p>
       </div>

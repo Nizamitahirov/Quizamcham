@@ -11,7 +11,10 @@ import { limit } from './ratelimit.js'
 import { SUPER } from './rules.js'
 import { commit, loadDoc, pool } from './store.js'
 import { ts, type Doc, type J } from './values.js'
-import { sendMail } from './mailer.js'
+import { mailConfig, resetMailConfigCache, sendMail, smtp } from './mailer.js'
+import { promises as dns } from 'node:dns'
+import { readFile } from 'node:fs/promises'
+import net from 'node:net'
 import { campaignEmail, pickLang, welcomeEmail, type CampaignContent, type Lang } from './emails.js'
 
 const BYPASS = { auth: null, bypass: true }
@@ -251,6 +254,25 @@ export function mailRoutes(app: FastifyInstance) {
     return { items: r.rows.map(({ id, data: d }) => ({ id, subject: d.subject, kind: d.kind, lang: d.lang, total: d.total, sent: d.sent, failed: d.failed, status: d.status, errors: d.errors ?? [], createdAt: millis(d.createdAt) })) }
   })
 
+  // ---- göndərmə provayderi (super admin: Ayarlar) ----
+  app.get('/api/mail/config', async (req) => {
+    await requireSuper(req)
+    return { ...(await mailConfig()), brevoConfigured: !!process.env.BREVO_API_KEY }
+  })
+  app.post<{ Body: { provider?: string; fallback?: boolean } }>('/api/mail/config', { preHandler: limit('mail-cfg', 30, 600_000) }, async (req) => {
+    const auth = await requireSuper(req)
+    const provider = req.body?.provider === 'smtp' ? 'smtp' : 'brevo'
+    const fallback = req.body?.fallback !== false
+    await commit(BYPASS, [{ op: 'set', path: 'mailConfig/main', data: { provider, fallback, updatedAt: ts(Date.now()), updatedBy: auth.uid } }])
+    resetMailConfigCache()
+    return { provider, fallback, brevoConfigured: !!process.env.BREVO_API_KEY }
+  })
+  // Öz mail serverinin hazırlıq yoxlaması: SMTP, DKIM, SPF, PTR, 25-ci port
+  app.get('/api/mail/diagnostics', { preHandler: limit('mail-diag', 30, 600_000) }, async (req) => {
+    await requireSuper(req)
+    return diagnostics()
+  })
+
   // ---- abunəlikdən çıxma ----
   app.get<{ Querystring: { t?: string } }>('/api/mail/unsubscribe', async (req, reply) => {
     const uid = verifyUnsub(String(req.query.t ?? ''))
@@ -271,4 +293,52 @@ export function mailRoutes(app: FastifyInstance) {
     if (form?.get('List-Unsubscribe') === 'One-Click') return { ok: true }
     return page(reply, lang, `<h1>✓ ${T.title}</h1><p>${T.done}</p><a class="b" href="${esc(base() || '/')}">${T.back}</a>`)
   })
+}
+
+// ---------- öz mail serverinin diaqnostikası ----------
+export interface Check { id: 'smtp' | 'port25' | 'aRecord' | 'ptr' | 'spf' | 'dkim' | 'dmarc'; ok: boolean; value?: string; expected?: { type: string; name: string; value: string } }
+const DOMAIN = () => (process.env.MAIL_FROM ?? 'noreply@jabr.az').split('@')[1] ?? 'jabr.az'
+const HOST = () => process.env.MAIL_HOSTNAME ?? `mail.${DOMAIN()}`
+const SELECTOR = () => process.env.DKIM_SELECTOR ?? 'jabr'
+const txt = async (name: string) => (await dns.resolveTxt(name).catch(() => [] as string[][])).map((r) => r.join(''))
+
+function port25(): Promise<{ ok: boolean; value: string }> {
+  return new Promise((resolve) => {
+    const s = net.connect({ host: 'gmail-smtp-in.l.google.com', port: 25 })
+    const done = (ok: boolean, value: string) => { s.destroy(); resolve({ ok, value }) }
+    s.setTimeout(8000, () => done(false, 'timeout'))
+    s.once('data', (b) => done(b.toString().startsWith('220'), b.toString().slice(0, 60).trim()))
+    s.once('error', (e) => done(false, e.message))
+  })
+}
+
+export async function diagnostics() {
+  const ip = process.env.SERVER_IP ?? ''
+  const domain = DOMAIN(), host = HOST(), sel = SELECTOR()
+  const checks: Check[] = []
+  // 1) Postfix konteyneri cavab verir?
+  checks.push(await smtp().verify().then(() => ({ id: 'smtp' as const, ok: true, value: `${process.env.SMTP_HOST ?? 'mail'}:${process.env.SMTP_PORT ?? 587}` }), (e: Error) => ({ id: 'smtp' as const, ok: false, value: e.message.slice(0, 120) })))
+  // 2) Çıxan 25-ci port (Contabo bəzən bağlayır)
+  checks.push({ id: 'port25', ...(await port25()) })
+  // 3) mail.<domen> A qeydi → server IP
+  const a = await dns.resolve4(host).catch(() => [] as string[])
+  checks.push({ id: 'aRecord', ok: !!ip && a.includes(ip), value: a.join(', ') || '—', expected: { type: 'A', name: host, value: ip || '<server IP>' } })
+  // 4) PTR (rDNS) — Contabo panelində təyin olunur
+  const ptr = ip ? await dns.reverse(ip).catch(() => [] as string[]) : []
+  checks.push({ id: 'ptr', ok: ptr.some((p) => p.replace(/\.$/, '').toLowerCase() === host), value: ptr.join(', ') || '—', expected: { type: 'PTR', name: ip || '<server IP>', value: host } })
+  // 5) SPF: server IP icazəlidir?
+  const spf = (await txt(domain)).find((r) => r.toLowerCase().startsWith('v=spf1')) ?? ''
+  const spfOk = !!ip && spf.includes(`ip4:${ip}`)
+  const spfWant = spf ? (spfOk ? spf : spf.replace(/^v=spf1/i, `v=spf1 ip4:${ip || '<server IP>'}`)) : `v=spf1 ip4:${ip || '<server IP>'} include:spf.brevo.com include:_spf.mx.cloudflare.net ~all`
+  checks.push({ id: 'spf', ok: spfOk, value: spf || '—', expected: { type: 'TXT', name: domain, value: spfWant } })
+  // 6) DKIM: konteynerin yaratdığı açar DNS-də dərc olunub?
+  const raw = await readFile(`${process.env.DKIM_DIR ?? '/dkim'}/${domain}.${sel}.txt`, 'utf8').catch(() => '')
+  const p = (raw.match(/"([^"]*)"/g) ?? []).map((x) => x.slice(1, -1)).join('').replace(/\s+/g, ' ').trim()
+  const pub = (await txt(`${sel}._domainkey.${domain}`)).join('')
+  const key = (v: string) => (v.match(/p=([A-Za-z0-9+/=]+)/) ?? [])[1] ?? ''
+  checks.push({ id: 'dkim', ok: !!key(p) && key(pub) === key(p), value: pub ? `${pub.slice(0, 40)}…` : '—', expected: { type: 'TXT', name: `${sel}._domainkey.${domain}`, value: p || '(açar hələ yaradılmayıb — mail konteyneri işə düşəndə yaranır)' } })
+  // 7) DMARC
+  const dmarc = (await txt(`_dmarc.${domain}`)).find((r) => r.toLowerCase().startsWith('v=dmarc1')) ?? ''
+  checks.push({ id: 'dmarc', ok: !!dmarc, value: dmarc || '—', expected: { type: 'TXT', name: `_dmarc.${domain}`, value: dmarc || `v=DMARC1; p=none; rua=mailto:office@${domain}` } })
+  return { ip, host, domain, checks, ready: checks.every((c) => c.ok) }
 }

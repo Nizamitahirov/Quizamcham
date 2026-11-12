@@ -26,7 +26,13 @@ async function call<T>(path: string, body?: unknown): Promise<T> {
 export const aiQuota = () => call<AiQuota>('/api/ai/quota')
 /** Super admin: e-poçt göndərməni yoxlamaq (öz ünvanına test məktubu). */
 const uiLang = () => { try { return localStorage.getItem('qz.lang') ?? 'az' } catch { return 'az' } }
-export const mailTest = () => call<{ sent: boolean; status: number; error?: string; to: string }>('/api/mail/test', { lang: uiLang() })
+export const mailTest = (provider?: MailProvider) => call<{ sent: boolean; status: number; error?: string; to: string; provider?: MailProvider; fellBack?: boolean }>('/api/mail/test', { lang: uiLang(), provider })
+export type MailProvider = 'brevo' | 'smtp'
+export interface MailCfg { provider: MailProvider; fallback: boolean; brevoConfigured: boolean }
+export interface MailCheck { id: 'smtp' | 'port25' | 'aRecord' | 'ptr' | 'spf' | 'dkim' | 'dmarc'; ok: boolean; value?: string; expected?: { type: string; name: string; value: string } }
+export const mailCfg = () => call<MailCfg>('/api/mail/config')
+export const setMailCfg = (c: { provider: MailProvider; fallback: boolean }) => call<MailCfg>('/api/mail/config', c)
+export const mailDiag = () => call<{ ip: string; host: string; domain: string; checks: MailCheck[]; ready: boolean }>('/api/mail/diagnostics')
 /** Qeydiyyat bitəndə xoş gəldin məktubu (server hər istifadəçiyə bir dəfə göndərir). */
 export const mailWelcome = () => call<{ sent: boolean }>('/api/mail/welcome', { lang: uiLang() })
 

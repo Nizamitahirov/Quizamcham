@@ -65,7 +65,7 @@ jobs:
           # əsas domen (SITE_HOST) + həmişə işləyən ehtiyat ünvan <ip>.sslip.io — domenin DNS-i hələ hazır deyilsə sayt yenə açılır
           fallback="${SSH_HOST//./-}.sslip.io"
           host="${SITE_HOST:+$SITE_HOST, }$fallback"
-          ssh "$SSH_USER@$SSH_HOST" "SITE_HOST='$host' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' bash /opt/jabr/deploy/up.sh"
+          ssh "$SSH_USER@$SSH_HOST" "SITE_HOST='$host' GOOGLE_CLIENT_ID='$GOOGLE_CLIENT_ID' SERVER_IP='$SSH_HOST' bash /opt/jabr/deploy/up.sh"
       - name: HTTPS ünvanlarını xaricdən yoxla
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
