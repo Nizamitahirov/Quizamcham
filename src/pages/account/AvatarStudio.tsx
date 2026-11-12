@@ -1,7 +1,8 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Canvas, useThree } from '@react-three/fiber'
-import { ContactShadows, OrbitControls } from '@react-three/drei'
+import { ContactShadows, Environment, Lightformer, OrbitControls } from '@react-three/drei'
+import { Bloom, EffectComposer, N8AO, SMAA, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { Check, Dices, Footprints, Glasses, Loader2, Palette, RotateCcw, Save, Shirt, Smile, Sparkles, UserRound, Crown, Scissors, Move3d } from 'lucide-react'
 import { t } from '../../i18n/az'
@@ -42,17 +43,39 @@ const Capturer = forwardRef<CaptureApi>(function Capturer(_, ref) {
   return null
 })
 
-function Stage({ cfg, capRef }: { cfg: AvatarConfig; capRef: React.RefObject<CaptureApi | null> }) {
+/** Studiya: üç nöqtəli işıq, prosedur mühit xəritəsi (şəbəkəsiz), yumşaq kölgələr, AO + bloom + SMAA. */
+function Stage({ cfg, capRef, hq }: { cfg: AvatarConfig; capRef: React.RefObject<CaptureApi | null>; hq: boolean }) {
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.4, 6.6], fov: 30 }} gl={{ preserveDrawingBuffer: true, alpha: true, antialias: true }} aria-label={V.title}>
-      <hemisphereLight args={['#FFFFFF', '#3B3F66', 0.9]} />
-      <directionalLight position={[3, 5, 4]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} />
-      <directionalLight position={[-4, 3, -3]} intensity={0.7} color="#FF9A5C" />
-      <pointLight position={[0, 2.4, 2.5]} intensity={0.6} />
-      <Suspense fallback={null}><Character cfg={cfg} /></Suspense>
-      <ContactShadows position={[0, 0, 0]} opacity={0.45} scale={4} blur={2.4} far={2} />
-      <OrbitControls target={[0, 1.25, 0]} enablePan={false} minDistance={3.4} maxDistance={8} minPolarAngle={0.9} maxPolarAngle={1.75} enableDamping />
+    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.4, 6.6], fov: 30 }} gl={{ preserveDrawingBuffer: true, alpha: true, antialias: !hq, powerPreference: 'high-performance' }} aria-label={V.title}>
+      {/* əsas (isti), doldurucu (soyuq), arxa kontur işıqları */}
+      <hemisphereLight args={['#FFFFFF', '#2B2F55', 0.45]} />
+      <directionalLight position={[2.6, 4.6, 3.6]} intensity={2.1} color="#FFF4E6" castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-radius={6}
+        shadow-camera-left={-2} shadow-camera-right={2} shadow-camera-top={3} shadow-camera-bottom={-0.5} />
+      <directionalLight position={[-3.5, 2.2, 2.2]} intensity={0.55} color="#9DB4FF" />
+      <directionalLight position={[-1.5, 3.2, -4]} intensity={1.6} color="#FF8A3D" />
+      <directionalLight position={[2, 2.4, -3.5]} intensity={0.9} color="#7C9CFF" />
+      {/* prosedur HDR mühit — metal və parıltılar üçün əks; xarici fayl yüklənmir */}
+      <Environment resolution={256} frames={1}>
+        <Lightformer form="rect" intensity={2.2} color="#FFF1E0" position={[2.5, 3, 3]} scale={[4, 2, 1]} target={[0, 1.2, 0]} />
+        <Lightformer form="rect" intensity={1.1} color="#AFC3FF" position={[-3, 2, 2]} scale={[3, 2, 1]} target={[0, 1.2, 0]} />
+        <Lightformer form="ring" intensity={2.4} color="#FF7A1A" position={[0, 3, -4]} scale={2.5} target={[0, 1.2, 0]} />
+        <Lightformer form="rect" intensity={0.5} color="#FFFFFF" position={[0, -1, 0]} rotation-x={Math.PI / 2} scale={[6, 6, 1]} />
+      </Environment>
+      <Suspense fallback={null}><Character cfg={cfg} interactive /></Suspense>
+      {/* fırlanan pedestal */}
+      <mesh position={[0, -0.03, 0]} receiveShadow><cylinderGeometry args={[0.95, 1.02, 0.06, 64]} /><meshPhysicalMaterial color="#141733" roughness={0.35} metalness={0.4} clearcoat={0.6} clearcoatRoughness={0.2} /></mesh>
+      <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.93, 0.96, 96]} /><meshBasicMaterial color="#FF7A1A" toneMapped={false} /></mesh>
+      <ContactShadows position={[0, 0.004, 0]} opacity={0.55} scale={3} blur={2.2} far={1.6} resolution={512} />
+      <OrbitControls target={[0, 1.25, 0]} enablePan={false} minDistance={3.2} maxDistance={8} minPolarAngle={0.9} maxPolarAngle={1.75} enableDamping />
       <Capturer ref={capRef} />
+      {hq && (
+        <EffectComposer multisampling={0} enableNormalPass={false}>
+          <N8AO aoRadius={0.35} intensity={2.2} distanceFalloff={0.6} quality="medium" halfRes />
+          <Bloom luminanceThreshold={0.95} luminanceSmoothing={0.2} intensity={0.35} mipmapBlur />
+          <SMAA />
+          <Vignette offset={0.25} darkness={0.45} />
+        </EffectComposer>
+      )}
     </Canvas>
   )
 }
@@ -98,6 +121,13 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 export default function AvatarStudio() {
   const { loading, user } = useAccount()
   const [cfg, setCfg] = useState<AvatarConfig>(DEFAULT_AVATAR)
+  // yüksək keyfiyyət (AO, bloom, SMAA) — güclü cihazlarda; zəif telefonlarda sürət üçün söndürülür
+  const [hq] = useState(() => { try { return !matchMedia('(max-width: 640px)').matches && (navigator.hardwareConcurrency ?? 4) >= 4 && !new URLSearchParams(location.search).has('lq') } catch { return false } })
+  // inkişaf rejimi: avtomatlaşdırılmış vizual yoxlama üçün konfiqurasiyanı xaricdən təyin etmək
+  useEffect(() => {
+    if (!import.meta.env.DEV) return
+    ;(window as unknown as { __setAvatar?: (c: Partial<AvatarConfig>) => void }).__setAvatar = (c) => setCfg((x) => ({ ...x, ...c }))
+  }, [])
   const [saved, setSaved] = useState<string>(JSON.stringify(DEFAULT_AVATAR))
   const [ready, setReady] = useState(false)
   const [cat, setCat] = useState<Cat>('body')
@@ -194,7 +224,7 @@ export default function AvatarStudio() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_440px]">
         <section className="relative overflow-hidden rounded-[var(--radius)] border border-line lg:sticky lg:top-20 lg:h-[calc(100dvh-7rem)]" style={{ background: `radial-gradient(120% 90% at 50% 0%, ${bg[0]}, ${bg[1]} 55%, #0B0C19 120%)` }}>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent" />
-          <div className="h-[56dvh] min-h-80 lg:h-full">{ready ? <Stage cfg={cfg} capRef={capRef} /> : <div className="flex h-full items-center justify-center"><Spinner /></div>}</div>
+          <div className="h-[56dvh] min-h-80 lg:h-full">{ready ? <Stage cfg={cfg} capRef={capRef} hq={hq} /> : <div className="flex h-full items-center justify-center"><Spinner /></div>}</div>
           <div className="absolute left-3 top-3 flex flex-wrap gap-2">
             <button className="btn btn-sm border-white/15 bg-black/35 text-[#fff] backdrop-blur hover:bg-black/50" onClick={() => setCfg(randomAvatar())}><Dices />{V.random}</button>
             <button className="btn btn-sm border-white/15 bg-black/35 text-[#fff] backdrop-blur hover:bg-black/50" onClick={() => setCfg(DEFAULT_AVATAR)}><RotateCcw />{V.reset}</button>
