@@ -134,7 +134,7 @@ export function testEmail(lang: Lang, base: string) {
 }
 
 // ---------- Xoş gəldin (qeydiyyatdan dərhal sonra) ----------
-export function welcomeEmail(lang: Lang, o: { name: string; student: boolean; trialEnds?: Date | null }, base: string) {
+export function welcomeEmail(lang: Lang, o: { name: string; student: boolean; trialEnds?: Date | null; trial?: boolean }, base: string) {
   const site = base || 'https://jabr.az'
   const date = o.trialEnds ? o.trialEnds.toLocaleDateString(lang === 'az' ? 'az-AZ' : lang === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Baku' }) : ''
   const hi = { az: o.name ? `Xoş gəldiniz, ${o.name}!` : 'Xoş gəldiniz!', ru: o.name ? `Добро пожаловать, ${o.name}!` : 'Добро пожаловать!', en: o.name ? `Welcome, ${o.name}!` : 'Welcome!' }[lang]
@@ -160,7 +160,10 @@ export function welcomeEmail(lang: Lang, o: { name: string; student: boolean; tr
       f: [['⚡', 'AI quiz builder', 'Type a topic or upload a PDF/PPTX — questions are ready in seconds.'], ['📡', 'Live games and a permanent QR', 'Players join by PIN or QR and results update in real time.'], ['📊', 'Analytics and reports', 'See what was missed question by question and export to Excel.']],
       cta: 'Create my first quiz', facts: [{ label: 'Plan', value: 'Pro · trial' }, ...(date ? [{ label: 'Trial ends', value: date }] : [])], note: 'Questions? Just reply to this email — our team is happy to help.' },
   }[lang]
-  return { subject: T.subject, ...renderEmail({ lang, preheader: T.pre, title: hi, intro: T.intro, features: T.f.map(([emoji, title, text]) => ({ emoji, title, text })), facts: T.facts, cta: { label: T.cta, url: `${site}/admin/quizzes` }, note: T.note, footer: SIGN[lang] }, base) }
+  // komanda/müəssisə hesabları üçün sınaq haqqında danışılmır
+  const trial = o.trial !== false
+  const plain = { az: ['Jabr-a xoş gəldiniz 🚀', 'Profiliniz hazırdır — Jabr-da işə başlaya bilərsiniz.'], ru: ['Добро пожаловать в Jabr 🚀', 'Ваш профиль готов — можно начинать работу в Jabr.'], en: ['Welcome to Jabr 🚀', 'Your profile is ready — you can start using Jabr.'] }[lang]
+  return { subject: trial ? T.subject : plain[0], ...renderEmail({ lang, preheader: T.pre, title: hi, intro: trial ? T.intro : [plain[1], T.intro[1]], features: T.f.map(([emoji, title, text]) => ({ emoji, title, text })), facts: trial ? T.facts : undefined, cta: { label: T.cta, url: `${site}/admin/quizzes` }, note: T.note, footer: SIGN[lang] }, base) }
 }
 
 // ---------- Marketinq kampaniyası ----------

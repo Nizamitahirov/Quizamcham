@@ -195,12 +195,13 @@ export function mailRoutes(app: FastifyInstance) {
     await commit(BYPASS, [{ op: 'set', path: `mailFlags/${auth.uid}`, data: { welcome: ts(Date.now()) }, merge: true }])
     const student = u.type === 'student'
     let trialEnds: Date | null = null
+    let trial = false
     if (!student) {
       const a = await loadDoc(`admins/${auth.uid}`)
-      const end = millis(a?.trialEndsAt) || (millis(a?.createdAt) || Date.now()) + 3 * 86_400_000
-      trialEnds = new Date(end)
+      trial = a?.source === 'signup' && !millis(a.licenseUntil)
+      if (trial) trialEnds = new Date(millis(a?.trialEndsAt) || (millis(a?.createdAt) || Date.now()) + 3 * 86_400_000)
     }
-    const m = welcomeEmail(pickLang(req.body?.lang ?? u.lang), { name: String(u.firstName ?? '').trim(), student, trialEnds }, base())
+    const m = welcomeEmail(pickLang(req.body?.lang ?? u.lang), { name: String(u.firstName ?? '').trim(), student, trialEnds, trial }, base())
     const res = await sendMail(to, m.subject, m.text, m.html, { tags: ['welcome'] })
     return { sent: res.sent }
   })
