@@ -62,7 +62,7 @@ export default function Start() {
   return (
     <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-white">
       <FuturisticBg floor={false} intensity={0.8} />
-      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between px-4 pt-5 sm:px-8">
+      <header className="relative z-30 mx-auto flex w-full max-w-6xl items-center justify-between px-4 pt-5 sm:px-8">
         <Link to="/" aria-label={t.app.home}><Logo size={34} /></Link>
         <LangSwitch />
       </header>

@@ -763,3 +763,22 @@ describe('PIN sahibliyi (təhlükəsizlik auditi)', () => {
     await assertSucceeds(deleteDoc(doc(as(TRAINER), 'pins', '123456')))
   })
 })
+
+describe('3D avatar', () => {
+  const stu = (u: string) => env.authenticatedContext(u, { email: `${u}@gmail.com`, firebase: { sign_in_provider: 'google.com' } }).firestore()
+  const anon = () => env.authenticatedContext(P1, { firebase: { sign_in_provider: 'anonymous' } }).firestore()
+  const av = (extra = {}) => ({ config: { v: 1, hair: 'short' }, thumb: 'data:image/webp;base64,UklGRg==', updatedAt: serverTimestamp(), ...extra })
+  it('sahibi saxlayır; başqası, anonim, saxta şəkil və artıq sahə olmur; daxil olmuş hər kəs baxır, siyahı yox', async () => {
+    await assertSucceeds(setDoc(doc(stu('avA'), 'avatars', 'avA'), av()))
+    await assertFails(setDoc(doc(stu('avB'), 'avatars', 'avA'), av()))
+    await assertFails(setDoc(doc(anon(), 'avatars', P1), av()))
+    await assertFails(setDoc(doc(stu('avA'), 'avatars', 'avA'), av({ thumb: 'javascript:alert(1)' })))
+    await assertFails(setDoc(doc(stu('avA'), 'avatars', 'avA'), av({ thumb: 'data:image/svg+xml;base64,PHN2Zz4=' })))
+    await assertFails(setDoc(doc(stu('avA'), 'avatars', 'avA'), av({ extra: 1 })))
+    await assertFails(setDoc(doc(stu('avA'), 'avatars', 'avA'), av({ thumb: 'data:image/webp;base64,' + 'A'.repeat(130000) })))
+    await assertSucceeds(getDoc(doc(anon(), 'avatars', 'avA')))
+    await assertFails(getDocs(collection(stu('avB'), 'avatars')))
+    await assertFails(deleteDoc(doc(stu('avB'), 'avatars', 'avA')))
+    await assertSucceeds(deleteDoc(doc(stu('avA'), 'avatars', 'avA')))
+  })
+})

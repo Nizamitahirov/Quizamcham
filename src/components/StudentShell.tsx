@@ -1,35 +1,43 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, LogOut, UserRound } from 'lucide-react'
+import { ArrowLeft, BookOpen, LayoutDashboard, Sparkles, UserRound } from 'lucide-react'
 import { t } from '../i18n/az'
-import { logout } from '../firebase/auth'
 import { useAccount } from '../lib/account'
 import { Logo } from './Brand'
 import { LangSwitch } from './LangSwitch'
+import { AccountMenu, type MenuLink } from './AccountMenu'
+
+/** Daxil olmuş istifadəçi üçün hesab menyusunun keçidləri. */
+export function useAccountLinks(): MenuLink[] {
+  const { profile } = useAccount()
+  return [
+    { to: '/learn', label: t.menu.learn, icon: BookOpen },
+    ...(profile && profile.type !== 'student' ? [{ to: '/admin', label: t.menu.panel, icon: LayoutDashboard }] : []),
+    { to: '/avatar', label: t.menu.avatar, icon: Sparkles, hint: '3D' },
+    { to: '/account', label: t.acct.myAccount, icon: UserRound },
+  ]
+}
 
 /** Tələbə səhifələri üçün vahid çərçivə: yapışqan başlıq + fon (təlimçi panelindəki ilə eyni üslub). */
 export function StudentShell({ children, back, title, width = 'max-w-6xl', actions }: { children: ReactNode; back?: string; title?: ReactNode; width?: string; actions?: ReactNode }) {
   const { user, profile } = useAccount()
   const nav = useNavigate()
-  const A = t.acct
+  const links = useAccountLinks()
+  const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : user?.displayName || user?.email?.split('@')[0] || ''
   return (
     <div className="bg-app min-h-dvh">
       <header className="sticky top-0 z-30 border-b border-line bg-[#0B0C19]/80 backdrop-blur-xl">
         <div className={`mx-auto flex w-full ${width} items-center gap-3 px-4 py-2.5 sm:px-6`}>
-          {back && <Link to={back} className="btn btn-ghost-dark btn-icon btn-sm" aria-label={t.app.back}><ArrowLeft /></Link>}
+          {back && (back === '-1'
+            ? <button onClick={() => (history.length > 1 ? nav(-1) : nav('/learn'))} className="btn btn-ghost-dark btn-icon btn-sm" aria-label={t.app.back}><ArrowLeft /></button>
+            : <Link to={back} className="btn btn-ghost-dark btn-icon btn-sm" aria-label={t.app.back}><ArrowLeft /></Link>)}
           <Link to="/learn" aria-label={t.app.home} className="shrink-0"><Logo size={26} /></Link>
           {title && <span className="hidden min-w-0 truncate border-l border-line pl-3 text-sm font-medium text-fg2 sm:block">{title}</span>}
-          <div className="ml-auto flex items-center gap-1.5">
+          <div className="ml-auto flex items-center gap-2">
             {actions}
-            <LangSwitch className="hidden sm:inline-flex" />
-            {user && (
-              <Link to="/account" className="flex items-center gap-2 rounded-full border border-line bg-white/[.04] py-1 pl-1 pr-1 text-sm font-medium transition hover:border-line-strong sm:pr-3" title={A.myAccount} aria-label={A.myAccount}>
-                {user.photoURL ? <img src={user.photoURL} alt="" className="h-7 w-7 rounded-full" referrerPolicy="no-referrer" />
-                  : <span className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: 'var(--grad)' }}>{profile?.firstName?.[0] ?? <UserRound className="h-3.5 w-3.5" />}</span>}
-                <span className="hidden sm:inline">{profile?.firstName}</span>
-              </Link>
-            )}
-            {user && <button className="btn btn-ghost-dark btn-icon btn-sm" aria-label={A.signOut} title={A.signOut} onClick={() => void logout().then(() => nav('/'))}><LogOut /></button>}
+            {user && !user.isAnonymous
+              ? <AccountMenu uid={user.uid} name={name || '—'} email={user.email} photo={user.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} />
+              : <LangSwitch />}
           </div>
         </div>
       </header>

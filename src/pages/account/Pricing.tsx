@@ -37,7 +37,7 @@ export default function Pricing() {
   return (
     <div className="noise relative min-h-dvh overflow-hidden bg-night text-white">
       <FuturisticBg floor={false} intensity={0.6} />
-      <header className="relative z-10 mx-auto flex w-full max-w-7xl items-center justify-between px-4 pt-5 sm:px-8">
+      <header className="relative z-30 mx-auto flex w-full max-w-7xl items-center justify-between px-4 pt-5 sm:px-8">
         <Link to="/" aria-label={t.app.home}><Logo size={32} /></Link>
         <div className="flex items-center gap-2">
           <LangSwitch />

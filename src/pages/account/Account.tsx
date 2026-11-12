@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
-import { ArrowLeft, Briefcase, Check, Download, FileText, Rocket, Save, ShieldCheck, Trash2, UserRound } from 'lucide-react'
+import { Sparkles, Briefcase, Check, Download, FileText, Rocket, Save, ShieldCheck, Trash2, UserRound } from 'lucide-react'
 import { db } from '../../firebase/config'
 import { deleteMyAccount, exportMyData, setMarketing, updateMyProfile, upgradeToTrainer, useAccount, type UserProfile } from '../../lib/account'
 import { planInfo, type PlanInfo } from '../../lib/roles'
@@ -9,9 +9,8 @@ import { download } from '../../lib/csv'
 import { fmtDate, fmtDateTime } from '../../lib/format'
 import { LEGAL_VERSION } from '../../content/legal'
 import { t } from '../../i18n/az'
-import { FuturisticBg } from '../../components/FuturisticBg'
-import { Logo } from '../../components/Brand'
-import { LangSwitch } from '../../components/LangSwitch'
+import { StudentShell } from '../../components/StudentShell'
+import { UserAvatar } from '../../components/AccountMenu'
 import { Spinner } from '../../components/ui'
 import { LegalLink, LegalModal } from '../../components/LegalModal'
 import type { LegalId } from '../../content/legal'
@@ -76,16 +75,11 @@ export default function Account() {
   const ts = (x?: { toDate(): Date }) => (x ? fmtDateTime(x.toDate()) : '—')
 
   return (
-    <div className="noise relative min-h-dvh overflow-hidden bg-night text-white">
-      <FuturisticBg floor={false} intensity={0.45} />
-      <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 pt-5 sm:px-8">
-        <div className="flex items-center gap-3"><Link to={back} className="btn btn-ghost btn-icon" aria-label={t.app.back}><ArrowLeft className="h-4 w-4" /></Link><Logo size={30} /></div>
-        <LangSwitch />
-      </header>
-      <main className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-8 sm:px-8">
-        <div className="flex items-center gap-4">
-          {user.photoURL ? <img src={user.photoURL} alt="" className="h-14 w-14 rounded-2xl" referrerPolicy="no-referrer" /> : <span className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-black" style={{ background: 'var(--grad)' }}>{profile.firstName[0]}</span>}
-          <div><h1 className="text-3xl font-black">{A.myAccount}</h1><p className="text-sm text-white/60">{user.email} · {A.types[profile.type]?.title}</p></div>
+    <StudentShell back={back} title={A.myAccount}>
+        <div className="-mb-3 flex flex-wrap items-center gap-4">
+          <UserAvatar uid={user.uid} name={`${profile.firstName} ${profile.lastName}`} photo={user.photoURL} size={64} ring />
+          <div className="mr-auto"><h1 className="text-3xl font-extrabold">{A.myAccount}</h1><p className="text-sm text-muted">{user.email} · {A.types[profile.type]?.title}</p></div>
+          <Link to="/avatar" className="btn btn-secondary btn-sm"><Sparkles />{t.menu.avatar}</Link>
         </div>
         {(msg || err) && <p className={`rounded-xl px-4 py-3 text-sm font-semibold ${err ? 'bg-red-500/15 text-red-200' : 'bg-green-500/15 text-green-200'}`} role="status">{err || msg}</p>}
 
@@ -182,8 +176,7 @@ export default function Account() {
             </div>
           </section>
         </div>
-      </main>
       <LegalModal ids={docIds ?? []} open={!!docIds} onClose={() => setDoc(null)} />
-    </div>
+    </StudentShell>
   )
 }

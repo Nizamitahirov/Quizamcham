@@ -324,6 +324,15 @@ async function evaluate(c: Ctx): Promise<boolean> {
       && (res === null || (await c.can('publish')) || f(res, 'publishedBy') === c.uid)
       && safe()
   }
+  if (col === 'avatars' && path.length === 2) {
+    if (op === 'get') return c.signedIn()
+    if (op === 'list') return false
+    if (!c.registered() || c.uid !== id) return false
+    if (op === 'delete') return true
+    const d = nd(), cfg = f(d, 'config'), th = f(d, 'thumb')
+    return keysOnly(d, ['config', 'thumb', 'updatedAt']) && isMap(cfg) && Object.keys(cfg as object).length <= 40
+      && isStr(th) && th.length <= 120000 && /^data:image\/(webp|png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(th) && isReq(f(d, 'updatedAt'), now)
+  }
   if (col === 'ratings' && path.length === 2) {
     if (read) return c.registered() && (await ok(() => f(rd(), 'uid') === c.uid))
     if (op === 'delete') return false

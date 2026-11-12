@@ -409,6 +409,12 @@ export async function deleteMyAccount(user: User, onStep?: (s: string) => void) 
   onStep?.('history')
   for (const c of ['attempts', 'plays', 'licenseRequests']) for (const d of await mine(c, uid)) await deleteDoc(d.ref).catch(() => {})
   await deleteDoc(doc(db, 'profiles', uid)).catch(() => {})
+  await deleteDoc(doc(db, 'avatars', uid)).catch(() => {})
+  // siniflərdən çıxış (müəllimin siyahısında qalmasın)
+  for (const m of await mine('memberships', uid)) {
+    await deleteDoc(doc(db, 'classes', String(m.get('classId')), 'members', uid)).catch(() => {})
+    await deleteDoc(m.ref).catch(() => {})
+  }
   await deleteDoc(doc(db, 'settings', `play_${uid}`)).catch(() => {})
   await deleteDoc(doc(db, 'admins', uid)).catch(() => {})
   await deleteDoc(doc(db, 'users', uid))

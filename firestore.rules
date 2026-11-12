@@ -279,6 +279,18 @@ service cloud.firestore {
       allow delete: if can('publish') || can('console') || (isAdmin() && resource.data.publishedBy == request.auth.uid);
     }
 
+    // ---------- 3D avatar: sahibi yazır, istənilən daxil olmuş istifadəçi baxa bilər (siyahı yoxdur) ----------
+    match /avatars/{uid} {
+      allow get: if signedIn();
+      allow create, update: if registered() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['config', 'thumb', 'updatedAt'])
+        && request.resource.data.config is map && request.resource.data.config.size() <= 40
+        && request.resource.data.thumb is string && request.resource.data.thumb.size() <= 120000
+        && request.resource.data.thumb.matches('^data:image/(webp|png|jpeg);base64,[A-Za-z0-9+/=]+$')
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if registered() && request.auth.uid == uid;
+    }
+
     // ---------- Kataloq reytinqi: tələbə 1–5 ulduz verir (bir quizə bir sənəd, dəyişə bilər); orta göstərici server tərəfindən ----------
     match /ratings/{id} {
       allow read: if registered() && resource.data.uid == request.auth.uid;

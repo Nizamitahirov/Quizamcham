@@ -144,7 +144,7 @@ export default function Join() {
   return (
     <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night">
       <FuturisticBg floor={false} intensity={0.8} />
-      <header className="relative z-10 mx-auto flex w-full max-w-md items-center justify-between px-4 pt-5">
+      <header className="relative z-30 mx-auto flex w-full max-w-md items-center justify-between px-4 pt-5">
         <Link to="/" aria-label={t.app.home}><Logo size={34} /></Link>
         <LangSwitch />
       </header>

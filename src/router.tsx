@@ -22,6 +22,7 @@ const Dashboard = lazy(() => import('./pages/admin/Dashboard'))
 const Profile = lazy(() => import('./pages/admin/Profile'))
 const Sounds = lazy(() => import('./pages/admin/Sounds'))
 const QuizEditor = lazy(() => import('./pages/admin/QuizEditor'))
+const AvatarStudio = lazy(() => import('./pages/account/AvatarStudio'))
 const Games = lazy(() => import('./pages/admin/Games'))
 const GameReport = lazy(() => import('./pages/admin/GameReport'))
 const Settings = lazy(() => import('./pages/admin/Settings'))
@@ -65,6 +66,7 @@ export const router = createBrowserRouter([
       { path: '/learn/course/:courseId', element: S(<CoursePage />) },
       { path: '/pricing', element: S(<Pricing />) },
       { path: '/account', element: S(<Account />) },
+      { path: '/avatar', element: S(<AvatarStudio />) },
       {
         path: '/admin',
         element: S(<AdminLayout />),
