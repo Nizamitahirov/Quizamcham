@@ -10,6 +10,7 @@ import { authFrom, authRoutes, bearer, migrateAuth, testHeader } from './auth.js
 import { realtimeRoutes, realtimeStats } from './realtime.js'
 import { limit } from './ratelimit.js'
 import { aiRoutes, migrateAi } from './ai.js'
+import { mailRoutes } from './campaigns.js'
 import { clearAll, commit, DbError, getDoc, migrate, pool, runQuery, type Query, type Write } from './store.js'
 
 const PORT = Number(process.env.PORT ?? 3000)
@@ -59,6 +60,7 @@ if (process.env.ALLOW_TEST_AUTH === '1') {
 
 authRoutes(app)
 aiRoutes(app)
+mailRoutes(app)
 await realtimeRoutes(app)
 
 const shutdown = async () => { await app.close(); await pool.end(); process.exit(0) }

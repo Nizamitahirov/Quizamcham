@@ -81,6 +81,8 @@ export async function completeOnboarding(user: User, p: Omit<UserProfile, 'email
     // təlimçi profili (oyunçulara görünən ad/vəzifə) avtomatik doldurulur
     await saveProfile(user.uid, { name, title: p.position ?? '', org: p.organization ?? '', email: user.email ?? '' }).catch(() => {})
   }
+  // xoş gəldin məktubu (fon rejimində; uğursuz olsa qeydiyyatı dayandırmır)
+  void import('./ai').then((m) => m.mailWelcome()).catch(() => {})
 }
 
 export type ConsentType = 'data' | 'terms' | 'marketing'

@@ -31,6 +31,7 @@ const Privacy = lazy(() => import('./pages/Privacy'))
 const Team = lazy(() => import('./pages/admin/Team'))
 const Logs = lazy(() => import('./pages/admin/Logs'))
 const Console = lazy(() => import('./pages/admin/Console'))
+const Campaigns = lazy(() => import('./pages/admin/Campaigns'))
 const OrgTeam = lazy(() => import('./pages/admin/OrgTeam'))
 const Start = lazy(() => import('./pages/account/Start'))
 const Onboarding = lazy(() => import('./pages/account/Onboarding'))
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
           { path: 'logs', element: S(<OwnerOnly perm="logs"><Logs /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'org', element: S(<OrgTeam />), errorElement: <RouteError /> },
           { path: 'console', element: S(<OwnerOnly perm="console"><Console /></OwnerOnly>), errorElement: <RouteError /> },
+          { path: 'campaigns', element: S(<Campaigns />), errorElement: <RouteError /> },
           { path: 'profile', element: S(<Profile />), errorElement: <RouteError /> },
           { path: 'sounds', element: S(<OwnerOnly><Sounds /></OwnerOnly>), errorElement: <RouteError /> },
           { path: 'team', element: S(<Team />), errorElement: <RouteError /> },

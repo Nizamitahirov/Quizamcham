@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { routeAfterLogin, signInWithGoogle, touchLogin } from '../../lib/account'
 import { GoogleIcon } from '../account/Start'
 import { motion } from 'framer-motion'
-import { Bot, CheckCircle2, Eye, EyeOff, Lock, LogIn, Mail, Radio, BarChart3 } from 'lucide-react'
+import { ArrowLeft, Bot, CheckCircle2, Eye, EyeOff, KeyRound, Lock, LogIn, Mail, MailCheck, Radio, BarChart3, Send } from 'lucide-react'
+import { sendPasswordResetEmail } from 'firebase/auth'
+import { auth } from '../../firebase/config'
 import { adminLogin, useAdmin } from '../../firebase/auth'
 import { t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
@@ -21,6 +23,8 @@ export default function Login() {
   const [show, setShow] = useState(false)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const [sp] = useSearchParams()
+  const [mode, setMode] = useState<'login' | 'forgot' | 'sent'>(sp.get('forgot') ? 'forgot' : 'login')
   if (admin.loading) return <div className="flex min-h-dvh items-center justify-center bg-app"><Spinner /></div>
   if (admin.isAdmin) return <Navigate to="/admin" replace />
   const google = async () => {
@@ -43,6 +47,49 @@ export default function Login() {
       setBusy(false)
     }
   }
+  const F = t.forgot
+  const forgot = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setErr(F.bad)
+    setBusy(true); setErr('')
+    try { await sendPasswordResetEmail(auth, email.trim()); setMode('sent') } catch (ex) {
+      setErr(String((ex as { code?: string }).code ?? '').includes('too-many') ? F.tooMany : t.app.error)
+    } finally { setBusy(false) }
+  }
+  const go = (m: typeof mode) => { setErr(''); setMode(m) }
+  const header = <div className="mb-8 flex items-center justify-between"><span className="lg:hidden"><Logo size={36} dark={false} /></span><LangSwitch dark={false} className="ml-auto" /></div>
+  const recover = mode === 'sent' ? (
+    <motion.div key="sent" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
+      {header}
+      <span className="icon-tile mb-5 h-14 w-14"><MailCheck className="h-6 w-6" /></span>
+      <h2 className="text-2xl font-bold tracking-tight">{F.sentTitle}</h2>
+      <p className="mt-2 text-sm leading-relaxed text-fg2">{F.sent(email.trim())}</p>
+      <div className="mt-6 space-y-3">
+        <button type="button" className="btn btn-primary w-full" onClick={() => go('login')}><ArrowLeft />{F.back}</button>
+        <button type="button" className="btn btn-ghost-dark w-full" onClick={() => go('forgot')}>{F.again}</button>
+      </div>
+    </motion.div>
+  ) : (
+    <motion.form key="forgot" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={forgot} className="w-full max-w-sm" noValidate>
+      {header}
+      <span className="icon-tile mb-5 h-14 w-14"><KeyRound className="h-6 w-6" /></span>
+      <h2 className="text-2xl font-bold tracking-tight">{F.title}</h2>
+      <p className="mt-1 text-sm text-muted">{F.sub}</p>
+      <div className="mt-6 space-y-4">
+        <div>
+          <label className="label" htmlFor="fem">{t.admin.email}</label>
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <input id="fem" className="input pl-9" type="email" autoComplete="username" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </div>
+        </div>
+        {err && <p className="rounded-xl bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300" role="alert">{err}</p>}
+        <button className="btn btn-primary w-full" disabled={busy}>{busy ? F.sending : <><Send />{F.send}</>}</button>
+        <button type="button" className="btn btn-ghost-dark w-full" onClick={() => go('login')}><ArrowLeft />{F.back}</button>
+        <p className="rounded-xl border border-line bg-white/[.03] px-3 py-2.5 text-xs leading-relaxed text-muted">{F.google}</p>
+      </div>
+    </motion.form>
+  )
   return (
     <div className="grid min-h-dvh bg-app lg:grid-cols-2">
       <div className="noise relative hidden flex-col justify-between overflow-hidden bg-night p-12 text-white lg:flex">
@@ -60,8 +107,8 @@ export default function Login() {
         <p className="relative text-xs text-white/40">© {new Date().getFullYear()} Jabr</p>
       </div>
       <div className="flex items-center justify-center px-4 py-10">
-        <motion.form initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="w-full max-w-sm">
-          <div className="mb-8 flex items-center justify-between"><span className="lg:hidden"><Logo size={36} dark={false} /></span><LangSwitch dark={false} className="ml-auto" /></div>
+        {mode !== 'login' ? recover : <motion.form initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} onSubmit={submit} className="w-full max-w-sm">
+          {header}
           <h2 className="text-2xl font-bold tracking-tight">{t.admin.login}</h2>
           <p className="mt-1 text-sm text-muted">{t.admin.loginSubtitle}</p>
           <div className="mt-6 space-y-4">
@@ -73,7 +120,7 @@ export default function Login() {
               </div>
             </div>
             <div>
-              <label className="label" htmlFor="pw">{t.admin.password}</label>
+              <div className="flex items-baseline justify-between gap-2"><label className="label" htmlFor="pw">{t.admin.password}</label><button type="button" onClick={() => go('forgot')} className="mb-1.5 text-xs font-semibold text-orange-300 hover:underline">{F.link}</button></div>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
                 <input id="pw" className="input px-9" type={show ? 'text' : 'password'} autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
@@ -89,7 +136,7 @@ export default function Login() {
             <p className="text-center text-sm text-muted">{t.admin.noAccount} <Link to="/start" className="font-bold text-red-300 hover:underline">{t.acct.signUp} · {t.acct.freeTrial}</Link></p>
           </div>
           <p className="mt-6 flex items-center gap-2 text-xs text-muted"><CheckCircle2 className="h-4 w-4 text-ok" />{t.admin.secureLogin}</p>
-        </motion.form>
+        </motion.form>}
       </div>
     </div>
   )

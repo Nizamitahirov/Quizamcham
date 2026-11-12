@@ -1,6 +1,6 @@
 import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Ban, Crown, Menu, BarChart3, BookOpen, Building2, Gauge, GraduationCap, Sparkles, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
+import { Ban, Crown, Megaphone, Menu, BarChart3, BookOpen, Building2, Gauge, GraduationCap, Sparkles, History, LayoutDashboard, ListChecks, LogOut, Music2, ScrollText, Settings, UserRound, Users } from 'lucide-react'
 import { ForcePasswordChange } from '../../components/ForcePasswordChange'
 import type { PermKey } from '../../lib/roles'
 import { useCallback, useEffect, useState } from 'react'
@@ -39,6 +39,7 @@ const MOBILE = ['/admin', '/admin/quizzes', '/admin/classes', '/admin/games']
 
 function useNav(admin: AdminState) {
   const extra: NavItem[] = [
+    ...(admin.role === 'super' ? [{ to: '/admin/campaigns', icon: Megaphone, label: t.camp.nav }] : []),
     ...(admin.org.role === 'owner' ? [{ to: '/admin/org', icon: Building2, label: t.acct.org.nav }] : []),
     ...(admin.plan.selfServe && admin.org.role !== 'member' ? [{ to: '/account', icon: UserRound, label: t.acct.myAccount }] : []),
   ]
