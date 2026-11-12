@@ -10,6 +10,7 @@ import { logAudit } from './audit'
 import type { Question } from '../types'
 import { LEGAL_VERSION } from '../content/legal'
 import { track } from '../firebase/extras'
+import { SUPER_UID } from './roles'
 import { moderateQuiz, type ModIssue } from '../../server/src/moderation'
 
 // ======================= Qeydiyyat =======================
@@ -63,17 +64,28 @@ export async function loadUserProfile(uid: string): Promise<UserProfile | null> 
 /** Qeydiyyatın sonu: profil + (təlimçi/müəssisə üçün) 3 günlük sınaqla təlimçi hesabı. */
 export async function completeOnboarding(user: User, p: Omit<UserProfile, 'email' | 'onboarded' | 'createdAt' | 'termsAt'>) {
   const clean = JSON.parse(JSON.stringify(p)) as Record<string, unknown>
-  await setDoc(doc(db, 'users', user.uid), {
-    ...clean, email: user.email ?? '', displayName: user.displayName ?? '', photoURL: user.photoURL ?? '',
-    onboarded: true, createdAt: serverTimestamp(), termsAt: serverTimestamp(), dataConsentAt: serverTimestamp(),
-    marketingAt: serverTimestamp(), consentVersion: LEGAL_VERSION, lastLoginAt: serverTimestamp(),
-  })
+  // Artıq hesabı olanlar (super admin, komanda/müəssisə təlimçisi və ya yarımçıq qalmış qeydiyyat):
+  // mövcud sənədlərin yaradılma tarixi və rolu toxunulmaz qalır.
+  const [prevUser, prevAdmin] = await Promise.all([
+    getDoc(doc(db, 'users', user.uid)).catch(() => null),
+    getDoc(doc(db, 'admins', user.uid)).catch(() => null),
+  ])
+  const common = { ...clean, displayName: user.displayName ?? '', photoURL: user.photoURL ?? '', onboarded: true, termsAt: serverTimestamp(), dataConsentAt: serverTimestamp(),
+    marketingAt: serverTimestamp(), consentVersion: LEGAL_VERSION, lastLoginAt: serverTimestamp() }
+  if (prevUser?.exists()) {
+    // tələbə → təlimçi/müəssisə keçidinə qaydalar icazə verir; digər hallarda əvvəlki tip saxlanılır
+    const prevType = prevUser.get('type') as AccountType | undefined
+    const keepType = prevType && prevType !== 'student' ? { type: prevType } : {}
+    await setDoc(doc(db, 'users', user.uid), { ...common, ...keepType }, { merge: true })
+  } else {
+    await setDoc(doc(db, 'users', user.uid), { ...common, email: user.email ?? '', createdAt: serverTimestamp() })
+  }
   // razılıq jurnalı (sübut): hər razılıq ayrıca, versiya və server vaxtı ilə
   await Promise.all([
     logConsent('data', true), logConsent('terms', true), logConsent('marketing', !!p.marketing),
   ]).catch(() => {})
   void track('sign_up', { method: 'google', type: p.type })
-  if (p.type !== 'student') {
+  if (p.type !== 'student' && !prevAdmin?.exists() && user.uid !== SUPER_UID) {
     const name = `${p.firstName} ${p.lastName}`.trim()
     await setDoc(doc(db, 'admins', user.uid), {
       email: user.email ?? '', name, role: 'trainer', source: 'signup', createdAt: serverTimestamp(), disabled: false, mustChangePassword: false,

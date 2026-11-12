@@ -117,11 +117,11 @@ export async function runQuery(caller: Caller, q: Query): Promise<{ path: string
     if (r.rows.length === 0) {
       const probe: Doc = {}
       for (const w of q.where ?? []) {
-        if (w.op !== '==') continue
+        if (w.op !== '==' && w.op !== 'array-contains') continue
         const ks = w.field.split('.')
         let node = probe
         ks.slice(0, -1).forEach((k) => { node = (isMap(node[k]) ? node[k] : (node[k] = {})) as Doc })
-        node[ks[ks.length - 1]] = w.value
+        node[ks[ks.length - 1]] = w.op === 'array-contains' ? [w.value] : w.value
       }
       await check(caller, 'list', `${q.parent}/__query__`, probe, null, now, load)
     }
