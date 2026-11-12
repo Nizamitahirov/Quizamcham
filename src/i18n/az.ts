@@ -766,6 +766,11 @@ export const az = {
       hair: 'Saç düzümü', hairColor: 'Saç rəngi', facial: 'Saqqal / bığ', hat: 'Papaq', hatColor: 'Papaq rəngi', top: 'Üst geyim', topColor: 'Əsas rəng', topColor2: 'Əlavə rəng', pattern: 'Naxış', number: 'Nömrə',
       bottom: 'Alt geyim', bottomColor: 'Alt geyim rəngi', shoes: 'Ayaqqabı', shoeColor: 'Ayaqqabı rəngi', back: 'Çanta / arxa', backColor: 'Rəngi', neck: 'Boyun', neckColor: 'Rəngi', hand: 'Əldə', pose: 'Poza', bg: 'Fon' },
   },
+  pricing2: {
+    studentsFree: 'Tələbələr və oyunçular üçün həmişə pulsuzdur — ödəniş yalnız təlimçi tərəfindən edilir.',
+    customTitle: 'Xüsusi ehtiyacınız var? Fərdi paket', customText: 'Paketi sizə uyğun quraq: iştirakçı sayı, təlimçi hesabları, müddət, brendinq və ödəniş şərtləri — hamısı razılaşma ilə.',
+    customTags: ['Məktəb və universitet', 'Şirkət və komanda', 'Konfrans və tədbir', '1000+ iştirakçı', 'VÖEN ilə hesab-faktura'], customCta: 'Fərdi təklif al',
+  },
   shell: { content: 'Məzmun', teaching: 'Tədris', manage: 'İdarəetmə', more: 'Daha çox', plan: 'Plan', upgrade: 'Yüksəlt', menu: 'Menyu' },
   dlg: { ok: 'Təsdiq et', cancel: 'Ləğv et', save: 'Yadda saxla', delete: 'Sil' },
   premium: { requires: (p: string) => `${p} planında`, locked: (p: string) => `Bu imkan ${p} və daha yüksək planlarda mövcuddur.`, upgrade: 'Planı yüksəlt', yourPlan: 'Planınız' },
