@@ -3,8 +3,10 @@ import { firebaseConfigured } from './firebase/config'
 import { OfflineBanner } from './components/ui'
 import { DialogHost } from './components/dialogs'
 import { t } from './i18n/az'
+import { useSeo } from './lib/seo'
 
 export default function App() {
+  useSeo()
   if (!firebaseConfigured) {
     return <div className="flex min-h-dvh items-center justify-center p-6 text-center text-lg">{t.app.notConfigured}</div>
   }

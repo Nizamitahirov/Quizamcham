@@ -60,7 +60,7 @@ export default function Start() {
   }
 
   return (
-    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-white">
+    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-[#fff]">
       <FuturisticBg floor={false} intensity={0.8} />
       <header className="relative z-30 mx-auto flex w-full max-w-6xl items-center justify-between px-4 pt-5 sm:px-8">
         <Link to="/" aria-label={t.app.home}><Logo size={34} /></Link>
@@ -88,7 +88,7 @@ export default function Start() {
           </div>
           {checking ? <div className="py-6"><Spinner /></div> : (
             <>
-              <button className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-white text-base font-bold text-onlight shadow-lg transition hover:bg-white/90 disabled:opacity-60" disabled={busy} onClick={() => void google()}>
+              <button className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#fff] text-base font-bold text-onlight shadow-lg transition hover:bg-[#fff]/90 disabled:opacity-60" disabled={busy} onClick={() => void google()}>
                 <GoogleIcon />{busy ? A.googleBusy : A.google}
               </button>
               {err && <p className="rounded-xl bg-red-500/15 px-3 py-2 text-center text-sm font-semibold text-red-200" role="alert">{err}</p>}

@@ -78,7 +78,7 @@ function SortItem({ o, i, idx }: { o: Option; i: number; idx: number }) {
   return (
     <li ref={setNodeRef} {...attributes} {...listeners}
       style={{ transform: CSS.Transform.toString(transform), transition, background: TILE_COLORS[i % 6], zIndex: isDragging ? 10 : undefined }}
-      className={`flex min-h-16 touch-none items-center gap-3 rounded-2xl p-4 text-lg font-extrabold text-white shadow-[0_5px_0_rgba(0,0,0,.25)] ${isDragging ? 'scale-105 ring-4 ring-white' : ''}`}>
+      className={`flex min-h-16 touch-none items-center gap-3 rounded-2xl p-4 text-lg font-extrabold text-[#fff] shadow-[0_5px_0_rgba(0,0,0,.25)] ${isDragging ? 'scale-105 ring-4 ring-[#fff]' : ''}`}>
       <span className="font-display w-6 text-center">{idx + 1}</span>
       <Shape i={i} size={22} />
       <span className="flex-1">{o.text}</span>
@@ -116,7 +116,7 @@ export function MatchInput({ q, disabled, onSubmit }: Props) {
     <div className="flex flex-col gap-3">
       <p className="text-center text-sm font-bold opacity-90">{t.game.matchHint}</p>
       {q.options.map((o, i) => (
-        <div key={o.id} className="flex items-center gap-2 rounded-2xl p-2 text-white shadow-[0_4px_0_rgba(0,0,0,.25)]" style={{ background: TILE_COLORS[i % 6] }}>
+        <div key={o.id} className="flex items-center gap-2 rounded-2xl p-2 text-[#fff] shadow-[0_4px_0_rgba(0,0,0,.25)]" style={{ background: TILE_COLORS[i % 6] }}>
           <span className="min-w-0 flex-1 px-2 text-base font-extrabold">{o.text}</span>
           <select className="input-dark min-h-12 w-[52%] text-base" value={sel[i]} disabled={disabled} aria-label={o.text}
             onChange={(e) => setSel((s) => s.map((x, k) => (k === i ? e.target.value : x)))}>
@@ -140,7 +140,7 @@ export function FillInput({ q, disabled, onSubmit }: Props) {
       <p className="glass p-4 text-lg font-bold leading-[2.6rem]">
         {parts.map((p, i) => (
           <span key={i}>{p}{i < n && (
-            <input className="mx-1 inline-block w-36 rounded-lg border-2 border-white/40 bg-white/10 px-2 py-1 align-middle text-base text-white outline-none focus:border-orange-400"
+            <input className="mx-1 inline-block w-36 rounded-lg border-2 border-white/40 bg-white/10 px-2 py-1 align-middle text-base text-[#fff] outline-none focus:border-orange-400"
               value={v[i]} maxLength={40} disabled={disabled} aria-label={t.game.blank(i + 1)} placeholder={`${i + 1}`}
               onChange={(e) => setV((s) => s.map((x, k) => (k === i ? e.target.value : x)))} />
           )}</span>
@@ -161,7 +161,7 @@ export function HotspotInput({ q, disabled, onSubmit }: Props) {
       <div className="relative mx-auto max-w-full cursor-crosshair select-none overflow-hidden rounded-2xl"
         onClick={(e) => { if (disabled) return; const r = e.currentTarget.getBoundingClientRect(); setPt({ x: Math.round(((e.clientX - r.left) / r.width) * 1000) / 10, y: Math.round(((e.clientY - r.top) / r.height) * 1000) / 10 }) }}>
         <img src={q.imageUrl} alt="" className="block max-h-[55vh] max-w-full" draggable={false} />
-        {pt && <span className="pointer-events-none absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-white bg-orange-500 shadow-lg" style={{ left: `${pt.x}%`, top: `${pt.y}%` }} />}
+        {pt && <span className="pointer-events-none absolute h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-[#fff] bg-orange-500 shadow-lg" style={{ left: `${pt.x}%`, top: `${pt.y}%` }} />}
       </div>
       <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !pt} onClick={() => pt && onSubmit(`${pt.x},${pt.y}`)}>{t.game.submit}</button>
     </div>

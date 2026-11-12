@@ -24,7 +24,7 @@ function Toggle({ on, onChange, disabled, label }: { on: boolean; onChange?: (v:
     <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled} onClick={() => onChange?.(!on)}
       className={`relative h-6 w-11 shrink-0 rounded-full transition disabled:cursor-not-allowed ${on ? '' : 'bg-white/15'} ${disabled ? 'opacity-60' : ''}`}
       style={on ? { background: 'var(--grad)' } : undefined}>
-      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${on ? 'left-[1.375rem]' : 'left-0.5'}`} />
+      <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-[#fff] shadow transition-all ${on ? 'left-[1.375rem]' : 'left-0.5'}`} />
     </button>
   )
 }
@@ -127,7 +127,7 @@ function MemberRow({ r, me, access, open, onTogglePerms, run }: {
   return (
     <li className={r.disabled ? 'opacity-60' : ''}>
       <div className="flex flex-wrap items-center gap-3 px-5 py-3.5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-white" style={{ background: r.disabled ? '#9CA3AF' : 'var(--grad)' }}>{(r.name || r.email)[0]?.toUpperCase()}</span>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-[#fff]" style={{ background: r.disabled ? '#9CA3AF' : 'var(--grad)' }}>{(r.name || r.email)[0]?.toUpperCase()}</span>
         <div className="min-w-[10rem] flex-1">
           <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
             <span className="truncate">{r.name || r.email.split('@')[0]}</span>

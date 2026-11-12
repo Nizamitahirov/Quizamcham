@@ -277,7 +277,7 @@ function SortRow({ q, i, active, hasErr, onSelect, onDup, onDel, onCopy }: { q: 
       className={`group flex items-center gap-2 rounded-xl border bg-panel p-2 transition ${active ? 'border-brand shadow-[0_0_0_3px_rgba(232,32,42,.12)]' : 'border-line hover:border-line-strong'} ${isDragging ? 'shadow-xl' : ''}`}>
       <button className="cursor-grab touch-none text-muted" {...attributes} {...listeners} aria-label="↕"><GripVertical className="h-4 w-4" /></button>
       <button className="flex min-w-0 flex-1 items-center gap-2 text-left" onClick={onSelect}>
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${active ? 'text-white' : 'bg-surface text-muted'}`} style={active ? { background: 'var(--grad)' } : undefined}>{i + 1}</span>
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${active ? 'text-[#fff]' : 'bg-surface text-muted'}`} style={active ? { background: 'var(--grad)' } : undefined}>{i + 1}</span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm font-semibold">{q.text || '—'}</span>
           <span className="text-[11px] text-muted">{TYPE_ICON[q.type]} {t.types[q.type]}{q.type !== 'slide' ? ` · ${q.timeLimit}s` : ''}</span>
@@ -383,11 +383,11 @@ function QuestionEditor({ q, errors, onChange }: { q: Question; errors: string[]
               return (
                 <div key={o.id} className="flex items-center gap-2 rounded-2xl p-2 shadow-sm" style={{ background: TILE_COLORS[i % 6] }}>
                   <Shape i={i} size={22} />
-                  {q.type === 'order' && <span className="font-display text-white">{i + 1}.</span>}
+                  {q.type === 'order' && <span className="font-display text-[#fff]">{i + 1}.</span>}
                   <input className="input min-h-10 flex-1 py-1" aria-label={t.editor.option(i + 1)} placeholder={t.editor.option(i + 1)} value={o.text} maxLength={90} disabled={q.type === 'truefalse'} onChange={(e) => setOpt(o.id, e.target.value)} />
                   {canMark && (
                     <button type="button" onClick={() => toggleCorrect(o.id)} aria-pressed={ok} title={t.editor.markCorrect}
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-white text-lg font-black ${ok ? 'bg-panel text-green-300' : 'text-white/70'}`}>✓</button>
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[#fff] text-lg font-black ${ok ? 'bg-panel text-green-300' : 'text-white/70'}`}>✓</button>
                   )}
                   {q.type !== 'truefalse' && q.options.length > 2 && (
                     <button type="button" onClick={() => delOpt(o.id)} className="shrink-0 px-1 text-white/80 hover:text-white" aria-label={t.app.delete}>✕</button>
@@ -575,7 +575,7 @@ function CopyQuestionModal({ q, currentQuizId, onClose }: { q: Question | null; 
 function PhonePreview({ q, shuffle }: { q: Question; shuffle: boolean }) {
   const pub = useMemo(() => toPublic(q, { shuffleOptions: shuffle } as QuizSettings), [q, shuffle])
   return (
-    <div className="mx-auto w-[300px] rounded-[2.5rem] border-[10px] border-slate-900 bg-night p-3 text-white shadow-2xl" style={{ backgroundImage: 'radial-gradient(20rem 16rem at 110% -10%, rgba(255,122,26,.3), transparent 60%), radial-gradient(20rem 16rem at -10% 110%, rgba(232,32,42,.3), transparent 60%)' }}>
+    <div className="mx-auto w-[300px] rounded-[2.5rem] border-[10px] border-slate-900 bg-night p-3 text-[#fff] shadow-2xl" style={{ backgroundImage: 'radial-gradient(20rem 16rem at 110% -10%, rgba(255,122,26,.3), transparent 60%), radial-gradient(20rem 16rem at -10% 110%, rgba(232,32,42,.3), transparent 60%)' }}>
       <div className="flex min-h-[520px] flex-col gap-3">
         <div className="text-center text-xs opacity-70">{t.types[q.type]} · {t.editor.sec(q.timeLimit)}</div>
         <h3 className="text-center text-lg leading-snug">{q.text || '—'}</h3>

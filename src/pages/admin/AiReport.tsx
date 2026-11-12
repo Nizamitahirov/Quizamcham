@@ -27,7 +27,7 @@ export function AiInsightsPanel({ title, r }: { title: string; r: GameReportData
   return (
     <section className="card mb-8 p-5">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl text-white" style={{ background: 'var(--grad)' }}><Sparkles className="h-5 w-5" /></span>
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl text-[#fff]" style={{ background: 'var(--grad)' }}><Sparkles className="h-5 w-5" /></span>
         <div className="mr-auto"><h2 className="text-lg font-bold">{L.title}</h2><p className="text-sm text-muted">{L.sub}</p></div>
         {allowed
           ? <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => void run()}>{busy ? <Loader2 className="animate-spin" /> : <Wand2 />}{data ? L.again : L.run}</button>

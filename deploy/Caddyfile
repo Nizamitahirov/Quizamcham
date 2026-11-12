@@ -3,6 +3,13 @@
 (app) {
 	encode zstd gzip
 
+	# SEO: bir əsas ünvan — www və ehtiyat (sslip) ünvanlar əsas domenə 301 ilə yönləndirilir (API istisna: deploy yoxlaması)
+	@alt {
+		host www.jabr.az *.sslip.io
+		not path /api/*
+	}
+	redir @alt https://{$PRIMARY_HOST:jabr.az}{uri} permanent
+
 	handle /api/* {
 		reverse_proxy api:3000
 	}
@@ -15,6 +22,8 @@
 		header @static Cache-Control "public, max-age=31536000, immutable"
 		header /index.html Cache-Control "no-cache"
 		header /sw.js Cache-Control "no-cache"
+		header /robots.txt Cache-Control "public, max-age=3600"
+		header /sitemap.xml Cache-Control "public, max-age=3600"
 	}
 
 	# Təhlükəsizlik başlıqları: HSTS, CSP (yalnız öz mənbələrimiz; Google girişi yönləndirmə ilə işləyir), icazələr

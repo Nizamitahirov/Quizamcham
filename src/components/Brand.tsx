@@ -11,12 +11,12 @@ export function Logo({ size = 40, dark = true, sub, mono }: { size?: number; dar
   const dot = Math.max(5, Math.round(fs * 0.26))
   return (
     <span className="inline-flex flex-col leading-none" aria-label="Jabr">
-      <span className={`inline-flex items-baseline ${dark ? 'text-white' : 'text-ink'}`} style={{ fontFamily: LOGO_FONT, fontWeight: 800, fontSize: fs, letterSpacing: `${LOGO_TRACKING}em` }}>
+      <span className={`inline-flex items-baseline ${dark ? 'text-fg' : 'text-ink'}`} style={{ fontFamily: LOGO_FONT, fontWeight: 800, fontSize: fs, letterSpacing: `${LOGO_TRACKING}em` }}>
         Jabr
         <span aria-hidden className="inline-block shrink-0 rounded-full"
           style={{ width: dot, height: dot, marginLeft: Math.round(fs * 0.07), background: mono ? '#fff' : LOGO_DOT, boxShadow: mono ? undefined : '0 0 12px rgba(255,90,31,.55)' }} />
       </span>
-      {sub && <span className={`mt-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] ${dark ? 'text-white/55' : 'text-muted'}`}>{sub}</span>}
+      {sub && <span className={`mt-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] ${dark ? 'text-fg/55' : 'text-muted'}`}>{sub}</span>}
     </span>
   )
 }
@@ -24,7 +24,7 @@ export function Logo({ size = 40, dark = true, sub, mono }: { size?: number; dar
 /** Yığcam nişan (ikonlar üçün): tünd kvadratda "J" + brend qradiyentli nöqtə. */
 export function LogoMark({ size = 40, className = '' }: { size?: number; className?: string }) {
   return (
-    <span className={`relative inline-flex shrink-0 items-center justify-center rounded-[28%] bg-night text-white ${className}`} style={{ width: size, height: size }} aria-hidden>
+    <span className={`relative inline-flex shrink-0 items-center justify-center rounded-[28%] bg-night text-[#fff] ${className}`} style={{ width: size, height: size }} aria-hidden>
       <span className="inline-flex items-baseline" style={{ fontFamily: LOGO_FONT, fontSize: size * 0.56, fontWeight: 800, lineHeight: 1 }}>
         J<span className="ml-[0.08em] inline-block rounded-full" style={{ width: size * 0.15, height: size * 0.15, background: LOGO_DOT }} />
       </span>

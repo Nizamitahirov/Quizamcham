@@ -36,7 +36,7 @@ export function PlayerQA({ gameId, uid, name }: { gameId: string; uid: string; n
   const vote = (q: QAItem) => updateDoc(doc(db, 'games', gameId, 'qa', q.id), { votes: q.votes.includes(uid) ? arrayRemove(uid) : arrayUnion(uid) }).catch(() => {})
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="fixed bottom-4 right-4 z-30 flex h-12 items-center gap-2 rounded-full px-4 text-sm font-bold text-white shadow-[var(--glow)]" style={{ background: 'var(--grad)' }} aria-label={t.qa.button}>
+      <button type="button" onClick={() => setOpen(true)} className="fixed bottom-4 right-4 z-30 flex h-12 items-center gap-2 rounded-full px-4 text-sm font-bold text-[#fff] shadow-[var(--glow)]" style={{ background: 'var(--grad)' }} aria-label={t.qa.button}>
         <MessageCircleQuestion className="h-5 w-5" />{t.qa.button}
       </button>
       <AnimatePresence>

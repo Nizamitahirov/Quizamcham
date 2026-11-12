@@ -150,7 +150,7 @@ export default function Account() {
                   <span><span className="font-semibold">{A.marketingOn}</span> <LegalLink onOpen={() => setDoc(['marketing'])} /><span className="block text-xs text-white/50">{A.marketingHint}</span>{profile.marketingAt && <span className="block text-xs text-white/40">{ts(profile.marketingAt)}</span>}</span>
                   <button type="button" role="switch" aria-checked={!!profile.marketing} aria-label={A.marketingOn} onClick={() => void setMarketing(user.uid, !profile.marketing)}
                     className={`relative mt-1 h-6 w-11 shrink-0 rounded-full transition ${profile.marketing ? '' : 'bg-white/20'}`} style={profile.marketing ? { background: 'var(--grad)' } : undefined}>
-                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${profile.marketing ? 'left-[1.375rem]' : 'left-0.5'}`} />
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-[#fff] shadow transition-all ${profile.marketing ? 'left-[1.375rem]' : 'left-0.5'}`} />
                   </button>
                 </li>
               </ul>
@@ -170,7 +170,7 @@ export default function Account() {
             <label className="text-xs font-semibold text-white/60" htmlFor="del-c">{A.typeToConfirm(A.confirmWord)}</label>
             <div className="flex flex-wrap gap-2">
               <input id="del-c" className="input-dark h-11 max-w-40" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" />
-              <button className="btn bg-red-600 text-white hover:bg-red-700 disabled:opacity-40" disabled={confirm.trim().toUpperCase() !== A.confirmWord || !!delStep} onClick={() => void del()}>
+              <button className="btn bg-red-600 text-[#fff] hover:bg-red-700 disabled:opacity-40" disabled={confirm.trim().toUpperCase() !== A.confirmWord || !!delStep} onClick={() => void del()}>
                 <Trash2 />{delStep ? (A.deleteSteps[delStep] ?? A.deleting) : A.deleteBtn}
               </button>
             </div>

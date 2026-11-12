@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { BookOpen, GripVertical, Link2, Loader2, Pencil, Plus, Save, Trash2, TrendingUp, Users, X } from 'lucide-react'
+import { BookOpen, Copy, Download, Eye, GripVertical, Link2, ListOrdered, Loader2, MoreHorizontal, Pencil, Plus, Save, Target, Trash2, TrendingUp, Users, X } from 'lucide-react'
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { t } from '../../i18n/az'
 import { fmtDate } from '../../lib/format'
-import { deleteCourse, listCourseProgress, listMyCourses, saveCourse, type Course, type CourseItem, type CourseProgress } from '../../lib/classes'
+import { coursePass, deleteCourse, listCourseProgress, listMyCourses, saveCourse, type Course, type CourseItem, type CourseProgress } from '../../lib/classes'
 import { LockedCard, useFeature } from '../../components/Premium'
 import { Modal, PageHeader } from '../../components/ui'
-import { EmptyState, Field, Progress } from '../../components/kit'
+import { DropMenu, EmptyState, Field, Progress, Segmented, SwitchRow } from '../../components/kit'
 import { confirmDialog, toast } from '../../components/dialogs'
 import { QuizPicker } from '../../components/QuizPicker'
 import type { AdminState } from '../../firebase/auth'
@@ -38,6 +38,11 @@ export default function Courses() {
   const newCourse = () => setEditing({ title: '', description: '', items: [], coverEmoji: '📚' })
   const del = async (c: Course) => { if (await confirmDialog({ title: K.delConfirm, body: K2.delBody, danger: true })) void deleteCourse(c.id).then(reload) }
   const copy = (c: Course) => void navigator.clipboard.writeText(courseUrl(c.id)).then(() => toast(K2.linkCopied), () => {})
+  const ownerName = admin.user?.displayName || admin.user?.email?.split('@')[0] || ''
+  const duplicate = async (c: Course) => {
+    try { await saveCourse({ title: `${c.title}${K2.copySuffix}`.slice(0, 120), description: c.description, items: c.items, coverEmoji: c.coverEmoji, ownerName, sequential: c.sequential, passPct: c.passPct }); toast(K2.duplicated); reload() }
+    catch { toast(t.app.error, 'error') }
+  }
   return (
     <div className="mx-auto max-w-6xl p-4 sm:p-8">
       <PageHeader title={K.title} sub={K.sub}>{rows && rows.length > 0 && <button className="btn btn-primary" onClick={newCourse}><Plus />{K.create}</button>}</PageHeader>
@@ -60,6 +65,8 @@ export default function Courses() {
                         <span className="chip chip-muted"><BookOpen className="h-3 w-3" />{K.count(c.items.length)}</span>
                         <span className="chip chip-muted"><Users className="h-3 w-3" />{K2.started(p.length)}</span>
                         {finished > 0 && <span className="chip chip-ok">{K2.finished(finished)}</span>}
+                        {c.sequential && <span className="chip chip-info"><ListOrdered className="h-3 w-3" />{K2.sequential}</span>}
+                        <span className="chip chip-muted"><Target className="h-3 w-3" />{K2.passPct}: {coursePass(c)}%</span>
                       </div>
                     </div>
                   </div>
@@ -76,14 +83,18 @@ export default function Courses() {
                     <button className="btn btn-ghost-dark btn-sm" onClick={() => setEditing(c)}><Pencil />{K.edit}</button>
                     <button className="btn btn-ghost-dark btn-sm" onClick={() => setViewing(c)}><TrendingUp />{K2.progressBtn}</button>
                     <button className="btn btn-ghost-dark btn-sm" onClick={() => copy(c)}><Link2 />{K2.copyLink}</button>
-                    <button className="btn btn-ghost-dark btn-icon btn-sm ml-auto hover:text-red-300" aria-label={K.del} title={K.del} onClick={() => void del(c)}><Trash2 /></button>
+                    <DropMenu label={t.ql.more} className="ml-auto" items={[
+                      { label: K2.preview, icon: Eye, onClick: () => window.open(`/learn/course/${c.id}`, '_blank', 'noopener') },
+                      { label: K2.duplicate, icon: Copy, onClick: () => void duplicate(c) },
+                      { label: K.del, icon: Trash2, danger: true, onClick: () => void del(c) },
+                    ]}><MoreHorizontal /></DropMenu>
                   </div>
                 </article>
               )
             })}
           </div>
         )}
-      {editing && <CourseEditor initial={editing} ownerName={admin.user?.displayName || admin.user?.email?.split('@')[0] || ''} me={admin.user?.uid ?? ''} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); toast(K2.saved); reload() }} />}
+      {editing && <CourseEditor initial={editing} ownerName={ownerName} me={admin.user?.uid ?? ''} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); toast(K2.saved); reload() }} />}
       <Modal open={!!viewing} onClose={() => setViewing(null)} title={K2.progressTitle} sub={viewing?.title} wide>
         {viewing && <ProgressTable course={viewing} rows={prog[viewing.id] ?? []} />}
       </Modal>
@@ -94,24 +105,39 @@ export default function Courses() {
 function ProgressTable({ course, rows }: { course: Course; rows: CourseProgress[] }) {
   if (!rows.length) return <p className="py-8 text-center text-sm text-muted">{K2.noProgress}</p>
   const total = course.items.length
-  const sorted = [...rows].sort((a, b) => b.done.length - a.done.length)
+  const count = (r: CourseProgress) => r.done.filter((q) => course.items.some((i) => i.quizId === q)).length
+  const sorted = [...rows].sort((a, b) => count(b) - count(a))
+  const avg = Math.round((sorted.reduce((s, r) => s + count(r) / total, 0) / sorted.length) * 100)
+  const exportXlsx = async () => {
+    const { downloadXlsx } = await import('../../lib/xlsx')
+    const head = [K2.student, ...course.items.map((i, n) => `${n + 1}. ${i.title}`), K2.steps, K2.completedAt]
+    const body = sorted.map((r) => [r.name || '—', ...course.items.map((i) => (r.done.includes(i.quizId) ? '✓' : '')), `${count(r)}/${total}`, r.completedAt ? fmtDate(r.completedAt.toDate()) : ''])
+    downloadXlsx(`jabr-course-${course.id}.xlsx`, [{ name: 'Progress', rows: [head, ...body] }])
+  }
   return (
-    <div className="-mx-6 overflow-x-auto">
-      <table className="table">
-        <thead><tr><th>{K2.student}</th><th>{K2.steps}</th><th>{K2.completedAt}</th></tr></thead>
-        <tbody>
-          {sorted.map((r) => {
-            const n = r.done.filter((q) => course.items.some((i) => i.quizId === q)).length
-            return (
-              <tr key={r.uid}>
-                <td className="font-semibold">{r.name || '—'}</td>
-                <td><div className="flex items-center gap-3"><Progress value={(n / total) * 100} className="w-32" /><span className="text-xs tabular text-muted">{n}/{total}</span></div></td>
-                <td>{r.completedAt ? <span className="chip chip-ok">{fmtDate(r.completedAt.toDate())}</span> : <span className="chip chip-muted">{K2.inProgress}</span>}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+    <div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="chip chip-muted">{K2.avg(avg)}</span>
+        <button className="btn btn-secondary btn-sm ml-auto" onClick={() => void exportXlsx()}><Download />{K2.exportXlsx}</button>
+      </div>
+      <div className="-mx-6 overflow-x-auto">
+        <table className="table">
+          <thead><tr><th>{K2.student}</th><th>{K2.steps}</th><th className="hidden sm:table-cell">{course.items.map((_, n) => n + 1).join(' · ')}</th><th>{K2.completedAt}</th></tr></thead>
+          <tbody>
+            {sorted.map((r) => {
+              const n = count(r)
+              return (
+                <tr key={r.uid}>
+                  <td className="font-semibold">{r.name || '—'}</td>
+                  <td><div className="flex items-center gap-3"><Progress value={(n / total) * 100} className="w-28" /><span className="text-xs tabular text-muted">{n}/{total}</span></div></td>
+                  <td className="hidden sm:table-cell"><div className="flex gap-1">{course.items.map((i, k) => <span key={i.quizId} title={`${k + 1}. ${i.title}`} className={`h-2.5 w-2.5 rounded-full ${r.done.includes(i.quizId) ? 'bg-emerald-400' : 'bg-white/10'}`} />)}</div></td>
+                  <td>{r.completedAt ? <span className="chip chip-ok">{fmtDate(r.completedAt.toDate())}</span> : <span className="chip chip-muted">{K2.inProgress}</span>}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -122,7 +148,7 @@ function SortableItem({ it, i, onRemove }: { it: CourseItem; i: number; onRemove
     <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`flex items-center gap-2 rounded-xl border bg-raised px-2 py-2 text-sm ${isDragging ? 'relative z-10 border-orange-400/50 shadow-lg' : 'border-line'}`}>
       <button type="button" className="cursor-grab touch-none rounded-md p-1 text-muted hover:text-fg active:cursor-grabbing" aria-label={K2.dragHint} {...attributes} {...listeners}><GripVertical className="h-4 w-4" /></button>
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white tabular" style={{ background: 'var(--grad)' }}>{i + 1}</span>
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-[#fff] tabular" style={{ background: 'var(--grad)' }}>{i + 1}</span>
       <span className="min-w-0 flex-1 truncate font-semibold">{it.title}</span>
       <button type="button" className="btn btn-ghost-dark btn-icon btn-sm hover:text-red-300" aria-label={K.del} onClick={onRemove}><X /></button>
     </li>
@@ -134,6 +160,8 @@ function CourseEditor({ initial, ownerName, me, onClose, onSaved }: { initial: P
   const [desc, setDesc] = useState(initial.description ?? '')
   const [emoji, setEmoji] = useState(initial.coverEmoji ?? '📚')
   const [items, setItems] = useState<CourseItem[]>(initial.items ?? [])
+  const [sequential, setSequential] = useState(!!initial.sequential)
+  const [passPct, setPassPct] = useState(coursePass(initial))
   const [busy, setBusy] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const onEnd = (e: DragEndEvent) => {
@@ -142,7 +170,7 @@ function CourseEditor({ initial, ownerName, me, onClose, onSaved }: { initial: P
   }
   const save = async () => {
     setBusy(true)
-    try { await saveCourse({ id: initial.id, title, description: desc, items, ownerName, coverEmoji: emoji }); onSaved() }
+    try { await saveCourse({ id: initial.id, title, description: desc, items, ownerName, coverEmoji: emoji, sequential, passPct }); onSaved() }
     catch { toast(t.app.error, 'error') } finally { setBusy(false) }
   }
   const problem = title.trim().length < 3 ? K2.titleMin : items.length === 0 ? K2.noItems : ''
@@ -160,6 +188,14 @@ function CourseEditor({ initial, ownerName, me, onClose, onSaved }: { initial: P
           </Field>
           <Field label={K.name}><input className="input" maxLength={120} value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
           <Field label={K.desc}><textarea className="input min-h-20" maxLength={500} value={desc} onChange={(e) => setDesc(e.target.value)} /></Field>
+          <div className="rounded-xl border border-line bg-white/[.02] px-4">
+            <SwitchRow checked={sequential} onChange={setSequential} label={K2.sequential} desc={K2.sequentialDesc} icon={ListOrdered} />
+            <div className="border-t border-line py-3">
+              <span className="label">{K2.passPct}</span>
+              <Segmented size="sm" value={passPct} onChange={setPassPct} options={[0, 50, 70, 80, 100].map((v) => ({ value: v, label: `${v}%` }))} />
+              <p className="mt-1.5 text-xs text-muted">{K2.passHint(passPct)}</p>
+            </div>
+          </div>
           <Field label={`${K.items} · ${items.length}`} hint={items.length > 1 ? K2.dragHint : undefined}>
             {items.length === 0 ? <p className="rounded-xl border border-dashed border-line-strong p-4 text-center text-sm text-muted">{K2.noItems}</p> : (
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onEnd}>

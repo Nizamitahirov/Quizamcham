@@ -135,7 +135,7 @@ function WeeklyColumns({ weeks }: { weeks: { start: Date; value: number; games: 
             aria-label={`${A.weekOf(fmt(w.start))}: ${w.value} ${A.people}, ${w.games} ${A.runs}`}>
             <div className="w-full max-w-7 rounded-t-[4px] transition-opacity" style={{ height: `${(w.value / max) * 100}%`, minHeight: w.value ? 3 : 0, background: '#E8202A', opacity: hover === null || hover === i ? 1 : 0.45 }} />
             {hover === i && (
-              <div className="pointer-events-none absolute bottom-full z-10 mb-2 whitespace-nowrap rounded-lg border border-line-strong bg-raised2 px-3 py-2 text-xs shadow-lg text-white shadow-lg">
+              <div className="pointer-events-none absolute bottom-full z-10 mb-2 whitespace-nowrap rounded-lg border border-line-strong bg-raised2 px-3 py-2 text-xs shadow-lg text-[#fff] shadow-lg">
                 <div className="font-bold">{A.weekOf(fmt(w.start))}</div>
                 <div className="tabular-nums">{w.value} {A.people} · {w.games} {A.runs}</div>
               </div>

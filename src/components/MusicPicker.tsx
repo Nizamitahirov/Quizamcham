@@ -31,7 +31,7 @@ export function MusicPicker({ value, onChange }: { value: MusicTheme; onChange: 
               </span>
             </button>
             <button type="button" onClick={() => toggle(th)} aria-label={`${playing === th ? t.settings.stop : t.settings.preview}: ${t.settings.themes[th]}`}
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full md:absolute md:right-2 md:top-2 ${playing === th ? 'text-white' : 'bg-white/10 text-fg hover:bg-white/15'}`} style={playing === th ? { background: 'var(--grad)' } : undefined}>
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full md:absolute md:right-2 md:top-2 ${playing === th ? 'text-[#fff]' : 'bg-white/10 text-fg hover:bg-white/15'}`} style={playing === th ? { background: 'var(--grad)' } : undefined}>
               {playing === th ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 fill-current" />}
             </button>
           </div>

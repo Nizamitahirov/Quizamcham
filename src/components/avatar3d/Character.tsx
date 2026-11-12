@@ -341,7 +341,7 @@ export function Character({ cfg }: { cfg: AvatarConfig }) {
   const tex = usePattern(cfg)
   const skin = cfg.skin, tc = cfg.topColor, bc = cfg.bottomColor, sc = cfg.shoeColor
   const sleeves: 'none' | 'short' | 'long' = cfg.top === 'tank' || cfg.top === 'dress' ? 'none' : cfg.top === 'tshirt' || cfg.top === 'jersey' ? 'short' : 'long'
-  const shoulderX = 0.31 * bw + 0.07
+  const shoulderX = 0.31 * bw + 0.09
   const hatOn = cfg.hat !== 'none' && cfg.hat !== 'halo' && cfg.hat !== 'headphones' && cfg.hat !== 'cat' && cfg.hat !== 'horns' && cfg.hat !== 'flowers'
 
   useFrame(({ clock }) => {
@@ -352,13 +352,18 @@ export function Character({ cfg }: { cfg: AvatarConfig }) {
     root.current.rotation.y = p === 'dance' ? Math.sin(t * 2.5) * 0.35 : 0
     head.current.rotation.z = Math.sin(t * 0.9) * 0.04 + (p === 'dance' ? Math.sin(t * 5) * 0.08 : 0)
     head.current.rotation.x = Math.sin(t * 0.7) * 0.03
-    let la = 0.12, ra = -0.12
-    if (p === 'wave') ra = -2.05 + Math.sin(t * 7) * 0.3
-    if (p === 'cheer') { la = 1.95 + Math.sin(t * 8) * 0.12; ra = -1.95 - Math.sin(t * 8) * 0.12 }
-    if (p === 'dance') { la = 0.6 + Math.sin(t * 5) * 0.9; ra = -0.6 + Math.sin(t * 5 + Math.PI) * 0.9 }
-    if (cfg.hand !== 'none' && p === 'idle') ra = -0.35
-    lArm.current.rotation.z = la; rArm.current.rotation.z = ra
-    rArm.current.rotation.x = cfg.hand !== 'none' && p === 'idle' ? -0.5 : 0
+    // bucaqlar "çölə" doğru müsbətdir: sol qol -z, sağ qol +z ilə bədəndən/başdan uzaqlaşır
+    let la = 0.12, ra = 0.12
+    if (p === 'wave') ra = 2.15 + Math.sin(t * 7) * 0.3
+    if (p === 'cheer') { la = 2.35 + Math.sin(t * 8) * 0.12; ra = 2.35 + Math.sin(t * 8) * 0.12 }
+    if (p === 'dance') { la = 0.75 + Math.sin(t * 5) * 0.65; ra = 0.75 + Math.sin(t * 5 + Math.PI) * 0.65 }
+    const holding = cfg.hand !== 'none' && p === 'idle'
+    if (holding) ra = 0.18
+    lArm.current.rotation.z = -la; rArm.current.rotation.z = ra
+    // qaldırılmış əl bir az önə — saç/baş arxasında qalmasın; əşya tutan əl önə uzanır
+    // (Euler XYZ: əvvəl z, sonra x fırlanması; yuxarı baxan qol üçün +x önə əyir)
+    lArm.current.rotation.x = la > 1.2 ? 0.35 : 0
+    rArm.current.rotation.x = holding ? -0.55 : ra > 1.2 ? 0.35 : 0
     if (flame.current) flame.current.scale.y = 0.8 + Math.sin(t * 30) * 0.2
     if (cape.current) cape.current.rotation.x = 0.12 + Math.sin(t * 2) * 0.04
   })
@@ -435,6 +440,10 @@ function Arm({ side, armRef, cfg, sleeves, shoulderX }: { side: 1 | -1; armRef: 
       {sleeves === 'long' && (cfg.top === 'hoodie' || cfg.top === 'sweater') && <mesh position={[side * 0.02, -0.5, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.085, 0.022, 8, 18]} /><Mat c={cfg.top === 'sweater' ? cfg.topColor2 : shade(tc, -0.08)} /></mesh>}
       <mesh position={[side * 0.025, -0.6, 0]}><sphereGeometry args={[0.09, 18, 14]} /><Mat c={skin} r={0.6} /></mesh>
       {side === 1 && <HandItem kind={cfg.hand} cfg={cfg} />}
+      {side === -1 && cfg.back === 'tote' && <group position={[-0.03, -0.66, 0.03]}>
+        <mesh position={[0, -0.02, 0]} scale={[0.8, 1.6, 1]}><torusGeometry args={[0.06, 0.01, 6, 16, Math.PI]} /><Mat c={shade(cfg.backColor, -0.2)} /></mesh>
+        <RoundedBox args={[0.26, 0.3, 0.06]} radius={0.03} position={[0, -0.2, 0]}><Mat c={cfg.backColor} r={0.9} /></RoundedBox>
+      </group>}
     </group>
   )
 }
@@ -514,12 +523,9 @@ function Back({ kind, color, bw, flame, cape }: { kind: AvatarConfig['back']; co
     </>
     case 'crossbody': return <>
       <mesh position={[0, 1.22, 0]} rotation={[0, 0, 0.75]} scale={[1.05 * bw, 1, 0.68]}><torusGeometry args={[0.38, 0.016, 6, 40]} /><Mat c={shade(color, -0.2)} /></mesh>
-      <RoundedBox args={[0.2, 0.15, 0.08]} radius={0.04} position={[0.28 * bw, 0.95, 0.15]}><Mat c={color} r={0.6} /></RoundedBox>
+      <RoundedBox args={[0.2, 0.15, 0.08]} radius={0.04} position={[0.14 * bw, 0.97, 0.22]}><Mat c={color} r={0.6} /></RoundedBox>
     </>
-    case 'tote': return <>
-      <RoundedBox args={[0.26, 0.3, 0.06]} radius={0.03} position={[-0.43 * bw, 0.98, 0.04]} rotation={[0, 0, 0.08]}><Mat c={color} r={0.9} /></RoundedBox>
-      <mesh position={[-0.42 * bw, 1.2, 0.04]} rotation={[0, 0, 0.08]} scale={[0.8, 2.2, 1]}><torusGeometry args={[0.08, 0.01, 6, 16, Math.PI]} /><Mat c={shade(color, -0.2)} /></mesh>
-    </>
+    case 'tote': return null // sol əldə tutulur (Arm)
     case 'guitar': return (
       <group position={[0, 1.15, -0.3]} rotation={[0, 0, 0.6]}>
         <mesh position={[0, -0.12, 0]} scale={[1, 1, 0.35]}><sphereGeometry args={[0.2, 20, 14]} /><Mat c={color} r={0.35} /></mesh>

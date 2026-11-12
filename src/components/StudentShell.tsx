@@ -30,7 +30,7 @@ export function StudentShell({ children, back, title, width = 'max-w-6xl', actio
   const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : user?.displayName || user?.email?.split('@')[0] || ''
   return (
     <div className="bg-app min-h-dvh">
-      <header className="sticky top-0 z-30 border-b border-line bg-[#0B0C19]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-30 border-b border-line bg-canvas/80 backdrop-blur-xl">
         <div className={`mx-auto flex w-full ${width} items-center gap-3 px-4 py-2.5 sm:px-6`}>
           {back && (back === '-1'
             ? <button onClick={() => (history.length > 1 ? nav(-1) : nav('/learn'))} className="btn btn-ghost-dark btn-icon btn-sm" aria-label={t.app.back}><ArrowLeft /></button>

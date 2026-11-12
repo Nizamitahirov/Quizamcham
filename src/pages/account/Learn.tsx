@@ -6,9 +6,11 @@ import { listCatalog, myAttempts, myPlays, ratingStats, useAccount, type Attempt
 import { fmtDateTime } from '../../lib/format'
 import { catLabel, t } from '../../i18n/az'
 import { Spinner } from '../../components/ui'
-import { EmptyState, PctBadge, Segmented } from '../../components/kit'
+import { EmptyState, PctBadge, Progress, Segmented } from '../../components/kit'
 import { SectionTitle, StudentShell } from '../../components/StudentShell'
 import { MyClasses } from './MyClasses'
+import { myCourses, type Course } from '../../lib/classes'
+
 import { computeGamify, type Gamify } from '../../lib/gamify'
 
 const A = t.acct
@@ -57,6 +59,8 @@ export default function Learn() {
       <Badges g={g} />
 
       <MyClasses name={`${profile.firstName} ${profile.lastName}`.trim()} email={user.email ?? ''} />
+
+      <MyCourses />
 
       <section id="catalog" className="scroll-mt-20">
         <SectionTitle icon={BookOpen} aside={
@@ -209,6 +213,34 @@ function Badges({ g }: { g: Gamify }) {
           </li>
         ))}
       </ul>
+    </section>
+  )
+}
+
+/** Tələbənin başladığı kurslar — irəliləyiş və "davam et". */
+function MyCourses() {
+  const [rows, setRows] = useState<{ course: Course; done: number; completed: boolean }[] | null>(null)
+  useEffect(() => { void myCourses().then(setRows).catch(() => setRows([])) }, [])
+  if (!rows?.length) return null
+  const K2 = t.course2
+  return (
+    <section>
+      <SectionTitle icon={Layers}>{K2.myCourses}</SectionTitle>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {rows.map(({ course: c, done, completed }) => {
+          const total = c.items?.length || 1
+          return (
+            <Link key={c.id} to={`/learn/course/${c.id}`} className="card card-hover flex items-center gap-4 p-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-line-strong bg-white/[.05] text-2xl">{c.coverEmoji ?? '📚'}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-semibold">{c.title}</div>
+                <div className="mt-2 flex items-center gap-2"><Progress value={(done / total) * 100} className="flex-1" /><span className="text-xs tabular text-muted">{done}/{total}</span></div>
+              </div>
+              {completed ? <span className="chip chip-ok shrink-0">{K2.completedChip}</span> : <span className="chip chip-brand shrink-0"><Play className="h-3 w-3 fill-current" />{K2.continueCourse}</span>}
+            </Link>
+          )
+        })}
+      </div>
     </section>
   )
 }

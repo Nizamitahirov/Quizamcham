@@ -78,7 +78,7 @@ const Avatar2D = memo(function Avatar2D({ avatar, size = 64, className = '', dim
   }, [avatar.style, avatar.seed])
   return (
     <span className={`relative inline-block shrink-0 ${className}`} style={{ width: size, height: size }}>
-      {uri ? <img src={uri} alt="" width={size} height={size} draggable={false} className={`rounded-full bg-white shadow-md ${dim ? 'opacity-50 grayscale' : ''}`} />
+      {uri ? <img src={uri} alt="" width={size} height={size} draggable={false} className={`rounded-full bg-[#fff] shadow-md ${dim ? 'opacity-50 grayscale' : ''}`} />
         : <span className="block h-full w-full animate-pulse rounded-full bg-white/20" />}
       {avatar.accessory && (
         <span className="absolute -right-1 -top-1 drop-shadow" style={{ fontSize: Math.max(14, size * 0.38) }} aria-hidden>{avatar.accessory}</span>

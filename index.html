@@ -5,22 +5,54 @@
     <link rel="icon" type="image/png" href="/icons/favicon-64.png" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="description" content="Canlı interaktiv quiz platforması: QR ilə qoşulun, real vaxtda yarışın, podiuma qalxın." />
+    <meta name="description" content="Jabr — Azərbaycanın canlı quiz platforması. Dərs, təlim və tədbirlər üçün interaktiv viktorinalar yaradın, AI ilə suallar hazırlayın, iştirakçılar telefonla PIN və ya QR ilə qoşulsun." />
+    <meta name="keywords" content="quiz, canlı quiz, viktorina, interaktiv quiz, kahoot alternativi, onlayn test, təlim, dərs, Azərbaycan, Jabr" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://jabr.az/" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Jabr — Bilik yarışa çevrilir" />
+    <meta property="og:site_name" content="Jabr" />
+    <meta property="og:url" content="https://jabr.az/" />
+    <meta property="og:title" content="Jabr — canlı quiz platforması" />
     <meta property="og:description" content="Telefonla qoşulun, suallara hamıdan sürətli cavab verin və podiuma qalxın." />
-    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image" content="https://jabr.az/og-image.png" />
     <meta property="og:locale" content="az_AZ" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#090A13" />
-    <meta name="color-scheme" content="dark" />
-    <title>Jabr</title>
+    <meta name="color-scheme" content="dark light" />
+    <script src="/theme-init.js"></script>
+    <title>Jabr — canlı quiz platforması | Dərs, təlim və tədbirlər üçün</title>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        { "@type": "Organization", "@id": "https://jabr.az/#org", "name": "Jabr", "url": "https://jabr.az/", "logo": "https://jabr.az/icons/icon-512.png", "email": "office@jabr.az" },
+        { "@type": "WebSite", "@id": "https://jabr.az/#site", "name": "Jabr", "url": "https://jabr.az/", "inLanguage": ["az", "ru", "en"], "publisher": { "@id": "https://jabr.az/#org" } },
+        { "@type": "SoftwareApplication", "name": "Jabr", "url": "https://jabr.az/", "applicationCategory": "EducationalApplication", "operatingSystem": "Web",
+          "description": "Canlı interaktiv quiz platforması: AI ilə sual yaratma, real vaxtda oyun, QR ilə qoşulma, analitika və sertifikatlar.",
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "AZN" } }
+      ]
+    }
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main style="max-width:720px;margin:0 auto;padding:48px 20px;font-family:system-ui,sans-serif;color:#C3C6DC;background:#090A13">
+        <h1 style="color:#fff">Jabr — canlı quiz platforması</h1>
+        <p>Dərs, təlim və tədbirlər üçün interaktiv quizlər yaradın. Süni intellekt mövzudan, PDF və ya təqdimatdan sualları saniyələr içində hazırlayır; iştirakçılar telefonla PIN və ya QR kodla qoşulur, nəticələr real vaxtda ekranda görünür.</p>
+        <h2 style="color:#fff">İmkanlar</h2>
+        <ul>
+          <li>Canlı quiz oyunları — liderlər cədvəli, podium, səs effektləri</li>
+          <li>AI ilə sual yaratma (mövzu, mətn, PDF, PPTX, DOCX)</li>
+          <li>Siniflər, kurslar, tapşırıqlar və irəliləyiş</li>
+          <li>Analitika, Excel ixracı və sertifikatlar</li>
+          <li>Azərbaycan, rus və ingilis dillərində</li>
+        </ul>
+        <p><a href="/join" style="color:#FF7A1A">Oyuna qoşul</a> · <a href="/start" style="color:#FF7A1A">Pulsuz qeydiyyat</a> · <a href="/pricing" style="color:#FF7A1A">Qiymətlər</a> · <a href="/learn" style="color:#FF7A1A">Quiz kataloqu</a></p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

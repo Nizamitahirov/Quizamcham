@@ -80,7 +80,7 @@ function Swatches({ colors, value, onPick, name }: { colors: readonly string[]; 
     <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label={name}>
       {colors.map((c) => (
         <button key={c} type="button" role="radio" aria-checked={value.toLowerCase() === c.toLowerCase()} aria-label={c} onClick={() => onPick(c)}
-          className={`h-8 w-8 rounded-full border transition hover:scale-110 ${value.toLowerCase() === c.toLowerCase() ? 'border-white ring-2 ring-orange-400 ring-offset-2 ring-offset-[#171A33]' : 'border-white/15'}`} style={{ background: c }} />
+          className={`h-8 w-8 rounded-full border transition hover:scale-110 ${value.toLowerCase() === c.toLowerCase() ? 'border-[#fff] ring-2 ring-orange-400 ring-offset-2 ring-offset-[#171A33]' : 'border-white/15'}`} style={{ background: c }} />
       ))}
       <label className="relative flex h-8 items-center gap-1.5 rounded-full border border-dashed border-line-strong px-2.5 text-xs text-muted hover:text-fg" title={V.custom}>
         <Palette className="h-3.5 w-3.5" />{V.custom}
@@ -177,7 +177,7 @@ export default function AvatarStudio() {
         <div className="grid grid-cols-4 gap-2">
           {BACKGROUNDS.map((b, i) => (
             <button key={i} type="button" aria-label={`${V.f.bg} ${i + 1}`} aria-pressed={cfg.bg === i} onClick={() => set('bg', i)}
-              className={`aspect-square rounded-xl border transition hover:scale-105 ${cfg.bg === i ? 'border-white ring-2 ring-orange-400 ring-offset-2 ring-offset-[#171A33]' : 'border-white/10'}`} style={{ background: `linear-gradient(135deg, ${b[0]}, ${b[1]})` }} />
+              className={`aspect-square rounded-xl border transition hover:scale-105 ${cfg.bg === i ? 'border-[#fff] ring-2 ring-orange-400 ring-offset-2 ring-offset-[#171A33]' : 'border-white/10'}`} style={{ background: `linear-gradient(135deg, ${b[0]}, ${b[1]})` }} />
           ))}
         </div>
       </Group>
@@ -196,8 +196,8 @@ export default function AvatarStudio() {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent" />
           <div className="h-[56dvh] min-h-80 lg:h-full">{ready ? <Stage cfg={cfg} capRef={capRef} /> : <div className="flex h-full items-center justify-center"><Spinner /></div>}</div>
           <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-            <button className="btn btn-sm border-white/15 bg-black/35 text-white backdrop-blur hover:bg-black/50" onClick={() => setCfg(randomAvatar())}><Dices />{V.random}</button>
-            <button className="btn btn-sm border-white/15 bg-black/35 text-white backdrop-blur hover:bg-black/50" onClick={() => setCfg(DEFAULT_AVATAR)}><RotateCcw />{V.reset}</button>
+            <button className="btn btn-sm border-white/15 bg-black/35 text-[#fff] backdrop-blur hover:bg-black/50" onClick={() => setCfg(randomAvatar())}><Dices />{V.random}</button>
+            <button className="btn btn-sm border-white/15 bg-black/35 text-[#fff] backdrop-blur hover:bg-black/50" onClick={() => setCfg(DEFAULT_AVATAR)}><RotateCcw />{V.reset}</button>
           </div>
           <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-center justify-between gap-2">
             <span className="flex items-center gap-1.5 rounded-full bg-black/35 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur"><Move3d className="h-3.5 w-3.5" />{V.rotate}</span>

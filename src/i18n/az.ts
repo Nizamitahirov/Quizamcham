@@ -738,6 +738,11 @@ export const az = {
     added: 'Tapşırıq əlavə olundu', saved: 'Yadda saxlanıldı', copiedLink: 'Link kopyalandı', none: 'Seçilməyib', change: 'Dəyiş', pick: 'Seç',
   },
   course2: {
+    sequential: 'Ardıcıl keçid', sequentialDesc: 'Növbəti quiz yalnız əvvəlki keçiləndən sonra açılır', passPct: 'Keçid balı', passHint: (n: number) => `Addım ${n}% və daha yüksək nəticə ilə keçilmiş sayılır`,
+    preview: 'Tələbə kimi bax', duplicate: 'Kopyala', copySuffix: ' (kopya)', duplicated: 'Kurs kopyalandı', exportXlsx: 'Excel-ə ixrac', avg: (n: number) => `Orta irəliləyiş: ${n}%`,
+    locked: 'Kilidli', lockedHint: 'Əvvəlki addımı keçin', myCourses: 'Kurslarım', continueCourse: 'Davam et', completedChip: 'Bitirilib',
+    stepPassed: 'Kurs addımı keçildi ✓', stepFailed: (need: number, got: number) => `Bu addımı keçmək üçün ən azı ${need}% lazımdır (sizin nəticə: ${got}%). Yenidən cəhd edin.`,
+    nextStep: 'Növbəti addım', courseDone: 'Kursun bütün addımları tamamlandı! 🎉', toCourse: 'Kursa bax',
     emptyText: 'Bir neçə quizi ardıcıl proqrama birləşdirin. Tələbə hamısını bitirəndə sertifikat alır.',
     cover: 'Örtük', copyLink: 'Linki kopyala', linkCopied: 'Kurs linki kopyalandı', progressBtn: 'İrəliləyiş', progressTitle: 'Tələbələrin irəliləyişi',
     started: (n: number) => `${n} başlayıb`, finished: (n: number) => `${n} bitirib`, noProgress: 'Hələ heç kim başlamayıb',
@@ -746,7 +751,7 @@ export const az = {
   },
   ql: {
     create: 'Yarat', import: 'İdxal', folders: 'Qovluqlar', noFolder: 'Qovluqsuz', renameFolder: 'Qovluğun adını dəyiş', deleteFolder: 'Qovluğu sil',
-    deleteFolderBody: 'Quizlər silinmir — sadəcə qovluqdan çıxarılır.', folderName: 'Qovluğun adı', newFolder: 'Yeni qovluq', moveHint: 'Mövcud qovluğu seçin və ya yeni ad yazın. Boş saxlasanız quiz qovluqdan çıxar.',
+    deleteFolderBody: 'Quizlər silinmir — sadəcə qovluqdan çıxarılır.', folderName: 'Qovluğun adı', newFolder: 'Yeni qovluq', others: 'Başqalarının quizləri', folderExists: 'Bu adda qovluq artıq var', folderActions: 'Qovluq əməliyyatları', created: 'Qovluq yaradıldı', moveHint: 'Mövcud qovluğu seçin və ya yeni ad yazın. Boş saxlasanız quiz qovluqdan çıxar.',
     more: 'Daha çox', count: (n: number) => `${n} quiz`, nothing: 'Bu süzgəcə uyğun quiz yoxdur', clear: 'Süzgəci təmizlə', moved: 'Köçürüldü', duplicated: 'Kopyası yaradıldı', deleted: 'Silindi',
   },
   learn2: {
@@ -757,7 +762,7 @@ export const az = {
     shuffle: 'Qarışdır', progress: (a: number, b: number) => `${a} / ${b} bilirəm`, keys: 'Boşluq — çevir · → bilirəm · ← təkrarla', swipe: 'Sağa sürüşdür — bilirəm, sola — təkrarla',
     summary: 'Əla iş!', summaryText: (n: number, r: number) => `${n} kartı öyrəndiniz${r ? `, ${r} kartı bir neçə dəfə təkrarladınız` : ''}.`, practice: 'İndi testi keç', reset: 'Sıfırla',
   },
-  menu: { account: 'Hesab menyusu', avatar: 'Avatarımı dizayn et', panel: 'Təlimçi paneli', learn: 'Öyrənmə portalı', language: 'Dil', profile: 'Profil', student: 'Tələbə', trainer: 'Təlimçi' },
+  menu: { theme: 'Görünüş', dark: 'Tünd', light: 'Açıq', account: 'Hesab menyusu', avatar: 'Avatarımı dizayn et', panel: 'Təlimçi paneli', learn: 'Öyrənmə portalı', language: 'Dil', profile: 'Profil', student: 'Tələbə', trainer: 'Təlimçi' },
   av: {
     title: 'Avatar studiyası', sub: 'Öz 3D avatarınızı yaradın — saç, üz, papaq, geyim, çanta və daha çoxu', save: 'Yadda saxla', saving: 'Saxlanılır…', saved: 'Avatar yadda saxlanıldı',
     mine: 'Mənim 3D avatarım', create: '3D avatar yarat', random: 'Təsadüfi', reset: 'Sıfırla', rotate: 'Fırlatmaq üçün sürüşdürün', unsaved: 'Yadda saxlanmamış dəyişikliklər var', custom: 'Öz rəngin', loginNeeded: 'Avatar yaratmaq üçün daxil olun',

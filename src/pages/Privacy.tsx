@@ -17,7 +17,7 @@ export default function Privacy() {
   const doc = docs.find((d) => d.id === id)!
   const Icon = ICON[id]
   return (
-    <div className="noise relative min-h-dvh overflow-hidden bg-night text-white print:bg-panel print:text-black">
+    <div className="noise relative min-h-dvh overflow-hidden bg-night text-[#fff] print:bg-panel print:text-black">
       <FuturisticBg floor={false} intensity={0.5} />
       <header className="relative z-30 mx-auto flex w-full max-w-5xl items-center justify-between px-4 pt-6 print:hidden">
         <Link to="/" aria-label={t.app.home}><Logo size={32} /></Link>
@@ -29,7 +29,7 @@ export default function Privacy() {
             const I = ICON[d.id]
             return (
               <Link key={d.id} to={PATH[d.id]} aria-current={d.id === id ? 'page' : undefined}
-                className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${d.id === id ? 'text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
+                className={`flex shrink-0 items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${d.id === id ? 'text-[#fff]' : 'bg-white/5 text-white/70 hover:bg-white/10'}`}
                 style={d.id === id ? { background: 'var(--grad)' } : undefined}><I className="h-4 w-4" />{d.title}</Link>
             )
           })}
@@ -54,7 +54,7 @@ export default function Privacy() {
           <div className="flex flex-col gap-7 text-[15px] leading-relaxed text-white/80 print:text-black/85">
             {doc.sections.map((s) => (
               <section key={s.h}>
-                <h2 className="mb-2 text-lg font-bold text-white print:text-black">{s.h}</h2>
+                <h2 className="mb-2 text-lg font-bold text-[#fff] print:text-black">{s.h}</h2>
                 {s.p?.map((p) => <p key={p} className="mb-2">{p}</p>)}
                 {s.list && <ul className="list-disc space-y-1.5 pl-5">{s.list.map((x) => <li key={x}>{x}</li>)}</ul>}
               </section>

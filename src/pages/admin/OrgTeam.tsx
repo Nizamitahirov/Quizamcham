@@ -56,7 +56,7 @@ export default function OrgTeam() {
             <ul className="divide-y divide-line">
               {rows.map((m) => (
                 <li key={m.uid} className={`flex flex-wrap items-center gap-3 px-5 py-3.5 ${m.disabled ? 'opacity-60' : ''}`}>
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-white" style={{ background: m.disabled ? '#9CA3AF' : 'var(--grad)' }}>{(m.name || m.email)[0]?.toUpperCase()}</span>
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold text-[#fff]" style={{ background: m.disabled ? '#9CA3AF' : 'var(--grad)' }}>{(m.name || m.email)[0]?.toUpperCase()}</span>
                   <div className="min-w-[10rem] flex-1">
                     <div className="flex flex-wrap items-center gap-2 text-sm font-bold"><span className="truncate">{m.name || m.email.split('@')[0]}</span>
                       {m.disabled && <span className="chip bg-red-500/10 text-red-300"><Ban className="h-3 w-3" />{T.restricted}</span>}

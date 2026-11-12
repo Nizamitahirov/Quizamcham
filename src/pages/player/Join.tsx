@@ -154,8 +154,8 @@ export default function Join() {
         <ol className="flex items-center gap-2" aria-label="progress">
           {steps.map((label, i) => (
             <li key={label} className="flex flex-1 items-center gap-2">
-              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${i <= cur ? 'text-white' : 'bg-white/10 text-white/50'}`} style={i <= cur ? { background: 'var(--grad)' } : undefined}>{i + 1}</span>
-              <span className={`text-xs font-bold ${i <= cur ? 'text-white' : 'text-white/45'}`}>{label}</span>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black ${i <= cur ? 'text-[#fff]' : 'bg-white/10 text-white/50'}`} style={i <= cur ? { background: 'var(--grad)' } : undefined}>{i + 1}</span>
+              <span className={`text-xs font-bold ${i <= cur ? 'text-[#fff]' : 'text-white/45'}`}>{label}</span>
               {i < steps.length - 1 && <span className={`h-0.5 flex-1 rounded-full ${i < cur ? 'bg-orange-500' : 'bg-white/10'}`} />}
             </li>
           ))}

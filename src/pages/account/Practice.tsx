@@ -3,7 +3,7 @@ import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { parseBlanks } from '../../lib/scoring'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { createPortal } from 'react-dom'
-import { ArrowLeft, ArrowRight, Award, CheckCircle2, Clock, Flag, RotateCcw, Trophy, X, XCircle } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Award, Play, CheckCircle2, Clock, Flag, RotateCcw, Trophy, X, XCircle } from 'lucide-react'
 import { loadCatalogItem, reportQuiz, saveAttempt, useAccount, type CatalogItem, type ReportReason } from '../../lib/account'
 import { toPublic } from '../../lib/gameEngine'
 import { evaluateAnswer, SCORED_TYPES } from '../../lib/scoring'
@@ -34,12 +34,12 @@ export default function Practice() {
   // gizlədilmiş / yoxlamadakı quiz yalnız müəllifinə açılır
   if (item && (item.hidden || item.status === 'review') && item.publishedBy !== user.uid) return <Shell><div className="glass m-auto max-w-md p-8 text-center"><p className="mb-4">{A.notFound}</p><Link to="/learn" className="btn btn-primary"><ArrowLeft />{A.toCatalog}</Link></div></Shell>
   if (item === null) return <Shell><div className="glass m-auto max-w-md p-8 text-center"><p className="mb-4">{A.notFound}</p><Link to="/learn" className="btn btn-primary"><ArrowLeft />{A.toCatalog}</Link></div></Shell>
-  return <Shell title={item.title} report={<ReportButton quizId={item.id} />}><Run key={round} item={item} uid={user.uid} onRetry={() => setRound((r) => r + 1)} /></Shell>
+  return <Shell title={item.title} report={<ReportButton quizId={item.id} />}><Run key={`${item.id}-${round}`} item={item} uid={user.uid} onRetry={() => setRound((r) => r + 1)} /></Shell>
 }
 
 function Shell({ children, title, report }: { children: React.ReactNode; title?: string; report?: React.ReactNode }) {
   return (
-    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-white">
+    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-[#fff]">
       <FuturisticBg floor={false} intensity={0.5} />
       <header className="relative z-10 mx-auto flex w-full max-w-3xl items-center gap-3 px-4 pt-5">
         <Link to="/learn" className="btn btn-ghost btn-icon" aria-label={A.toCatalog}><ArrowLeft className="h-4 w-4" /></Link>
@@ -65,6 +65,7 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
   const qStart = useRef(Date.now())
   const savedRef = useRef(false)
   const [elapsed, setElapsed] = useState(0)
+  const [courseRes, setCourseRes] = useState<{ ok: boolean; need: number; got: number; next: { quizId: string; title: string } | null; complete: boolean } | null>(null)
   const q: Question | undefined = qs[i]
   const pub = useMemo(() => (q ? toPublic(q, { shuffleOptions: true } as never) : null), [q])
   const finished = i >= qs.length
@@ -109,7 +110,18 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
       const { saveClassResult, loadCourse, markCourseItem } = await import('../../lib/classes')
       const name = ctx.name || ''
       if (ctx.classId && ctx.taskId) await saveClassResult(ctx.classId, ctx.taskId, name, { score, correct, total }).catch(() => {})
-      if (ctx.courseId && correct / total >= 0.5) { const c = await loadCourse(ctx.courseId).catch(() => null); if (c) await markCourseItem(c, item.id, name).catch(() => {}) }
+      if (ctx.courseId) {
+        const c = await loadCourse(ctx.courseId).catch(() => null)
+        if (!c) return
+        const { coursePass } = await import('../../lib/classes')
+        const need = coursePass(c), got = Math.round((correct / total) * 100)
+        const idx = c.items.findIndex((x) => x.quizId === item.id)
+        if (got >= need) {
+          const r = await markCourseItem(c, item.id, name).catch(() => null)
+          const nextItem = r ? c.items.find((x) => !r.done.includes(x.quizId)) : c.items[idx + 1]
+          setCourseRes({ ok: true, need, got, next: nextItem ? { quizId: nextItem.quizId, title: nextItem.title } : null, complete: !!r?.complete })
+        } else setCourseRes({ ok: false, need, got, next: null, complete: false })
+      }
     })()
     if (correct / total >= 0.7) burst(1.2)
   }, [finished, correct, total, score, item])
@@ -127,6 +139,12 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
           ))}
         </div>
         <p className="text-white/65">{correct}/{total}</p>
+        {courseRes && (
+          <div className={`w-full rounded-2xl border p-4 text-left ${courseRes.ok ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-amber-500/30 bg-amber-500/10'}`}>
+            <p className={`font-semibold ${courseRes.ok ? 'text-emerald-200' : 'text-amber-200'}`}>{courseRes.ok ? (courseRes.complete ? t.course2.courseDone : t.course2.stepPassed) : t.course2.stepFailed(courseRes.need, courseRes.got)}</p>
+            {courseRes.ok && courseRes.next && <Link to={`/learn/${courseRes.next.quizId}?course=${ctx.courseId}`} className="btn btn-primary mt-3 w-full"><Play className="fill-current" />{t.course2.nextStep}: <span className="max-w-56 truncate">{courseRes.next.title}</span></Link>}
+          </div>
+        )}
         {p >= 70 && <CertButton item={item} score={score} correct={correct} total={total} />}
         <RateQuiz quizId={item.id} />
         <div className="flex w-full flex-col gap-2 sm:flex-row">
