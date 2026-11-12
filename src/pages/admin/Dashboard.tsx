@@ -86,7 +86,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <section className="card p-5">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-bold">{t.admin.recentGames}</h2>
@@ -100,7 +100,7 @@ export default function Dashboard() {
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white" style={{ background: 'var(--grad)' }}><Gamepad2 className="h-5 w-5" /></span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold">{g.title}</span>
-                      <span className="text-xs text-muted">{g.createdAt ? fmtDateTime(g.createdAt.toDate()) : ''} · PIN {g.pin}</span>
+                      <span className="block truncate text-xs text-muted">{g.createdAt ? fmtDateTime(g.createdAt.toDate()) : ''} · PIN {g.pin}</span>
                     </span>
                     <span className="flex items-center gap-1 text-sm font-semibold text-muted"><Users className="h-4 w-4" />{g.playerCount ?? 0}</span>
                     {g.phase !== 'finished' ? <span className="chip bg-green-500/15 text-green-300">{t.admin.live}</span> : g.stats && <span className="chip bg-surface text-fg2">{Math.round((g.stats.avgAccuracy ?? 0) * 100)}%</span>}
