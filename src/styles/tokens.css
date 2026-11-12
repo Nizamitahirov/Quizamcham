@@ -165,6 +165,7 @@ input[type="date"]::-webkit-calendar-picker-indicator, input[type="datetime-loca
 .gradient-border { position: relative; border-radius: 20px; }
 .gradient-border::before { content: ""; position: absolute; inset: 0; padding: 1.5px; border-radius: inherit; background: var(--grad);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; }
+.clip-round { clip-path: inset(0 round 1.5rem); -webkit-mask-image: -webkit-radial-gradient(white, black); }
 .hairline-top::after { content: ""; position: absolute; left: 10%; right: 10%; top: -1px; height: 1px; background: var(--grad-line); pointer-events: none; }
 .icon-tile { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; color: #FF8A5C; background: var(--grad-soft); border: 1px solid rgba(255,90,31,.18); }
 .icon-tile-solid { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; color: #fff; background: var(--grad); box-shadow: var(--glow); }

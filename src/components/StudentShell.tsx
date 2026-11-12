@@ -1,4 +1,6 @@
-import type { ReactNode } from 'react'
+import { useCallback, type ReactNode } from 'react'
+import { NotificationBell } from './NotificationBell'
+import { studentNotices } from '../lib/notifications'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, BookOpen, LayoutDashboard, Sparkles, UserRound } from 'lucide-react'
 import { t } from '../i18n/az'
@@ -23,6 +25,8 @@ export function StudentShell({ children, back, title, width = 'max-w-6xl', actio
   const { user, profile } = useAccount()
   const nav = useNavigate()
   const links = useAccountLinks()
+  const uid = user && !user.isAnonymous ? user.uid : ''
+  const notices = useCallback(() => studentNotices(uid), [uid])
   const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : user?.displayName || user?.email?.split('@')[0] || ''
   return (
     <div className="bg-app min-h-dvh">
@@ -35,6 +39,7 @@ export function StudentShell({ children, back, title, width = 'max-w-6xl', actio
           {title && <span className="hidden min-w-0 truncate border-l border-line pl-3 text-sm font-medium text-fg2 sm:block">{title}</span>}
           <div className="ml-auto flex items-center gap-2">
             {actions}
+            {user && !user.isAnonymous && <NotificationBell load={notices} />}
             {user && !user.isAnonymous
               ? <AccountMenu uid={user.uid} name={name || '—'} email={user.email} photo={user.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} />
               : <LangSwitch />}

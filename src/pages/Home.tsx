@@ -1,4 +1,7 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import { useAdmin } from '../firebase/auth'
+import { NotificationBell } from '../components/NotificationBell'
+import { studentNotices, trainerNotices } from '../lib/notifications'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Radio, Shield, Trophy, Zap, QrCode, Presentation, GraduationCap, Building2 } from 'lucide-react'
@@ -23,6 +26,8 @@ export default function Home() {
   const { user, profile } = useAccount()
   const links = useAccountLinks()
   const signedIn = !!user && !user.isAnonymous
+  const admin = useAdmin()
+  const notices = useCallback(() => (admin.isAdmin ? trainerNotices(admin) : studentNotices(user?.uid ?? '')), [admin, user?.uid])
   const name = profile ? `${profile.firstName} ${profile.lastName}`.trim() : user?.displayName || user?.email?.split('@')[0] || ''
   const go = (e: React.FormEvent) => { e.preventDefault(); nav(pin.length === 6 ? `/join?pin=${pin}` : '/join') }
   return (
@@ -32,7 +37,7 @@ export default function Home() {
         <Logo size={38} />
         <nav className="flex items-center gap-1.5 sm:gap-2" aria-label={t.menu.account}>
           <Link to="/pricing" className="btn btn-ghost-dark btn-sm hidden md:inline-flex">{t.acct.pricingTitle}</Link>
-          {signedIn ? <AccountMenu uid={user!.uid} name={name} email={user!.email} photo={user!.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} /> : <>
+          {signedIn ? <><NotificationBell load={notices} /><AccountMenu uid={user!.uid} name={name} email={user!.email} photo={user!.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} /></> : <>
             <LangSwitch />
             <Link to="/start" className="btn btn-ghost-dark btn-sm hidden sm:inline-flex">{t.acct.signIn}</Link>
             <Link to="/start" className="btn btn-primary btn-sm whitespace-nowrap">{t.acct.signUp}<ArrowRight /></Link>
