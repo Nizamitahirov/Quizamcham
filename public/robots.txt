@@ -2,6 +2,8 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+# Google səhifəni render edərkən açıq məlumatları (qiymətlər və s.) oxuya bilsin — qaydalar serverdə yoxlanılır
+Allow: /api/db/get
 Disallow: /admin
 Disallow: /host/
 Disallow: /g/
