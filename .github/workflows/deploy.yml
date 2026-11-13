@@ -81,3 +81,7 @@ jobs:
             if curl -fsS -m 20 "https://$h/api/health" >/dev/null; then echo "✅ https://$h işləyir"
             else echo "::warning::https://$h hələ cavab vermir (DNS yayılmasını gözləyin; sertifikat avtomatik alınacaq)"; fi
           done
+          # SEO marşrutları Caddy-dən keçir (köhnə konfiqurasiya qalarsa burada görünür)
+          main="$(echo "${SITE_HOST:-$fallback}" | cut -d, -f1 | tr -d ' ')"
+          curl -fsS -m 20 "https://$main/sitemap-quizzes.xml" | grep -q '<urlset' && echo "✅ quiz sitemap" || { echo "sitemap-quizzes.xml XML qaytarmır"; exit 1; }
+          curl -fsS -m 20 "https://$main/pricing" | grep -q 'canonical" href="https://jabr.az/pricing"' && echo "✅ /pricing öz HTML-i" || { echo "/pricing öz HTML-ini qaytarmır"; exit 1; }
