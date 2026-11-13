@@ -252,7 +252,8 @@ async function evaluate(c: Ctx): Promise<boolean> {
     return (await c.isGameHost(gid)) || (await c.isOwner()) || !(await c.exists(`games/${gid}`))
   }
   if (col === 'settings' && path.length === 2) {
-    if (op === 'get') return c.signedIn()
+    // qiymətlər ictimaidir (qiymətlər səhifəsi girişsiz də, axtarış botları üçün də açılır)
+    if (op === 'get') return c.signedIn() || id === 'pricing'
     if (op === 'list') return c.can('settings')
     if (op === 'delete' || op === 'create' || op === 'update') {
       if (id === 'access' && c.isSuper() && op !== 'delete'

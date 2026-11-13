@@ -193,7 +193,8 @@ service cloud.firestore {
     // settings/play_{uid} → həmin təlimçinin şəxsi daimi QR-ı
     // settings/access → rol icazələri (yalnız super admin dəyişir)
     match /settings/{doc} {
-      allow get: if signedIn();
+      // qiymətlər ictimaidir (qiymətlər səhifəsi girişsiz də açılır)
+      allow get: if signedIn() || doc == 'pricing';
       allow list: if can('settings');
       allow write: if (doc == 'access' && isSuper()
             && request.resource.data.keys().hasOnly(['admin', 'trainer', 'updatedAt', 'updatedBy'])
