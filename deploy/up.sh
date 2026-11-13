@@ -28,6 +28,14 @@ if [ -n "${SERVER_IP:-}" ]; then
 fi
 docker compose up -d --build --remove-orphans
 docker image prune -f >/dev/null
+# Caddyfile konteynerə tək fayl kimi bağlanıb: rsync faylı yenisi ilə əvəz edəndə konteyner köhnə nüsxəni görməyə davam edir.
+# Konfiqurasiya dəyişibsə, Caddy yenidən başladılır (bağlama yenilənir).
+want=$(sha256sum Caddyfile | cut -d' ' -f1)
+have=$(docker compose exec -T caddy sha256sum /etc/caddy/Caddyfile 2>/dev/null | cut -d' ' -f1 || true)
+if [ "$want" != "$have" ]; then
+  echo "==> Caddyfile dəyişib — Caddy yenidən başladılır"
+  docker compose restart caddy
+fi
 sleep 5
 docker compose ps
 echo "==> hazır ictimai quizlər:"
