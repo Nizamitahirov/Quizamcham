@@ -14,6 +14,12 @@
 		reverse_proxy api:3000
 	}
 
+	# ictimai quiz səhifələri (SEO): serverdə hazır HTML
+	@seo path /quizzes /quiz/* /sitemap-quizzes.xml
+	handle @seo {
+		reverse_proxy api:3000
+	}
+
 	handle {
 		root * /srv/www
 		# ictimai səhifələrin öz HTML-i var (build zamanı: dist/pricing/index.html və s.), qalanı SPA-nın index.html-i

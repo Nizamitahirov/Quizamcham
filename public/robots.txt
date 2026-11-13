@@ -36,3 +36,5 @@ Disallow: /ru/learn/
 Disallow: /en/learn/
 
 Sitemap: https://jabr.az/sitemap.xml
+
+Sitemap: https://jabr.az/sitemap-quizzes.xml

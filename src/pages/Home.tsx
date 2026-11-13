@@ -5,7 +5,7 @@ import { studentNotices, trainerNotices } from '../lib/notifications'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, Radio, Shield, Trophy, Zap, QrCode, Presentation, GraduationCap, Building2 } from 'lucide-react'
-import { t } from '../i18n/az'
+import { currentLang, t } from '../i18n/az'
 import { Logo } from '../components/Brand'
 import { CONTACT, useAccount } from '../lib/account'
 import { AccountMenu } from '../components/AccountMenu'
@@ -141,6 +141,8 @@ function Landing() {
             <Link to="/terms" className="hover:text-white">{t.legal.terms}</Link>
             <Link to="/consent" className="hover:text-white">{t.legal.consent}</Link>
             <Link to="/pricing" className="hover:text-white">{t.acct.pricingTitle}</Link>
+            {/* ictimai kataloq serverdə hazırlanır (SPA-dan kənar, dil prefiksi yoxdur) */}
+            <a href="/quizzes" className="hover:text-white">{{ az: 'Quiz kataloqu', ru: 'Каталог квизов', en: 'Quiz catalogue' }[currentLang()]}</a>
           </nav>
           <div className="flex flex-wrap gap-x-4 gap-y-1 md:ml-auto"><a href={`tel:${CONTACT.phone}`} className="hover:text-white">{CONTACT.phoneLabel}</a><a href={`mailto:${CONTACT.email}`} className="hover:text-white">{CONTACT.email}</a></div>
         </div>

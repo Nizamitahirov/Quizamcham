@@ -12,13 +12,15 @@ import { LANGS, PAGES, pageUrl, STATIC_BODY, type Lang } from '../src/lib/seoPag
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const OG_LOCALE: Record<Lang, string> = { az: 'az_AZ', ru: 'ru_RU', en: 'en_GB' }
 const NAV: Record<Lang, [string, string][]> = {
-  az: [['/join', 'Oyuna qoşul'], ['/start', 'Pulsuz qeydiyyat'], ['/pricing', 'Qiymətlər']],
-  ru: [['/join', 'Присоединиться'], ['/start', 'Бесплатная регистрация'], ['/pricing', 'Цены']],
-  en: [['/join', 'Join a game'], ['/start', 'Sign up free'], ['/pricing', 'Pricing']],
+  az: [['/join', 'Oyuna qoşul'], ['/start', 'Pulsuz qeydiyyat'], ['/pricing', 'Qiymətlər'], ['/quizzes', 'Quiz kataloqu']],
+  ru: [['/join', 'Присоединиться'], ['/start', 'Бесплатная регистрация'], ['/pricing', 'Цены'], ['/quizzes', 'Каталог квизов']],
+  en: [['/join', 'Join a game'], ['/start', 'Sign up free'], ['/pricing', 'Pricing'], ['/quizzes', 'Quiz catalogue']],
 }
 const LANG_NAME: Record<Lang, string> = { az: 'Azərbaycanca', ru: 'Русский', en: 'English' }
 const A = 'style="color:#FF7A1A"'
 const rel = (u: string) => u.replace('https://jabr.az', '') || '/'
+/** kataloq yalnız bir ünvandadır (dil prefiksi yoxdur) */
+const navHref = (lang: Lang, r: string) => (r === '/quizzes' ? r : rel(pageUrl(lang, r)))
 
 export function renderPage(tpl: string, route: string, lang: Lang): string {
   const m = PAGES[route][lang]
@@ -38,7 +40,7 @@ export function renderPage(tpl: string, route: string, lang: Lang): string {
   swap(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(m.desc)}$2`)
   swap(/(<meta property="og:locale" content=")[^"]*(")/, `$1${OG_LOCALE[lang]}$2`)
   if (body) {
-    const nav = NAV[lang].map(([r, label]) => `<a href="${rel(pageUrl(lang, r))}" ${A}>${esc(label)}</a>`).join(' · ')
+    const nav = NAV[lang].map(([r, label]) => `<a href="${navHref(lang, r)}" ${A}>${esc(label)}</a>`).join(' · ')
     const langs = LANGS.filter((l) => l !== lang).map((l) => `<a href="${rel(pageUrl(l, route))}" hreflang="${l}" ${A}>${LANG_NAME[l]}</a>`).join(' · ')
     swap(/<!--seo-body-->[\s\S]*?<!--\/seo-body-->/, `<!--seo-body--><h1 style="color:#fff">${esc(body.h1)}</h1>\n${body.html}\n<p>${nav}</p>\n<p>${langs}</p>\n<!--/seo-body-->`)
   }
