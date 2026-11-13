@@ -12,6 +12,7 @@ import { limit } from './ratelimit.js'
 import { aiRoutes, migrateAi } from './ai.js'
 import { mailRoutes } from './campaigns.js'
 import { learnRoutes } from './learn.js'
+import { publicPageRoutes } from './publicPages.js'
 import { fileRoutes, migrateFiles } from './files.js'
 import { clearAll, commit, DbError, getDoc, migrate, pool, runQuery, type Query, type Write } from './store.js'
 
@@ -64,6 +65,7 @@ authRoutes(app)
 aiRoutes(app)
 mailRoutes(app)
 learnRoutes(app)
+publicPageRoutes(app)
 fileRoutes(app)
 await realtimeRoutes(app)
 
