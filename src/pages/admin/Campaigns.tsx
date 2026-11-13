@@ -5,7 +5,7 @@ import type { AdminState } from '../../firebase/auth'
 import { t } from '../../i18n/az'
 import { Field, Section, Segmented, EmptyState } from '../../components/kit'
 import { confirmDialog, toast } from '../../components/dialogs'
-import { campAudience, campList, campPreview, campSend, type AiLang, type CampContent, type CampFilter, type CampItem, type CampTier } from '../../lib/ai'
+import { campAudience, campList, campPreview, campSend, type AiLang, type CampContent, type CampFilter, type CampItem, type CampLicense, type CampTier } from '../../lib/ai'
 
 const C = t.camp
 const TIERS: CampTier[] = ['trial', 'free', 'trainer', 'pro', 'business', 'team']
@@ -13,27 +13,39 @@ const LANGS: AiLang[] = ['az', 'ru', 'en']
 const DRAFT = 'jabr.camp.draft'
 const site = typeof location !== 'undefined' ? location.origin : 'https://jabr.az'
 
-type Tpl = 'launch' | 'offer' | 'news' | 'blank'
+type Tpl = 'launch' | 'offer' | 'news' | 'renew' | 'expiring' | 'blank'
 const TPL: Record<AiLang, Record<Exclude<Tpl, 'blank'>, Omit<CampContent, 'lang' | 'hero'>>> = {
   az: {
     launch: { subject: 'Jabr-da yenilik: {ad}, bunu sınamısınız? ✨', preheader: 'Yeni imkanlar artıq hesabınızda', title: 'Quizləriniz indi daha güclüdür', body: 'Salam, {ad}!\n\nJabr-a yeni imkanlar əlavə etdik — dərslərinizi və təlimlərinizi daha canlı etmək üçün.\n\nAşağıda ən vacibləri:', features: [{ emoji: '⚡', title: 'AI ilə quiz', text: 'PDF və ya təqdimat yükləyin — suallar saniyələr içində hazır.' }, { emoji: '🧑‍🚀', title: '3D avatarlar', text: 'İştirakçılar öz 3D obrazları ilə oyuna qoşulur.' }, { emoji: '📊', title: 'Dərin analitika', text: 'Hər sual üzrə kim nəyi bilmir — bir baxışda.' }], ctaLabel: 'Yenilikləri sına', ctaUrl: `${site}/admin` },
     offer: { subject: '{ad}, Pro plana xüsusi təklif 🎁', preheader: 'Məhdud müddətli endirim', title: 'Pro ilə auditoriyanızı böyüdün', body: 'Salam, {ad}!\n\nPro plan ilə bir oyunda 200 iştirakçıya qədər, AI ilə qiymətləndirmə və kurslar sizin olur.\n\nBu həftə ərzində Pro plana keçənlər üçün xüsusi endirim etdik.', features: [{ emoji: '👥', title: '200 iştirakçı', text: 'Böyük auditoriya və tədbirlər üçün.' }, { emoji: '🤖', title: 'AI qiymətləndirmə', text: 'Açıq cavablar avtomatik yoxlanılır.' }, { emoji: '🎓', title: 'Kurslar', text: 'Quizləri ardıcıl təlim proqramına çevirin.' }], ctaLabel: 'Təklifə bax', ctaUrl: `${site}/pricing` },
+    renew: { subject: '{ad}, Jabr lisenziyanız bitib', preheader: 'Quizləriniz yerindədir — planı yeniləyin', title: 'Lisenziyanız {tarix} tarixində bitib', body: 'Salam, {ad}!\n\nJabr lisenziyanızın müddəti {tarix} tarixində başa çatıb. Hesabınız pulsuz plana keçib: quizləriniz, siniflər və nəticələr yerindədir, amma oyunlarda iştirakçı sayı və AI imkanları məhdudlaşıb.\n\nPlanı yeniləmək üçün aşağıdakı düyməyə klikləyin və ya bu məktuba cavab yazın — sizinlə əlaqə saxlayaq.', features: [{ emoji: '👥', title: 'Böyük auditoriya', text: 'Bir oyunda daha çox iştirakçı.' }, { emoji: '🤖', title: 'AI ilə quiz', text: 'Suallar mövzudan və ya fayldan saniyələr içində.' }, { emoji: '📊', title: 'Analitika və hesabatlar', text: 'Excel ixracı, sertifikatlar, dərin təhlil.' }], ctaLabel: 'Planı yenilə', ctaUrl: `${site}/pricing` },
+    expiring: { subject: '{ad}, lisenziyanız {tarix} tarixində bitir', preheader: 'Fasilə olmasın — vaxtında yeniləyin', title: 'Lisenziyanız tezliklə bitir', body: 'Salam, {ad}!\n\nJabr lisenziyanızın müddəti {tarix} tarixində bitir. Dərs və təlimləriniz yarımçıq qalmasın deyə planı əvvəlcədən yeniləməyi tövsiyə edirik.\n\nSualınız varsa, bu məktuba cavab yazın.', features: [], ctaLabel: 'Planı yenilə', ctaUrl: `${site}/pricing` },
     news: { subject: 'Jabr xəbərləri', preheader: 'Bu ay platformada nələr oldu', title: 'Bu ayın xəbərləri', body: 'Salam, {ad}!\n\nBu ay Jabr-da nələr dəyişdi — qısaca.', features: [], ctaLabel: 'Jabr-ı aç', ctaUrl: site },
   },
   ru: {
     launch: { subject: 'Новое в Jabr: {имя}, уже пробовали? ✨', preheader: 'Новые возможности уже в вашем аккаунте', title: 'Ваши квизы стали мощнее', body: 'Здравствуйте, {имя}!\n\nМы добавили в Jabr новые возможности, чтобы ваши уроки и тренинги стали живее.\n\nСамое важное:', features: [{ emoji: '⚡', title: 'Квиз с AI', text: 'Загрузите PDF или презентацию — вопросы готовы за секунды.' }, { emoji: '🧑‍🚀', title: '3D-аватары', text: 'Участники входят в игру со своим 3D-образом.' }, { emoji: '📊', title: 'Глубокая аналитика', text: 'Что не усвоено — по каждому вопросу.' }], ctaLabel: 'Попробовать', ctaUrl: `${site}/admin` },
     offer: { subject: '{имя}, особое предложение на Pro 🎁', preheader: 'Скидка на ограниченное время', title: 'Расширьте аудиторию с Pro', body: 'Здравствуйте, {имя}!\n\nС Pro — до 200 участников в игре, AI-проверка ответов и курсы.\n\nНа этой неделе для перехода на Pro действует особая скидка.', features: [{ emoji: '👥', title: '200 участников', text: 'Для больших аудиторий и мероприятий.' }, { emoji: '🤖', title: 'AI-проверка', text: 'Открытые ответы проверяются автоматически.' }, { emoji: '🎓', title: 'Курсы', text: 'Соберите квизы в учебную программу.' }], ctaLabel: 'Смотреть предложение', ctaUrl: `${site}/pricing` },
+    renew: { subject: '{имя}, срок вашей лицензии Jabr истёк', preheader: 'Ваши квизы на месте — продлите план', title: 'Лицензия истекла {дата}', body: 'Здравствуйте, {имя}!\n\nСрок вашей лицензии Jabr истёк {дата}. Аккаунт переведён на бесплатный план: квизы, классы и результаты сохранены, но число участников и AI-функции ограничены.\n\nЧтобы продлить план, нажмите кнопку ниже или ответьте на это письмо — мы свяжемся с вами.', features: [{ emoji: '👥', title: 'Большая аудитория', text: 'Больше участников в одной игре.' }, { emoji: '🤖', title: 'Квизы с AI', text: 'Вопросы по теме или файлу за секунды.' }, { emoji: '📊', title: 'Аналитика и отчёты', text: 'Экспорт в Excel, сертификаты, глубокий анализ.' }], ctaLabel: 'Продлить план', ctaUrl: `${site}/pricing` },
+    expiring: { subject: '{имя}, ваша лицензия истекает {дата}', preheader: 'Продлите заранее, чтобы не было перерыва', title: 'Лицензия скоро истекает', body: 'Здравствуйте, {имя}!\n\nСрок вашей лицензии Jabr истекает {дата}. Чтобы занятия и тренинги не прерывались, рекомендуем продлить план заранее.\n\nЕсли есть вопросы — просто ответьте на это письмо.', features: [], ctaLabel: 'Продлить план', ctaUrl: `${site}/pricing` },
     news: { subject: 'Новости Jabr', preheader: 'Что нового на платформе за месяц', title: 'Новости месяца', body: 'Здравствуйте, {имя}!\n\nКоротко о том, что изменилось в Jabr за этот месяц.', features: [], ctaLabel: 'Открыть Jabr', ctaUrl: site },
   },
   en: {
     launch: { subject: 'New in Jabr: {name}, have you tried this? ✨', preheader: 'New features are already in your account', title: 'Your quizzes just got more powerful', body: 'Hi {name}!\n\nWe added new features to Jabr to make your classes and trainings more engaging.\n\nThe highlights:', features: [{ emoji: '⚡', title: 'AI quiz builder', text: 'Upload a PDF or a deck — questions are ready in seconds.' }, { emoji: '🧑‍🚀', title: '3D avatars', text: 'Players join with their own 3D look.' }, { emoji: '📊', title: 'Deep analytics', text: 'See what was missed, question by question.' }], ctaLabel: 'Try it now', ctaUrl: `${site}/admin` },
     offer: { subject: '{name}, a special Pro offer 🎁', preheader: 'Limited-time discount', title: 'Grow your audience with Pro', body: 'Hi {name}!\n\nPro gives you up to 200 players per game, AI grading and courses.\n\nThis week only, upgrading to Pro comes with a special discount.', features: [{ emoji: '👥', title: '200 players', text: 'For large audiences and events.' }, { emoji: '🤖', title: 'AI grading', text: 'Open answers are checked automatically.' }, { emoji: '🎓', title: 'Courses', text: 'Turn quizzes into a learning path.' }], ctaLabel: 'See the offer', ctaUrl: `${site}/pricing` },
+    renew: { subject: '{name}, your Jabr licence has expired', preheader: 'Your quizzes are safe — renew your plan', title: 'Your licence expired on {date}', body: 'Hi {name}!\n\nYour Jabr licence expired on {date}. Your account has moved to the free plan: your quizzes, classes and results are safe, but player numbers and AI features are now limited.\n\nTo renew, click the button below or reply to this email and we will get in touch.', features: [{ emoji: '👥', title: 'Bigger audiences', text: 'More players in a single game.' }, { emoji: '🤖', title: 'AI quizzes', text: 'Questions from a topic or a file in seconds.' }, { emoji: '📊', title: 'Analytics and reports', text: 'Excel export, certificates, deep insights.' }], ctaLabel: 'Renew my plan', ctaUrl: `${site}/pricing` },
+    expiring: { subject: '{name}, your licence ends on {date}', preheader: 'Renew early to avoid a break', title: 'Your licence ends soon', body: 'Hi {name}!\n\nYour Jabr licence ends on {date}. Renew ahead of time so your classes and trainings are not interrupted.\n\nQuestions? Just reply to this email.', features: [], ctaLabel: 'Renew my plan', ctaUrl: `${site}/pricing` },
     news: { subject: 'Jabr news', preheader: 'What happened on the platform this month', title: 'This month at Jabr', body: 'Hi {name}!\n\nA quick look at what changed in Jabr this month.', features: [], ctaLabel: 'Open Jabr', ctaUrl: site },
   },
 }
 const blank = (lang: AiLang): CampContent => ({ subject: '', preheader: '', title: '', body: '', hero: '', features: [], ctaLabel: '', ctaUrl: site, lang })
 const fromTpl = (lang: AiLang, k: Tpl): CampContent => (k === 'blank' ? blank(lang) : { ...TPL[lang][k], hero: '', lang })
-const DEFAULT_FILTER: CampFilter = { audience: 'all', tiers: [], langs: [], joinedDays: 0, emails: [], kind: 'marketing' }
+const DEFAULT_FILTER: CampFilter = { audience: 'all', tiers: [], langs: [], joinedDays: 0, emails: [], kind: 'marketing', license: 'any', licenseDays: 0 }
+const LICENSES: CampLicense[] = ['any', 'expiring', 'expired', 'trialEnded']
+/** Lisenziya şablonu seçiləndə auditoriya da uyğun qurulur (xidməti elan — hesabla bağlı məlumat). */
+const TPL_FILTER: Partial<Record<Tpl, Partial<CampFilter>>> = {
+  renew: { audience: 'trainers', tiers: [], license: 'expired', licenseDays: 30, kind: 'service' },
+  expiring: { audience: 'trainers', tiers: [], license: 'expiring', licenseDays: 7, kind: 'service' },
+}
 
 function loadDraft(): { content: CampContent; filter: CampFilter } {
   try {
@@ -84,10 +96,11 @@ export default function Campaigns() {
     const n = ++seq.current
     const id = setTimeout(() => {
       if (!content.subject.trim() || !content.title.trim()) return setPreview(null)
-      void campPreview(content).then((p) => { if (n === seq.current) setPreview(p) }).catch(() => {})
+      void campPreview(content, filter).then((p) => { if (n === seq.current) setPreview(p) }).catch(() => {})
     }, 400)
     return () => clearTimeout(id)
-  }, [content])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [content, filter.license, filter.licenseDays])
 
   const loadList = useCallback(() => { void campList().then((r) => setItems(r.items)).catch(() => setItems([])) }, [])
   useEffect(loadList, [loadList])
@@ -135,6 +148,19 @@ export default function Campaigns() {
               ) : (
                 <>
                   {filter.audience === 'trainers' && <Field label={C.tiers}><ChipPick all={C.anyTier} value={filter.tiers} onChange={(v) => setF({ tiers: v })} options={TIERS.map((x) => ({ value: x, label: C.tierNames[x] }))} /></Field>}
+                  {filter.audience === 'trainers' && (
+                    <Field label={C.license}>
+                      <Segmented size="sm" value={filter.license} onChange={(v) => setF({ license: v, licenseDays: v === 'expiring' ? 7 : 0 })} options={LICENSES.map((x) => ({ value: x, label: C.licOpts[x] }))} />
+                      {filter.license !== 'any' && (
+                        <div className="mt-2">
+                          {filter.license === 'expiring'
+                            ? <Segmented size="sm" value={filter.licenseDays || 7} onChange={(v) => setF({ licenseDays: v })} options={[7, 14, 30].map((d) => ({ value: d, label: C.licNext[d] }))} />
+                            : <Segmented size="sm" value={filter.licenseDays} onChange={(v) => setF({ licenseDays: v })} options={[0, 7, 30, 90].map((d) => ({ value: d, label: C.licPast[d] }))} />}
+                          <p className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-muted"><Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />{C.licHint}</p>
+                        </div>
+                      )}
+                    </Field>
+                  )}
                   <Field label={C.langs}><ChipPick all={C.anyLang} value={filter.langs} onChange={(v) => setF({ langs: v })} options={LANGS.map((x) => ({ value: x, label: x.toUpperCase() }))} /></Field>
                   <Field label={C.joined}><Segmented size="sm" value={filter.joinedDays} onChange={(v) => setF({ joinedDays: v })} options={[0, 7, 30, 90].map((d) => ({ value: d, label: C.joinedOpts[d] }))} /></Field>
                 </>
@@ -154,7 +180,8 @@ export default function Campaigns() {
                     {aud.sample.map((r) => (
                       <li key={r.email} className="flex min-w-0 items-center gap-2 text-xs">
                         <span className="truncate font-medium text-fg2">{r.name || '—'}</span><span className="truncate text-muted">{r.email}</span>
-                        <span className="chip chip-muted ml-auto shrink-0">{r.tier ? C.tierNames[r.tier] : C.students}</span><span className="chip chip-muted shrink-0">{r.lang.toUpperCase()}</span>
+                        {r.until && filter.license !== 'any' && <span className="chip chip-warn ml-auto shrink-0">{(r.until > Date.now() ? C.until : C.ended)(new Date(r.until).toLocaleDateString())}</span>}
+                        <span className={`chip chip-muted shrink-0 ${r.until && filter.license !== 'any' ? '' : 'ml-auto'}`}>{r.tier ? C.tierNames[r.tier] : C.students}</span><span className="chip chip-muted shrink-0">{r.lang.toUpperCase()}</span>
                       </li>
                     ))}
                   </ul>
@@ -169,7 +196,7 @@ export default function Campaigns() {
                 <Field label={C.letterLang}><Segmented size="sm" value={content.lang} onChange={(v) => set({ lang: v })} options={LANGS.map((x) => ({ value: x, label: x.toUpperCase() }))} /></Field>
                 <Field label={C.templates}>
                   <div className="flex flex-wrap gap-1.5">
-                    {(['launch', 'offer', 'news', 'blank'] as Tpl[]).map((k) => <button key={k} type="button" className="btn btn-secondary btn-sm" onClick={() => setContent(fromTpl(content.lang, k))}>{C.tplNames[k]}</button>)}
+                    {(['launch', 'offer', 'news', 'renew', 'expiring', 'blank'] as Tpl[]).map((k) => <button key={k} type="button" className="btn btn-secondary btn-sm" onClick={() => { setContent(fromTpl(content.lang, k)); const f = TPL_FILTER[k]; if (f) setF(f) }}>{C.tplNames[k]}</button>)}
                   </div>
                 </Field>
               </div>
