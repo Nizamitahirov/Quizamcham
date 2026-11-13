@@ -224,6 +224,11 @@ describe('məxfilik (audit düzəlişləri)', () => {
     await assertSucceeds(setDoc(doc(as(OWNER), 'settings', 'app'), { bannedWords: [] }))
     await assertSucceeds(setDoc(doc(as(TRAINER), 'settings', `play_${TRAINER}`), { activeGameId: 'g1' }))
     await assertFails(setDoc(doc(as(TRAINER), 'settings', `play_${OWNER}`), { activeGameId: 'g1' }))
+    // qiymətlər girişsiz oxunur, digər ayarlar yox
+    const anon = env.unauthenticatedContext().firestore()
+    await assertSucceeds(getDoc(doc(anon, 'settings', 'pricing')))
+    await assertFails(getDoc(doc(anon, 'settings', 'app')))
+    await assertFails(setDoc(doc(anon, 'settings', 'pricing'), { plans: [] }))
   })
   it('Q&A: iştirakçı olmayan yaza bilmir; 10 s-də bir sual', async () => {
     const b = Math.floor(Date.now() / 10000)
