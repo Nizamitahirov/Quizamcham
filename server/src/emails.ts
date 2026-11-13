@@ -169,8 +169,23 @@ export function welcomeEmail(lang: Lang, o: { name: string; student: boolean; tr
 // ---------- Marketinq kampaniyası ----------
 export interface CampaignContent { subject: string; preheader?: string; title: string; body: string; hero?: string; features?: { emoji: string; title: string; text: string }[]; ctaLabel?: string; ctaUrl?: string; lang: Lang }
 /** {ad} → alıcının adı. Mətn abzaslara boş sətirlə bölünür. */
-export function campaignEmail(c: CampaignContent, o: { name: string; unsubscribe?: string }, base: string) {
-  const fill = (s: string) => s.replace(/\{(ad|name|имя)\}/gi, o.name || '').replace(/\s+([,!.?])/g, '$1').trim()
+const DATE_LOCALE: Record<Lang, string> = { az: 'az-AZ', ru: 'ru-RU', en: 'en-GB' }
+/** Tarix məktubda: "14 noyabr 2026" (Bakı vaxtı ilə). */
+export function fmtMailDate(ms: number, lang: Lang): string {
+  const d = new Date(ms)
+  if (lang === 'az') {
+    const M = ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avqust', 'sentyabr', 'oktyabr', 'noyabr', 'dekabr']
+    const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Baku', day: 'numeric', month: 'numeric', year: 'numeric' }).formatToParts(d)
+    const g = (t: string) => Number(p.find((x) => x.type === t)?.value)
+    return `${g('day')} ${M[g('month') - 1]} ${g('year')}`
+  }
+  return new Intl.DateTimeFormat(DATE_LOCALE[lang], { timeZone: 'Asia/Baku', day: 'numeric', month: 'long', year: 'numeric' }).format(d)
+}
+
+/** Dəyişənlər: {ad}/{name}/{имя} — ad; {tarix}/{date}/{дата} — lisenziya/sınaq bitmə tarixi. */
+export function campaignEmail(c: CampaignContent, o: { name: string; until?: number; unsubscribe?: string }, base: string) {
+  const date = o.until ? fmtMailDate(o.until, c.lang) : ''
+  const fill = (s: string) => s.replace(/\{(ad|name|имя)\}/gi, o.name || '').replace(/\{(tarix|date|дата)\}/gi, date).replace(/\s+([,!.?])/g, '$1').trim()
   const intro = c.body.split(/\n\s*\n/).map((x) => fill(x.replace(/\s*\n\s*/g, ' '))).filter(Boolean)
   const cta = c.ctaLabel && c.ctaUrl && /^https?:\/\//.test(c.ctaUrl) ? { label: c.ctaLabel, url: c.ctaUrl } : undefined
   const features = (c.features ?? []).filter((f) => f.title.trim()).map((f) => ({ emoji: f.emoji || '✨', title: fill(f.title), text: fill(f.text) }))
