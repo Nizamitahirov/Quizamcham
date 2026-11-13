@@ -20,6 +20,8 @@
   },
   "include": [
     "vite.config.ts",
+    "scripts/prerender-seo.ts",
+    "src/lib/seoPages.ts",
     "vitest.rules.config.ts",
     "vitest.jabr.config.ts",
     "tests/**/*.ts",

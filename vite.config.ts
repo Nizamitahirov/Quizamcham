@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath } from 'node:url'
+import { prerenderSeo } from './scripts/prerender-seo'
 
 /**
  * VITE_BACKEND=jabr → "firebase/*" importları öz serverimizin klient SDK-sına (src/lib/jdb) yönləndirilir.
@@ -12,7 +13,7 @@ const jabr = process.env.VITE_BACKEND === 'jabr'
 const jdb = (f: string) => fileURLToPath(new URL(`./src/lib/jdb/${f}.ts`, import.meta.url))
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [react(), tailwindcss(), prerenderSeo()],
   resolve: jabr ? {
     alias: [
       { find: /^firebase\/app$/, replacement: jdb('app') },
