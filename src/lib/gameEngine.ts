@@ -134,9 +134,11 @@ export async function assignTeams(gameId: string, players: Player[], n: number) 
   const pending = players.filter((p) => !p.kicked && (p.team == null || p.team >= n))
     .sort((a, b) => (a.joinedAt?.toMillis() ?? 0) - (b.joinedAt?.toMillis() ?? 0))
   if (!pending.length) return
-  const batch = writeBatch(db)
-  pending.forEach((p) => { const tm = pickTeam(counts); counts[tm]++; batch.update(doc(db, 'games', gameId, 'players', p.uid), { team: tm }) })
-  await batch.commit()
+  for (let i = 0; i < pending.length; i += 450) {
+    const batch = writeBatch(db)
+    pending.slice(i, i + 450).forEach((p) => { const tm = pickTeam(counts); counts[tm]++; batch.update(doc(db, 'games', gameId, 'players', p.uid), { team: tm }) })
+    await batch.commit()
+  }
 }
 
 export const kickPlayer = (gameId: string, uid: string) => updateDoc(doc(db, 'games', gameId, 'players', uid), { kicked: true })
@@ -362,10 +364,15 @@ export async function finishQuestion(game: Game, questions: Question[]) {
     correctCount,
   }
 
-  const batch = writeBatch(db)
+  // Server bir batch-da ≤500 yazı qəbul edir: 1000+ oyunçuda nəticələr hissə-hissə yazılır,
+  // oyunun "reveal" fazası isə ƏN SONDA — telefonlar nəticəni öz xalları artıq yazılmış halda görür.
+  let batch = writeBatch(db), ops = 0
+  const flush = async () => { if (ops) { await batch.commit(); batch = writeBatch(db); ops = 0 } }
   for (const u of updated) {
     if (u.p.kicked || !u.item) continue
     const ev = u.ev!
+    if (ops >= 450) await flush()
+    ops++
     batch.update(doc(db, 'games', game.id, 'players', u.p.uid), {
       score: u.p.score, correctCount: u.p.correctCount ?? 0, streak: u.p.streak ?? 0, bestStreak: u.p.bestStreak ?? 0,
       totalCorrectTimeMs: u.p.totalCorrectTimeMs ?? 0, history: u.p.history,
