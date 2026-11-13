@@ -4,8 +4,8 @@
  */
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { currentLang } from '../i18n/az'
-import { PAGES, SITE } from './seoPages'
+import { currentLang, urlLang } from '../i18n/az'
+import { LANGS, PAGES, pageUrl } from './seoPages'
 
 const PUBLIC = new Set([...Object.keys(PAGES), '/consent', '/marketing-consent'])
 
@@ -20,7 +20,7 @@ export function useSeo() {
   const { pathname } = useLocation()
   useEffect(() => {
     const path = pathname.replace(/\/+$/, '') || '/'
-    const m = PAGES[path]?.[currentLang()] ?? PAGES[path]?.az
+    const m = PAGES[path]?.[urlLang() ?? currentLang()] ?? PAGES[path]?.az
     const idx = PUBLIC.has(path)
     document.title = m?.title ?? (idx ? 'Jabr' : 'Jabr — canlı quiz platforması')
     if (m) {
@@ -28,8 +28,19 @@ export function useSeo() {
       setMeta('meta[property="og:title"]', 'content', m.title, () => { const e = document.createElement('meta'); e.setAttribute('property', 'og:title'); return e })
       setMeta('meta[property="og:description"]', 'content', m.desc, () => { const e = document.createElement('meta'); e.setAttribute('property', 'og:description'); return e })
     }
-    setMeta('link[rel="canonical"]', 'href', SITE + (path === '/' ? '/' : path), () => Object.assign(document.createElement('link'), { rel: 'canonical' }))
-    setMeta('meta[property="og:url"]', 'content', SITE + (path === '/' ? '/' : path), () => { const e = document.createElement('meta'); e.setAttribute('property', 'og:url'); return e })
+    // canonical və og:url — ünvandakı dilə görə (/ru/..., /en/...)
+    const url = pageUrl(urlLang() ?? 'az', path)
+    setMeta('link[rel="canonical"]', 'href', url, () => Object.assign(document.createElement('link'), { rel: 'canonical' }))
+    setMeta('meta[property="og:url"]', 'content', url, () => { const e = document.createElement('meta'); e.setAttribute('property', 'og:url'); return e })
+    // hreflang: yalnız dil versiyaları olan ictimai səhifələrdə
+    document.head.querySelectorAll('link[rel="alternate"][hreflang]').forEach((e) => e.remove())
+    if (PAGES[path]) {
+      for (const l of [...LANGS, 'x-default' as const]) {
+        const e = document.createElement('link')
+        e.rel = 'alternate'; e.hreflang = l; e.href = pageUrl(l === 'x-default' ? 'az' : l, path)
+        document.head.appendChild(e)
+      }
+    }
     // şəxsi səhifələr (panel, oyun, hesab) axtarışa düşməsin
     setMeta('meta[name="robots"]', 'content', idx ? 'index, follow, max-image-preview:large' : 'noindex, nofollow', () => Object.assign(document.createElement('meta'), { name: 'robots' }))
   }, [pathname])

@@ -1,4 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom'
+import { LANG_BASE } from './i18n/az'
 import { lazy, Suspense, type ReactNode } from 'react'
 import App from './App'
 import { OwnerOnly } from './components/OwnerOnly'
@@ -97,4 +98,4 @@ export const router = createBrowserRouter([
       { path: '*', element: S(<NotFound />) },
     ],
   },
-])
+], { basename: LANG_BASE || undefined })

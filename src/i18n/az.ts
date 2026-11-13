@@ -892,7 +892,17 @@ import { en } from './en'
 import { ru } from './ru'
 export type Lang = 'az' | 'ru' | 'en'
 export const LANG_KEY = 'qz.lang'
+/** Ünvandakı dil prefiksi: /ru/... və /en/... (axtarış sistemləri üçün hər dilin öz ünvanı var); prefikssiz — az. */
+export function urlLang(): Lang | null {
+  if (typeof location === 'undefined') return null
+  const m = /^\/(ru|en)(?=\/|$)/.exec(location.pathname)
+  return m ? (m[1] as Lang) : null
+}
+/** Router üçün baza yolu: /ru, /en və ya '' */
+export const LANG_BASE = urlLang() ? `/${urlLang()}` : ''
 export function currentLang(): Lang {
+  const u = urlLang()
+  if (u) { try { localStorage.setItem(LANG_KEY, u) } catch { /* noop */ } return u }
   try { const v = localStorage.getItem(LANG_KEY); if (v === 'en' || v === 'az' || v === 'ru') return v } catch { /* noop */ }
   // ilk dəfə: brauzerin dilinə görə (rus dilli istifadəçilər üçün)
   try { if (/^ru\b/i.test(navigator.language)) return 'ru' } catch { /* noop */ }
@@ -900,7 +910,12 @@ export function currentLang(): Lang {
 }
 export function setLang(l: Lang) {
   try { localStorage.setItem(LANG_KEY, l) } catch { /* noop */ }
-  location.reload()
+  // ünvanda dil prefiksi varsa, yeni dilin ünvanına keç (/ru/pricing → /pricing və ya /en/pricing)
+  const rest = location.pathname.replace(/^\/(ru|en)(?=\/|$)/, '') || '/'
+  if (urlLang() || l !== 'az') {
+    const next = (l === 'az' ? '' : `/${l}`) + (rest === '/' && l !== 'az' ? '' : rest)
+    location.assign(next + location.search + location.hash)
+  } else location.reload()
 }
 export const t: Dict = { az, ru, en }[currentLang()]
 /** Tarix və rəqəm formatı üçün (müqayisə/normallaşdırma üçün DEYİL). */
