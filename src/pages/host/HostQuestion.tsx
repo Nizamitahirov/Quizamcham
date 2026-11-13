@@ -40,12 +40,14 @@ export function HostQuestion({ game, players, answered }: HostCtx) {
             <div className="text-2xl text-white/70">{t.host.answered(answered.size, players.length)}</div>
             <div className="h-2 w-64 overflow-hidden rounded-full bg-white/10"><motion.div className="h-full rounded-full" style={{ background: 'var(--grad)' }} animate={{ width: `${players.length ? (answered.size / players.length) * 100 : 0}%` }} /></div>
           </div>
+          {/* böyük auditoriyada ekran avatarlarla dolmasın: ən çox 48 (əvvəlcə cavab verənlər) + qalanların sayı */}
           <div className="flex max-w-3xl flex-wrap justify-center gap-1">
-            {players.map((p) => (
+            {(players.length > 48 ? [...players].sort((a, b) => Number(answered.has(b.uid)) - Number(answered.has(a.uid))).slice(0, 48) : players).map((p) => (
               <motion.span key={p.uid} animate={{ opacity: answered.has(p.uid) ? 1 : 0.2, scale: answered.has(p.uid) ? 1 : 0.85 }}>
                 <Avatar avatar={p.avatar} size={36} />
               </motion.span>
             ))}
+            {players.length > 48 && <span className="chip chip-dark self-center px-3 py-1.5 text-base tabular-nums">+{players.length - 48}</span>}
           </div>
         </div>
       </div>

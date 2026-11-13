@@ -29,6 +29,7 @@ function useQrSize() {
   return s
 }
 
+const LOBBY_SHOW = 80
 export function HostLobby({ game, players, onKick }: HostCtx & { onKick: (p: Player) => void }) {
   const url = `${window.location.origin}/join?pin=${game.pin}`
   const short = `${window.location.host}`
@@ -76,11 +77,13 @@ export function HostLobby({ game, players, onKick }: HostCtx & { onKick: (p: Pla
           </div>
         ) : (
           <div className="scrollbar-thin flex min-h-0 flex-wrap content-start gap-3 overflow-auto pb-4">
-            <AnimatePresence>
-              {sorted.map((p, i) => {
+            {/* böyük auditoriya: yalnız son qoşulan 80 nəfər göstərilir (1000 animasiyalı element host ekranını yavaşladır) */}
+            {sorted.length > LOBBY_SHOW && <div className="glass flex items-center rounded-full px-5 py-3 text-xl font-bold tabular-nums">+{sorted.length - LOBBY_SHOW}</div>}
+            <AnimatePresence initial={false}>
+              {sorted.slice(-LOBBY_SHOW).map((p, i) => {
                 const idle = p.lastSeen ? now - p.lastSeen.toMillis() > 90000 : false
                 return (
-                  <motion.div key={p.uid} layout initial={{ y: -300, opacity: 0, rotate: -20 }} animate={{ y: 0, opacity: 1, rotate: 0, scale: [1, 1.15, 1] }} exit={{ scale: 0, opacity: 0 }}
+                  <motion.div key={p.uid} layout={sorted.length <= 40} initial={{ y: -300, opacity: 0, rotate: -20 }} animate={{ y: 0, opacity: 1, rotate: 0, scale: [1, 1.15, 1] }} exit={{ scale: 0, opacity: 0 }}
                     transition={{ type: 'spring', stiffness: 220, damping: 14, delay: Math.min(i, 5) * 0.03 }}
                     className="glass group relative flex items-center gap-3 rounded-full py-1.5 pl-1.5 pr-5" title={idle ? t.host.idle : undefined}>
                     <span className="rounded-full" style={p.team != null && TEAMS[p.team] ? { boxShadow: `0 0 0 3px ${TEAMS[p.team].color}` } : undefined}><Avatar avatar={p.avatar} size={52} dim={idle} /></span>

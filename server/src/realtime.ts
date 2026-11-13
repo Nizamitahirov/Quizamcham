@@ -18,8 +18,8 @@ import { changes, DbError, getDoc, runQuery, type Caller, type Query } from './s
 import { deepEqual, type Doc } from './values.js'
 
 type Sub =
-  | { kind: 'doc'; path: string; last?: string }
-  | { kind: 'query'; query: Query; last?: string }
+  | { kind: 'doc'; path: string; last?: string; pending?: boolean }
+  | { kind: 'query'; query: Query; last?: string; pending?: boolean; size?: number }
 
 interface Conn { ws: WebSocket; caller: Caller; subs: Map<string, Sub>; queue: Promise<void> }
 const conns = new Set<Conn>()
@@ -40,6 +40,7 @@ async function evalSub(c: Conn, id: string, s: Sub, force = false) {
       send(c, { t: 'doc', id, path: s.path, data })
     } else {
       const docs = await runQuery(c.caller, s.query)
+      s.size = docs.length
       const key = JSON.stringify(docs)
       if (!force && key === s.last) return
       s.last = key
@@ -48,14 +49,46 @@ async function evalSub(c: Conn, id: string, s: Sub, force = false) {
   } catch (e) {
     s.last = undefined
     send(c, { t: 'error', id, code: codeOf(e) })
-    c.subs.delete(id) // Firestore kimi: xəta abunəni bitirir
+    if (c.subs.get(id) === s) { c.subs.delete(id); indexDel(s) } // Firestore kimi: xəta abunəni bitirir
   }
 }
 
 /** Hər bağlantı üçün ardıcıl iş növbəsi (mesajların sırası qorunur). */
 const enqueue = (c: Conn, fn: () => Promise<void>) => { c.queue = c.queue.then(fn, fn) }
 
-const affects = (s: Sub, path: string, parent: string) => (s.kind === 'doc' ? s.path === path : s.query.parent === parent)
+/**
+ * İndeks: sənəd yolu → ona baxan abunələr; kolleksiya → ona baxan sorğular.
+ * Dəyişiklik zamanı bütün bağlantıları gəzmək lazım olmur (1000+ oyunçu).
+ */
+type Entry = { c: Conn; id: string; s: Sub }
+const byDoc = new Map<string, Set<Entry>>(), byParent = new Map<string, Set<Entry>>()
+const keyOf = (s: Sub) => (s.kind === 'doc' ? s.path : s.query.parent)
+const idx = (s: Sub) => (s.kind === 'doc' ? byDoc : byParent)
+const entries = new WeakMap<Sub, Entry>()
+function indexAdd(c: Conn, id: string, s: Sub) {
+  const e: Entry = { c, id, s }; entries.set(s, e)
+  const m = idx(s), k = keyOf(s); let set = m.get(k); if (!set) m.set(k, (set = new Set())); set.add(e)
+}
+function indexDel(s: Sub) {
+  const e = entries.get(s); if (!e) return
+  const m = idx(s), k = keyOf(s), set = m.get(k); set?.delete(e); if (set && !set.size) m.delete(k)
+}
+
+/** Sorğular üçün toplama pəncərəsi: çoxlu dəyişiklik (məs. 1000 cavab) bir yenidən hesablamaya birləşir. */
+const QUERY_BATCH_MS = Number(process.env.RT_QUERY_BATCH_MS ?? 200)
+/**
+ * Yenidən hesablamanı planlaşdırır. Abunə üçün artıq gözləyən hesablama varsa, yenisi əlavə olunmur —
+ * növbə heç vaxt dəyişiklik sayına görə böyümür (əvvəl 1000 oyunçuda host sorğusu O(N²) iş yığırdı).
+ */
+function schedule(e: Entry) {
+  const { c, id, s } = e
+  if (s.pending) return
+  s.pending = true
+  const run = () => enqueue(c, async () => { s.pending = false; if (c.subs.get(id) === s) await evalSub(c, id, s) })
+  // böyük nəticələr (məs. 1000 oyunçu) daha seyrək göndərilir — klient hər dəfə bütün siyahını emal edir
+  if (s.kind === 'query') setTimeout(run, (s.size ?? 0) > 300 ? QUERY_BATCH_MS * 3 : QUERY_BATCH_MS)
+  else setImmediate(run)
+}
 
 /**
  * Sənəd dəyişəndə: həmin sənədə və ya onun kolleksiyasına baxan abunələr yenidən hesablanır.
@@ -64,9 +97,8 @@ const affects = (s: Sub, path: string, parent: string) => (s.kind === 'doc' ? s.
  */
 changes.on('change', ({ path }: { path: string; data: Doc | null }) => {
   const parent = path.split('/').slice(0, -1).join('/')
-  for (const c of conns) {
-    for (const [id, s] of c.subs) if (affects(s, path, parent)) enqueue(c, () => evalSub(c, id, s))
-  }
+  for (const e of byDoc.get(path) ?? []) schedule(e)
+  for (const e of byParent.get(parent) ?? []) schedule(e)
 })
 
 export async function realtimeRoutes(app: FastifyInstance) {
@@ -98,16 +130,18 @@ export async function realtimeRoutes(app: FastifyInstance) {
             if (!m.id || typeof m.id !== 'string' || m.id.length > 64) return
             if (!c.subs.has(m.id) && c.subs.size >= MAX_SUBS) { send(c, { t: 'error', id: m.id, code: 'resource-exhausted' }); return }
             const s: Sub = m.kind === 'doc' ? { kind: 'doc', path: String(m.path) } : { kind: 'query', query: m.query as Query }
-            c.subs.set(m.id, s)
+            if (s.kind === 'query' && (!s.query || typeof s.query.parent !== 'string')) return
+            const old = c.subs.get(m.id); if (old) indexDel(old)
+            c.subs.set(m.id, s); indexAdd(c, m.id, s)
             await evalSub(c, m.id, s, true)
             break
           }
-          case 'unsub': if (m.id) c.subs.delete(m.id); break
+          case 'unsub': if (m.id) { const old = c.subs.get(m.id); if (old) indexDel(old); c.subs.delete(m.id) } break
           case 'ping': send(c, { t: 'pong', now: Date.now() }); break
         }
       })
     })
-    ws.on('close', () => { conns.delete(c); c.subs.clear(); const n = (perIp.get(ip) ?? 1) - 1; if (n <= 0) perIp.delete(ip); else perIp.set(ip, n) })
+    ws.on('close', () => { conns.delete(c); for (const sub of c.subs.values()) indexDel(sub); c.subs.clear(); const n = (perIp.get(ip) ?? 1) - 1; if (n <= 0) perIp.delete(ip); else perIp.set(ip, n) })
     ws.on('error', () => ws.close())
   })
 }
