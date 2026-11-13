@@ -5,14 +5,34 @@ Disallow: /api/
 # Google səhifəni render edərkən açıq məlumatları (qiymətlər və s.) oxuya bilsin — qaydalar serverdə yoxlanılır
 Allow: /api/db/get
 Disallow: /admin
+Disallow: /ru/admin
+Disallow: /en/admin
 Disallow: /host/
+Disallow: /ru/host/
+Disallow: /en/host/
 Disallow: /g/
+Disallow: /ru/g/
+Disallow: /en/g/
 Disallow: /q/
+Disallow: /ru/q/
+Disallow: /en/q/
 Disallow: /play
+Disallow: /ru/play
+Disallow: /en/play
 Disallow: /account
+Disallow: /ru/account
+Disallow: /en/account
 Disallow: /avatar
+Disallow: /ru/avatar
+Disallow: /en/avatar
 Disallow: /onboarding
+Disallow: /ru/onboarding
+Disallow: /en/onboarding
 Disallow: /reset
+Disallow: /ru/reset
+Disallow: /en/reset
 Disallow: /learn/
+Disallow: /ru/learn/
+Disallow: /en/learn/
 
 Sitemap: https://jabr.az/sitemap.xml

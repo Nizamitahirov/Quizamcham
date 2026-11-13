@@ -31,27 +31,56 @@ export const PAGES: Record<string, Record<Lang, Meta>> = {
   '/terms': { az: { title: 'İstifadə şərtləri — Jabr', desc: 'Jabr platformasının istifadə şərtləri.' }, ru: { title: 'Условия использования — Jabr', desc: 'Условия использования Jabr.' }, en: { title: 'Terms of use — Jabr', desc: 'Jabr terms of use.' } },
 }
 
-/** Serverdən gələn HTML-də (JS işə düşməzdən əvvəl) görünən mətn — hər ictimai səhifə üçün ayrıca. */
-export const STATIC_BODY: Record<string, { h1: string; html: string }> = {
+export const LANGS: Lang[] = ['az', 'ru', 'en']
+/** Dil + yol → tam ünvan: az prefikssiz, ru/en — /ru/..., /en/... */
+export const pageUrl = (lang: Lang, route: string) => SITE + (lang === 'az' ? '' : `/${lang}`) + (route === '/' ? (lang === 'az' ? '/' : '') : route)
+
+type Body = { h1: string; html: string }
+/** Serverdən gələn HTML-də (JS işə düşməzdən əvvəl) görünən mətn — hər ictimai səhifə və dil üçün ayrıca. */
+export const STATIC_BODY: Record<string, Record<Lang, Body>> = {
   '/': {
-    h1: 'Jabr — canlı quiz platforması',
-    html: `<p>Dərs, təlim və tədbirlər üçün interaktiv quizlər yaradın. Süni intellekt mövzudan, PDF və ya təqdimatdan sualları saniyələr içində hazırlayır; iştirakçılar telefonla PIN və ya QR kodla qoşulur, nəticələr real vaxtda ekranda görünür.</p>
+    az: {
+      h1: 'Jabr — canlı quiz platforması',
+      html: `<p>Dərs, təlim və tədbirlər üçün interaktiv quizlər yaradın. Süni intellekt mövzudan, PDF və ya təqdimatdan sualları saniyələr içində hazırlayır; iştirakçılar telefonla PIN və ya QR kodla qoşulur, nəticələr real vaxtda ekranda görünür.</p>
 <h2>İmkanlar</h2>
 <ul><li>Canlı quiz oyunları — liderlər cədvəli, podium, səs effektləri</li><li>AI ilə sual yaratma (mövzu, mətn, PDF, PPTX, DOCX)</li><li>Siniflər, kurslar, tapşırıqlar və irəliləyiş</li><li>Analitika, Excel ixracı və sertifikatlar</li><li>Azərbaycan, rus və ingilis dillərində</li></ul>`,
+    },
+    ru: {
+      h1: 'Jabr — платформа живых квизов',
+      html: `<p>Создавайте интерактивные квизы для уроков, тренингов и мероприятий. Искусственный интеллект за секунды готовит вопросы по теме, PDF или презентации; участники подключаются с телефона по PIN или QR-коду, а результаты появляются на экране в реальном времени.</p>
+<h2>Возможности</h2>
+<ul><li>Живые квиз-игры — таблица лидеров, подиум, звуковые эффекты</li><li>Генерация вопросов с AI (тема, текст, PDF, PPTX, DOCX)</li><li>Классы, курсы, задания и прогресс учеников</li><li>Аналитика, экспорт в Excel и сертификаты</li><li>На азербайджанском, русском и английском языках</li></ul>`,
+    },
+    en: {
+      h1: 'Jabr — live quiz platform',
+      html: `<p>Create interactive quizzes for classes, trainings and events. AI drafts questions from a topic, a PDF or a slide deck in seconds; players join from their phones with a PIN or QR code, and results appear on screen in real time.</p>
+<h2>Features</h2>
+<ul><li>Live quiz games — leaderboard, podium, sound effects</li><li>AI question generation (topic, text, PDF, PPTX, DOCX)</li><li>Classes, courses, assignments and progress tracking</li><li>Analytics, Excel export and certificates</li><li>Available in Azerbaijani, Russian and English</li></ul>`,
+    },
   },
   '/pricing': {
-    h1: 'Jabr qiymətləri',
-    html: `<p>Pulsuz başlayın. Təlimçilər üçün Trainer, Pro və Business planları daha çox iştirakçı, AI ilə sual yaratma, analitika və komanda imkanları verir. Qiymət iştirakçı sayına görədir — iştirakçılar heç vaxt ödəmir.</p>
-<p>Tələbələr üçün Jabr həmişə pulsuzdur. Təşkilatlar üçün fərdi təklif almaq mümkündür.</p>`,
+    az: { h1: 'Jabr qiymətləri', html: '<p>Pulsuz başlayın. Təlimçilər üçün Trainer, Pro və Business planları daha çox iştirakçı, AI ilə sual yaratma, analitika və komanda imkanları verir. Qiymət iştirakçı sayına görədir — iştirakçılar heç vaxt ödəmir.</p>\n<p>Tələbələr üçün Jabr həmişə pulsuzdur. Təşkilatlar üçün fərdi təklif almaq mümkündür.</p>' },
+    ru: { h1: 'Цены Jabr', html: '<p>Начните бесплатно. Планы Trainer, Pro и Business для тренеров дают больше участников, генерацию вопросов с AI, аналитику и командную работу. Цена зависит от числа участников — участники никогда не платят.</p>\n<p>Для студентов Jabr всегда бесплатен. Для организаций доступно индивидуальное предложение.</p>' },
+    en: { h1: 'Jabr pricing', html: '<p>Start free. The Trainer, Pro and Business plans give trainers more players, AI question generation, analytics and team features. Pricing depends on the number of players — players never pay.</p>\n<p>Jabr is always free for students. Custom offers are available for organisations.</p>' },
   },
   '/join': {
-    h1: 'Canlı quizə qoşul',
-    html: '<p>Təlimçinin ekranındakı 6 rəqəmli PIN kodu daxil edin və ya QR kodu telefonla skan edin. Qeydiyyat tələb olunmur — adınızı yazın, avatar seçin və oyuna qoşulun.</p>',
+    az: { h1: 'Canlı quizə qoşul', html: '<p>Təlimçinin ekranındakı 6 rəqəmli PIN kodu daxil edin və ya QR kodu telefonla skan edin. Qeydiyyat tələb olunmur — adınızı yazın, avatar seçin və oyuna qoşulun.</p>' },
+    ru: { h1: 'Присоединиться к живому квизу', html: '<p>Введите 6-значный PIN с экрана тренера или отсканируйте QR-код телефоном. Регистрация не нужна — введите имя, выберите аватар и играйте.</p>' },
+    en: { h1: 'Join a live quiz', html: '<p>Enter the 6-digit PIN shown on the host screen or scan the QR code with your phone. No sign-up needed — type your name, pick an avatar and play.</p>' },
   },
   '/start': {
-    h1: 'Jabr-da pulsuz qeydiyyat',
-    html: '<p>Google hesabı ilə bir kliklə qeydiyyatdan keçin. Təlimçilər 3 gün Pro planı pulsuz sınaya bilər, tələbələr isə quiz kataloqunda limitsiz məşq edir.</p>',
+    az: { h1: 'Jabr-da pulsuz qeydiyyat', html: '<p>Google hesabı ilə bir kliklə qeydiyyatdan keçin. Təlimçilər 3 gün Pro planı pulsuz sınaya bilər, tələbələr isə quiz kataloqunda limitsiz məşq edir.</p>' },
+    ru: { h1: 'Бесплатная регистрация в Jabr', html: '<p>Зарегистрируйтесь в один клик через Google. Тренеры получают 3 дня Pro бесплатно, студенты — безлимитную практику в каталоге квизов.</p>' },
+    en: { h1: 'Sign up to Jabr for free', html: '<p>Sign up with your Google account in one click. Trainers get a free 3-day Pro trial, and students get unlimited practice in the quiz catalogue.</p>' },
   },
-  '/privacy': { h1: 'Məxfilik siyasəti', html: '<p>Jabr hansı şəxsi məlumatları toplayır, onları necə istifadə edir və saxlayır, və sizin hüquqlarınız.</p>' },
-  '/terms': { h1: 'İstifadə şərtləri', html: '<p>Jabr platformasından istifadə qaydaları və şərtləri.</p>' },
+  '/privacy': {
+    az: { h1: 'Məxfilik siyasəti', html: '<p>Jabr hansı şəxsi məlumatları toplayır, onları necə istifadə edir və saxlayır, və sizin hüquqlarınız.</p>' },
+    ru: { h1: 'Политика конфиденциальности', html: '<p>Какие персональные данные собирает Jabr, как они используются и хранятся, и ваши права.</p>' },
+    en: { h1: 'Privacy policy', html: '<p>What personal data Jabr collects, how it is used and stored, and your rights.</p>' },
+  },
+  '/terms': {
+    az: { h1: 'İstifadə şərtləri', html: '<p>Jabr platformasından istifadə qaydaları və şərtləri.</p>' },
+    ru: { h1: 'Условия использования', html: '<p>Правила и условия использования платформы Jabr.</p>' },
+    en: { h1: 'Terms of use', html: '<p>Rules and conditions for using the Jabr platform.</p>' },
+  },
 }
