@@ -29,24 +29,36 @@ const T = {
   az: {
     catalog: 'Quiz kataloqu', catalogTitle: 'Pulsuz quizlər — Jabr kataloqu', catalogDesc: 'Jabr-da pulsuz ictimai quizlər: mövzular üzrə məşq edin və ya canlı oyun kimi keçirin.',
     questions: (n: number) => `${n} sual`, level: { easy: 'Asan', medium: 'Orta', hard: 'Çətin' } as Record<string, string>,
-    practice: 'Pulsuz məşq et', host: 'Canlı oyun kimi keçir', preview: 'Suallar', more: (n: number) => `və daha ${n} sual`,
+    practice: 'Pulsuz məşq et', share: 'Sinfinizlə paylaşın', host: 'Canlı oyun kimi keçir', preview: 'Suallar', more: (n: number) => `və daha ${n} sual`,
     author: 'Müəllif', desc: (t: string, n: number) => `“${t}” — ${n} suallıq pulsuz quiz. Jabr-da məşq edin və ya sinifdə canlı oyun kimi keçirin.`,
     tf: 'Doğru / Yanlış', open: 'Açıq cavab', notFound: 'Quiz tapılmadı', back: 'Kataloqa qayıt', home: 'Ana səhifə', empty: 'Hələ ictimai quiz yoxdur.', other: 'Digər',
   },
   ru: {
     catalog: 'Каталог квизов', catalogTitle: 'Бесплатные квизы — каталог Jabr', catalogDesc: 'Бесплатные публичные квизы в Jabr: тренируйтесь по темам или проводите как живую игру.',
     questions: (n: number) => `${n} вопр.`, level: { easy: 'Лёгкий', medium: 'Средний', hard: 'Сложный' } as Record<string, string>,
-    practice: 'Тренироваться бесплатно', host: 'Провести как живую игру', preview: 'Вопросы', more: (n: number) => `и ещё ${n} вопр.`,
+    practice: 'Тренироваться бесплатно', share: 'Поделиться с классом', host: 'Провести как живую игру', preview: 'Вопросы', more: (n: number) => `и ещё ${n} вопр.`,
     author: 'Автор', desc: (t: string, n: number) => `«${t}» — бесплатный квиз из ${n} вопросов. Тренируйтесь в Jabr или проведите его в классе как живую игру.`,
     tf: 'Верно / Неверно', open: 'Открытый ответ', notFound: 'Квиз не найден', back: 'Вернуться в каталог', home: 'Главная', empty: 'Пока нет публичных квизов.', other: 'Другое',
   },
   en: {
     catalog: 'Quiz catalogue', catalogTitle: 'Free quizzes — Jabr catalogue', catalogDesc: 'Free public quizzes on Jabr: practise by topic or run them as a live game.',
     questions: (n: number) => `${n} questions`, level: { easy: 'Easy', medium: 'Medium', hard: 'Hard' } as Record<string, string>,
-    practice: 'Practise for free', host: 'Run as a live game', preview: 'Questions', more: (n: number) => `and ${n} more`,
+    practice: 'Practise for free', share: 'Share with your class', host: 'Run as a live game', preview: 'Questions', more: (n: number) => `and ${n} more`,
     author: 'Author', desc: (t: string, n: number) => `“${t}” — a free ${n}-question quiz. Practise on Jabr or run it in class as a live game.`,
     tf: 'True / False', open: 'Open answer', notFound: 'Quiz not found', back: 'Back to the catalogue', home: 'Home', empty: 'No public quizzes yet.', other: 'Other',
   },
+}
+
+/** Classroom / Teams / WhatsApp / Telegram — rəsmi paylaşma keçidləri (JS-siz). */
+function shareLinks(url: string, title: string, label: string) {
+  const e = encodeURIComponent
+  const links: [string, string][] = [
+    ['Google Classroom', `https://classroom.google.com/share?url=${e(url)}&title=${e(title)}`],
+    ['Microsoft Teams', `https://teams.microsoft.com/share?href=${e(url)}&msgText=${e(title)}&preview=true`],
+    ['WhatsApp', `https://wa.me/?text=${e(`${title}\n${url}`)}`],
+    ['Telegram', `https://t.me/share/url?url=${e(url)}&text=${e(title)}`],
+  ]
+  return `<p class="share">${esc(label)}: ${links.map(([n, h]) => `<a href="${esc(h)}" target="_blank" rel="noopener nofollow">${n}</a>`).join(' · ')}</p>`
 }
 
 const CSS = `*{box-sizing:border-box}body{margin:0;background:#090A13;color:#C3C6DC;font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
@@ -59,7 +71,7 @@ h1{color:#fff;font-size:clamp(26px,5vw,38px);line-height:1.15;margin:.2em 0 .4em
 ol.qs{padding-left:22px}ol.qs li{margin:0 0 14px}ol.qs ul{margin:6px 0 0;padding-left:18px;color:#9A9DB8;font-size:15px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;list-style:none;padding:0}
 .card{display:block;height:100%;border:1px solid #23263C;border-radius:16px;padding:14px 16px;background:#11131F;text-decoration:none;color:#C3C6DC}
-.card b{display:block;color:#fff;font-size:16px;margin-bottom:4px}.card small{color:#8E91AD}footer{margin-top:48px;font-size:14px;color:#8E91AD}`
+.share{font-size:14px;color:#8E91AD}.card b{display:block;color:#fff;font-size:16px;margin-bottom:4px}.card small{color:#8E91AD}footer{margin-top:48px;font-size:14px;color:#8E91AD}`
 
 function page(lang: Lang, o: { title: string; desc: string; url: string; body: string; jsonLd?: unknown; noindex?: boolean }) {
   const ld = o.jsonLd ? `<script type="application/ld+json">${JSON.stringify(o.jsonLd).replace(/</g, '\\u003c')}</script>` : ''
@@ -101,6 +113,7 @@ export function quizPage(id: string, d: Item): { lang: Lang; html: string } {
 <ul class="chips">${chips.map((c) => `<li>${esc(c)}</li>`).join('')}</ul>
 ${d.description ? `<p>${esc(d.description)}</p>` : `<p>${esc(L.desc(title, n))}</p>`}
 <div class="cta"><a class="btn btn-p" href="/learn/${encodeURIComponent(id)}">${esc(L.practice)}</a><a class="btn btn-s" href="/start">${esc(L.host)}</a></div>
+${shareLinks(url, title, L.share)}
 ${items ? `<h2>${esc(L.preview)}</h2><ol class="qs">${items}</ol>${qs.length > SHOW ? `<p>${esc(L.more(qs.length - SHOW))}</p>` : ''}` : ''}`
   const jsonLd = {
     '@context': 'https://schema.org', '@type': 'Quiz', name: title, description: desc, url, inLanguage: lang,

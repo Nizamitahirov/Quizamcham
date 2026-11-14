@@ -511,6 +511,7 @@ export const en: Dict = {
     fonts: { default: 'Default', readable: 'Readable', dyslexic: 'Dyslexia' } as Record<string, string>, large: 'Larger text', contrast: 'High contrast',
     addTime: '+15 s', addTimeHint: 'Give everyone 15 more seconds for this question' },
   monitor: { title: 'Server health', sub: 'Database, disk and backups — you get an email when something is wrong', state: { ok: 'All good', warn: 'Attention', crit: 'Problem' } as Record<string, string> },
+  share: { share: 'Share', email: 'Email', copy: 'Copy link', copied: 'Link copied', more: 'More…', classInvite: (n: string) => `Join the class "${n}"`, taskInvite: (n: string) => `New assignment: ${n}` },
   av: {
     title: 'Avatar studio', sub: 'Create your own 3D avatar — hair, face, hats, outfits, bags and more', save: 'Save', saving: 'Saving…', saved: 'Avatar saved',
     mine: 'My 3D avatar', create: 'Create a 3D avatar', random: 'Randomize', reset: 'Reset', rotate: 'Drag to rotate', unsaved: 'You have unsaved changes', custom: 'Custom', loginNeeded: 'Sign in to create an avatar',

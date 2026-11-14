@@ -778,6 +778,7 @@ export const az = {
     fonts: { default: 'Standart', readable: 'Oxunaqlı', dyslexic: 'Disleksiya' } as Record<string, string>, large: 'Böyük mətn', contrast: 'Yüksək kontrast',
     addTime: '+15 san', addTimeHint: 'Bu sual üçün hamıya 15 saniyə əlavə et' },
   monitor: { title: 'Server vəziyyəti', sub: 'Baza, disk və ehtiyat nüsxələr — problem olanda e-poçtla xəbər verilir', state: { ok: 'Hər şey qaydasındadır', warn: 'Diqqət', crit: 'Problem var' } as Record<string, string> },
+  share: { share: 'Paylaş', email: 'E-poçt', copy: 'Keçidi kopyala', copied: 'Keçid kopyalandı', more: 'Digər…', classInvite: (n: string) => `"${n}" sinfinə qoşulun`, taskInvite: (n: string) => `Yeni tapşırıq: ${n}` },
   av: {
     title: 'Avatar studiyası', sub: 'Öz 3D avatarınızı yaradın — saç, üz, papaq, geyim, çanta və daha çoxu', save: 'Yadda saxla', saving: 'Saxlanılır…', saved: 'Avatar yadda saxlanıldı',
     mine: 'Mənim 3D avatarım', create: '3D avatar yarat', random: 'Təsadüfi', reset: 'Sıfırla', rotate: 'Fırlatmaq üçün sürüşdürün', unsaved: 'Yadda saxlanmamış dəyişikliklər var', custom: 'Öz rəngin', loginNeeded: 'Avatar yaratmaq üçün daxil olun',
