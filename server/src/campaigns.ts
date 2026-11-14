@@ -126,13 +126,13 @@ export async function audience(f: Filter): Promise<{ list: Recipient[]; noConsen
     else {
       if (f.audience === 'students' && !student) continue
       if (f.audience === 'trainers' && student) continue
-      if (f.tiers?.length && (student || !f.tiers.includes(tier!))) continue
+      // plan və lisenziya filtrləri yalnız "Təlimçilər" auditoriyasında (panelda da yalnız orada görünür)
+      if (f.audience === 'trainers' && f.tiers?.length && !f.tiers.includes(tier!)) continue
       if (f.langs?.length && !f.langs.includes(lang)) continue
       if (f.joinedDays && millis(u.createdAt) < now - f.joinedDays * 86_400_000) continue
     }
     let until = 0
-    if (f.audience !== 'custom' && f.license && f.license !== 'any') {
-      if (student) continue
+    if (f.audience === 'trainers' && f.license && f.license !== 'any') {
       const m = matchLicense(f.license, f.licenseDays ?? 0, ad, now)
       if (!m.ok) continue
       until = m.until

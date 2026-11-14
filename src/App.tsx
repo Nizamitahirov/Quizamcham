@@ -1,6 +1,7 @@
+import { Suspense } from 'react'
 import { Outlet } from 'react-router-dom'
 import { firebaseConfigured } from './firebase/config'
-import { OfflineBanner } from './components/ui'
+import { OfflineBanner, Spinner } from './components/ui'
 import { DialogHost } from './components/dialogs'
 import { t } from './i18n/az'
 import { useSeo } from './lib/seo'
@@ -13,7 +14,10 @@ export default function App() {
   return (
     <>
       <OfflineBanner />
-      <Outlet />
+      {/* yeganə Suspense sərhədi: yalnız ilk açılışda görünür; keçidlərdə köhnə səhifə yenisi hazır olana qədər qalır */}
+      <Suspense fallback={<div className="bg-app flex min-h-dvh items-center justify-center"><Spinner /></div>}>
+        <Outlet />
+      </Suspense>
       <DialogHost />
     </>
   )

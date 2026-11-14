@@ -27,6 +27,18 @@
     <meta name="theme-color" content="#090A13" />
     <meta name="color-scheme" content="dark light" />
     <script src="/theme-init.js"></script>
+    <!-- İlk açılış: serverdəki statik mətn (axtarış botları və ekran oxuyucuları üçün) vizual gizlədilir; tətbiq yüklənənə qədər
+         saytın fonu və gecikmiş, yumşaq yüklənmə işarəsi görünür. JS söndürülübsə (noscript) mətn adi şəkildə göstərilir. -->
+    <style>
+      html, body { margin: 0; background: #090A13; }
+      html[data-theme="light"], html[data-theme="light"] body { background: #F4F5FA; }
+      #root > .seo-static { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+      #root:has(> .seo-static)::after { content: ""; position: fixed; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; box-sizing: border-box;
+        border-radius: 50%; border: 3px solid rgba(255,122,26,.22); border-top-color: #FF7A1A; opacity: 0; animation: jabr-spin .8s linear infinite, jabr-in .25s .35s forwards; }
+      @keyframes jabr-spin { to { transform: rotate(360deg); } }
+      @keyframes jabr-in { to { opacity: 1; } }
+    </style>
+    <noscript><style>#root > .seo-static { position: static; width: auto; height: auto; overflow: visible; clip: auto; clip-path: none; white-space: normal; } #root::after { display: none; }</style></noscript>
     <title>Jabr — canlı quiz platforması | Dərs, təlim və tədbirlər üçün</title>
     <script type="application/ld+json">
     {
@@ -43,7 +55,7 @@
   </head>
   <body>
     <div id="root">
-      <main style="max-width:720px;margin:0 auto;padding:48px 20px;font-family:system-ui,sans-serif;color:#C3C6DC;background:#090A13">
+      <main class="seo-static" style="max-width:720px;margin:0 auto;padding:48px 20px;font-family:system-ui,sans-serif;color:#C3C6DC;background:#090A13">
         <!--seo-body-->
         <h1 style="color:#fff">Jabr — canlı quiz platforması</h1>
         <p>Dərs, təlim və tədbirlər üçün interaktiv quizlər yaradın. Süni intellekt mövzudan, PDF və ya təqdimatdan sualları saniyələr içində hazırlayır; iştirakçılar telefonla PIN və ya QR kodla qoşulur, nəticələr real vaxtda ekranda görünür.</p>

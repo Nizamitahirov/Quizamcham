@@ -88,7 +88,23 @@ function useAdminMenu(admin: AdminState, prof: TrainerProfile | null) {
   return { name: prof?.name || admin.user?.displayName || email.split('@')[0], email, photo: prof?.photoUrl || admin.user?.photoURL || null, badge: admin.plan.selfServe ? `${role} · ${t.acct.plans[admin.plan.tier]?.title ?? ''}` : role, links }
 }
 
+/** Panel açılandan sonra (boş vaxtda) digər bölmələrin kodu əvvəlcədən yüklənir — keçidlər dərhal olur. */
+const PRELOAD = [
+  () => import('./Dashboard'), () => import('./QuizList'), () => import('./Games'), () => import('./Classes'), () => import('./Courses'),
+  () => import('./Analytics'), () => import('./Profile'), () => import('./Team'), () => import('./Settings'), () => import('./QuizEditor'),
+  () => import('./GameReport'), () => import('./Console'), () => import('./Campaigns'), () => import('./Logs'), () => import('./Sounds'), () => import('./OrgTeam'),
+]
+function usePreloadSections() {
+  useEffect(() => {
+    const run = () => { for (const f of PRELOAD) void f().catch(() => {}) }
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }
+    const id = w.requestIdleCallback ? w.requestIdleCallback(run, { timeout: 3000 }) : window.setTimeout(run, 1500)
+    return () => { if (!w.requestIdleCallback) clearTimeout(id) }
+  }, [])
+}
+
 export default function AdminLayout() {
+  usePreloadSections()
   const admin = useAdmin()
   const [prof, setProf] = useState<TrainerProfile | null>(null)
   const [sheet, setSheet] = useState(false)

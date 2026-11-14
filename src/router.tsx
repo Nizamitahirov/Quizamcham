@@ -1,11 +1,11 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { LANG_BASE } from './i18n/az'
-import { lazy, Suspense, type ReactNode } from 'react'
+import { lazy, type ReactNode } from 'react'
 import App from './App'
 import { OwnerOnly } from './components/OwnerOnly'
-import { Spinner, RouteError } from './components/ui'
+import { RouteError } from './components/ui'
 
-const Home = lazy(() => import('./pages/Home'))
+import Home from './pages/Home'  // ana səhifə dərhal (ilk açılışda əlavə yükləmə və spinner olmasın)
 const Join = lazy(() => import('./pages/player/Join'))
 const Play = lazy(() => import('./pages/player/Play'))
 const PlayerGame = lazy(() => import('./pages/player/PlayerGame'))
@@ -43,7 +43,11 @@ const Pricing = lazy(() => import('./pages/account/Pricing'))
 const Account = lazy(() => import('./pages/account/Account'))
 const Analytics = lazy(() => import('./pages/admin/Analytics'))
 
-const S = (el: ReactNode) => <Suspense fallback={<div className="flex min-h-dvh items-center justify-center bg-night"><Spinner /></div>}>{el}</Suspense>
+/**
+ * Səhifələrin öz Suspense sərhədi yoxdur: bir ümumi sərhəd App-dadır. Naviqasiya startTransition ilə getdiyi üçün
+ * yeni səhifənin kodu yüklənənə qədər köhnə səhifə ekranda qalır (aradakı spinner/boş səhifə "yanıb-sönməsi" olmur).
+ */
+const S = (el: ReactNode) => el
 
 export const router = createBrowserRouter([
   {

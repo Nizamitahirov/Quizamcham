@@ -1,4 +1,4 @@
-import { useCallback, type ReactNode } from 'react'
+import { useCallback, useEffect, type ReactNode } from 'react'
 import { NotificationBell } from './NotificationBell'
 import { studentNotices } from '../lib/notifications'
 import { Link, useNavigate } from 'react-router-dom'
@@ -21,7 +21,20 @@ export function useAccountLinks(): MenuLink[] {
 }
 
 /** Tələbə səhifələri üçün vahid çərçivə: yapışqan başlıq + fon (təlimçi panelindəki ilə eyni üslub). */
+/** Tələbə bölmələrinin kodu boş vaxtda əvvəlcədən yüklənir — keçidlər dərhal olur. */
+let preloaded = false
+function usePreloadStudent() {
+  useEffect(() => {
+    if (preloaded) return
+    preloaded = true
+    const run = () => { for (const f of [() => import('../pages/account/Learn'), () => import('../pages/account/CoursePage'), () => import('../pages/account/Practice'), () => import('../pages/account/AssignmentPage'), () => import('../pages/account/Account'), () => import('../pages/account/Flashcards')]) void f().catch(() => {}) }
+    const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }
+    if (w.requestIdleCallback) w.requestIdleCallback(run, { timeout: 3000 }); else window.setTimeout(run, 1500)
+  }, [])
+}
+
 export function StudentShell({ children, back, title, width = 'max-w-6xl', actions }: { children: ReactNode; back?: string; title?: ReactNode; width?: string; actions?: ReactNode }) {
+  usePreloadStudent()
   const { user, profile } = useAccount()
   const nav = useNavigate()
   const links = useAccountLinks()
