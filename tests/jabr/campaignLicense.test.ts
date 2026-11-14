@@ -61,4 +61,24 @@ describe('kampaniya: lisenziya filtri', () => {
   it('super admin olmayan auditoriyanı görə bilmir', async () => {
     expect((await post('/api/campaigns/audience', { filter: filter({ license: 'expired' }) }, 'exp5')).status).toBe(403)
   })
+  it('istisna: siyahıdan çıxarılan göndərilmir və sayılır', async () => {
+    const r = await post('/api/campaigns/audience', { filter: filter({ license: 'expired', exclude: ['EXP5@x.az'] }) })
+    expect(emails(r.body)).toEqual(['exp60@x.az'])
+    expect(r.body.excluded).toBe(1)
+  })
+  it('seçilmiş şəxslər: tapılmayan ünvanlar və razılıq olmayanlar göstərilir', async () => {
+    const custom = { audience: 'custom', emails: ['exp5@x.az', 'yoxdur@x.az'], license: 'any' }
+    const m = await post('/api/campaigns/audience', { filter: filter({ ...custom, kind: 'marketing' }) })
+    expect(m.body.count).toBe(0)
+    expect(m.body.noConsent).toBe(1)
+    expect(m.body.noConsentEmails).toEqual(['exp5@x.az'])
+    expect(m.body.notFound).toEqual(['yoxdur@x.az'])
+    const s = await post('/api/campaigns/audience', { filter: filter({ ...custom, kind: 'service' }) })
+    expect(emails(s.body)).toEqual(['exp5@x.az'])
+  })
+  it('tək alıcı (konsol): önizləmə həmin istifadəçinin adı və tarixi ilə', async () => {
+    const content = { subject: '{ad}: {tarix}', title: 'T', body: '', preheader: '', hero: '', features: [], ctaLabel: '', ctaUrl: '', lang: 'az' }
+    const r = await post('/api/campaigns/preview', { content, filter: filter({ audience: 'custom', emails: ['exp5@x.az'], license: 'any' }) })
+    expect(String(r.body.subject)).toMatch(/^exp5: \d{1,2} \S+ \d{4}$/)
+  })
 })
