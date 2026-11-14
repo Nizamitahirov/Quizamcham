@@ -135,6 +135,7 @@ export interface Game {
   quizId: string
   hostUid: string
   title: string
+  brand?: Brand | null
   settings: QuizSettings
   phase: Phase
   locked: boolean
@@ -169,8 +170,10 @@ export interface Game {
 
 export interface TeamEntry { team: number; score: number; members: number; total: number }
 
+/** Şirkət brendi (Business planı): oyun ekranlarında loqo, ad və vurğu rəngi. */
+export interface Brand { name: string; color: string; logo: string }
 export interface HostProfile { name: string; title?: string; org?: string; avatar?: AvatarData | null; photoUrl?: string }
-export interface TrainerProfile extends HostProfile { bio?: string; email?: string; defaults?: Partial<QuizSettings> }
+export interface TrainerProfile extends HostProfile { brand?: Partial<Brand> & { on?: boolean }; bio?: string; email?: string; defaults?: Partial<QuizSettings> }
 export interface SelfReveal { correct: string[]; accepted?: string[] | null; sliderAnswer?: number | null; explanation?: string | null; pairs?: { left: string; right: string }[]; blanks?: string[][]; hotspot?: Hotspot; text?: string }
 
 export interface ReviewItem { type: QuestionType; text: string; options: Option[]; correct: string[]; accepted: string[] | null; sliderAnswer: number | null; explanation: string | null; scored: boolean; pairs?: { left: string; right: string }[]; blanks?: string[][]; hotspot?: Hotspot; imageUrl?: string }

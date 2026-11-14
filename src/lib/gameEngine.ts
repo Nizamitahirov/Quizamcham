@@ -8,6 +8,7 @@ import type { Answer, AvatarData, Award, Fastest, Game, GameStats, HistoryItem, 
 import { POWER_START } from './defaults'
 import { applyConfidence, evaluateAnswer, matchRightId, normalizeText, parseBlanks, rankPlayers, SCORED_TYPES, basePoints, streakBonus } from './scoring'
 import { randomPin } from './pin'
+import { brandOf } from './media'
 import { seededShuffle, shuffle } from './shuffle'
 import { serverNow } from './timeSync'
 import { shortName } from './nameFilter'
@@ -43,6 +44,9 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
   const p = prof?.exists() ? (prof.data() as TrainerProfile) : null
   const host: HostProfile | null = p?.name ? { name: p.name, title: p.title || '', org: p.org || '', avatar: p.avatar ?? null, photoUrl: p.photoUrl || '' } : null
 
+  // Şirkət brendi (Business): server planı və təşkilat sahibini özü yoxlayır
+  const brand = await brandOf().catch(() => null)
+
   // Plan: özü qeydiyyatdan keçən təlimçinin sınağı/lisenziyası bitibsə — pulsuz plan, oyunda maks. 10 iştirakçı
   const member = await getDoc(doc(db, 'admins', hostUid)).catch(() => null)
   const plan = planInfo(member?.exists() ? (member.data() as Parameters<typeof planInfo>[0]) : null)
@@ -56,7 +60,7 @@ export async function createGame(quizId: string, hostUid: string): Promise<strin
 
   const gameRef = doc(collection(db, 'games'))
   const game: Omit<Game, 'id'> = {
-    host,
+    host, brand,
     pin, quizId, hostUid, title: quiz.title, settings, plan: free ? 'free' : planR.selfServe ? 'pro' : 'team', ...(orgId ? { orgId } : {}),
     phase: 'lobby', locked: false, questionIndex: -1, totalQuestions: questions.length,
     currentQuestion: null, questionStartedAt: null, questionEndsAt: null, pausedRemainingMs: null,

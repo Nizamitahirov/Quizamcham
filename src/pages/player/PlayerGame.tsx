@@ -1,3 +1,4 @@
+import { BrandLogo, brandVars } from '../../components/CompanyBrand'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
@@ -105,7 +106,7 @@ export default function PlayerGame() {
   const tint = reveal ? (player.lastResult!.correct ? 'from-green-600/40' : 'from-red-600/35') : ''
 
   return (
-    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night">
+    <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night" style={brandVars(game.brand)}>
       <FuturisticBg floor={view.phase === 'lobby'} intensity={view.phase === 'question' ? 0.5 : 0.9} />
       {tint && <div className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${tint} to-transparent`} />}
       <FloatingEmojis items={flying.items} />
@@ -203,6 +204,7 @@ function LobbyView({ game, player, onReact }: { game: Game; player: Player; onRe
   const others = game.lobby.filter((p) => p.uid !== player.uid)
   return (
     <div className="flex flex-1 flex-col items-center gap-5 text-center">
+      {game.brand && (game.brand.logo || game.brand.name) && <BrandLogo brand={game.brand} size={38} />}
       <span className="chip chip-dark mt-2"><span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />{t.lobby.youAreIn}</span>
       <div className="relative">
         <div className="absolute -inset-4 animate-spin rounded-full opacity-60 blur-xl" style={{ background: 'conic-gradient(from 0deg, #E8202A, #FF8A1A, #FFB020, #E8202A)', animationDuration: '6s' }} />

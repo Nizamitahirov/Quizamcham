@@ -54,7 +54,7 @@ export function StudentShell({ children, back, title, width = 'max-w-6xl', actio
             {actions}
             {user && !user.isAnonymous && <NotificationBell load={notices} />}
             {user && !user.isAnonymous
-              ? <AccountMenu uid={user.uid} name={name || '—'} email={user.email} photo={user.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} />
+              ? <AccountMenu uid={user.uid} name={name || '—'} email={user.email} photo={profile?.photoURL || user.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} />
               : <LangSwitch />}
           </div>
         </div>

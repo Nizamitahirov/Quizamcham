@@ -3,6 +3,9 @@ import { Link, useOutletContext } from 'react-router-dom'
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth'
 import { Dices, Sparkles, KeyRound, Save, SlidersHorizontal, UserRound } from 'lucide-react'
 import { loadProfile, saveProfile } from '../../firebase/db'
+import { updateMyProfile } from '../../lib/account'
+import { PhotoUpload } from '../../components/PhotoUpload'
+import { BrandSettings } from '../../components/BrandSettings'
 import { withDefaults } from '../../lib/defaults'
 import { t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
@@ -30,7 +33,8 @@ import type { AdminState } from '../../firebase/auth'
 import type { QuizSettings, TrainerProfile } from '../../types'
 
 export default function Profile() {
-  const { user } = useOutletContext<AdminState>()
+  const admin = useOutletContext<AdminState>()
+  const { user } = admin
   const uid3d = user?.uid
   const [p, setP] = useState<TrainerProfile | null>(null)
   const [msg, setMsg] = useState('')
@@ -96,7 +100,15 @@ export default function Profile() {
               <Field label={t.profile.name}><input className="input" value={p.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} /></Field>
               <Field label={t.profile.jobTitle}><input className="input" value={p.title ?? ''} maxLength={60} onChange={(e) => set({ title: e.target.value })} /></Field>
               <Field label={t.profile.org}><input className="input" value={p.org ?? ''} maxLength={60} onChange={(e) => set({ org: e.target.value })} /></Field>
-              <Field label={t.profile.photoUrl}><input className="input" placeholder="https://…" value={p.photoUrl ?? ''} onChange={(e) => set({ photoUrl: /^https:\/\//.test(e.target.value) || !e.target.value ? e.target.value : p.photoUrl })} /></Field>
+              <Field label={t.profile.photo} className="sm:col-span-2">
+                <PhotoUpload value={p.photoUrl} size={64} onChange={async (url) => {
+                  set({ photoUrl: url }); await saveProfile(user.uid, { photoUrl: url })
+                  // hesab menyusu və "Hesabım" da eyni şəkli göstərsin (qeydiyyat profili varsa)
+                  await updateMyProfile(user.uid, { photoURL: url || user.photoURL || '' }).catch(() => {})
+                }}>
+                  {p.photoUrl ? <img src={p.photoUrl} alt="" className="h-16 w-16 rounded-full object-cover" /> : p.avatar ? <Avatar avatar={p.avatar} size={64} /> : <span className="block h-16 w-16 rounded-full bg-white/10" />}
+                </PhotoUpload>
+              </Field>
               <Field label={t.profile.bio} className="sm:col-span-2"><textarea className="input" rows={3} maxLength={280} value={p.bio ?? ''} onChange={(e) => set({ bio: e.target.value })} /></Field>
               <Field label={t.profile.avatar} className="sm:col-span-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -110,6 +122,8 @@ export default function Profile() {
               </Field>
             </div>
           </Section>
+
+          <BrandSettings admin={admin} profile={p} onChange={(brand) => setP((x) => (x ? { ...x, brand } : x))} />
 
           <Section icon={KeyRound} title={t.profile.security} sub={user.email ?? ''}>
             <div className="grid items-end gap-4 md:grid-cols-[1fr_1fr_auto]">

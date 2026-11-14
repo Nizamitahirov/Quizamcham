@@ -1,14 +1,14 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import { Navigate } from 'react-router-dom'
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { ContactShadows, Environment, Lightformer, OrbitControls } from '@react-three/drei'
-import { Bloom, EffectComposer, N8AO, SMAA, Vignette } from '@react-three/postprocessing'
+import { Bloom, EffectComposer, N8AO, SMAA } from '@react-three/postprocessing'
 import * as THREE from 'three'
-import { Check, Dices, Footprints, Glasses, Loader2, Palette, RotateCcw, Save, Shirt, Smile, Sparkles, UserRound, Crown, Scissors, Move3d } from 'lucide-react'
+import { Check, Dices, Download, Glasses, Loader2, Palette, Redo2, RotateCcw, RotateCw, Save, Shirt, Smile, Sparkles, Undo2, UserRound, Crown, Scissors, Move3d, Wand2 } from 'lucide-react'
 import { t } from '../../i18n/az'
 import { useAccount } from '../../lib/account'
 import { BACKGROUNDS, DEFAULT_AVATAR, EYE_COLORS, HAIR_COLORS, label, loadAvatar, OPTIONS, PALETTE, randomAvatar, saveAvatar, SKIN, type AvatarConfig, type Key, type Opt } from '../../lib/avatar3d'
-import { Character } from '../../components/avatar3d/Character'
+import { Character, HEAD_Y } from '../../components/avatar3d/Character'
 import { Spinner } from '../../components/ui'
 import { toast } from '../../components/dialogs'
 import { StudentShell } from '../../components/StudentShell'
@@ -16,19 +16,41 @@ import { Switch } from '../../components/kit'
 
 const V = t.av
 type Cat = keyof typeof V.cats
-const CAT_ICON: Record<Cat, typeof Smile> = { body: UserRound, face: Smile, hair: Scissors, hat: Crown, outfit: Shirt, extras: Glasses, scene: Palette }
+const CATS: Cat[] = ['presets', 'body', 'face', 'hair', 'hat', 'outfit', 'extras', 'scene']
+const CAT_ICON: Record<Cat, typeof Smile> = { presets: Wand2, body: UserRound, face: Smile, hair: Scissors, hat: Crown, outfit: Shirt, extras: Glasses, scene: Palette }
 
-interface CaptureApi { capture: (bg: readonly [string, string]) => string }
+/** Kamera baxışları: bölməyə görə kadr özü yaxınlaşır (üz/saç/papaq — baş, geyim — bədən). */
+type View = 'full' | 'head' | 'body'
+const VIEWS: Record<View, { pos: [number, number, number]; target: [number, number, number] }> = {
+  full: { pos: [0, 1.25, 6.3], target: [0, 1.0, 0] },
+  head: { pos: [0.5, HEAD_Y + 0.12, 3.5], target: [0, HEAD_Y + 0.02, 0] },
+  body: { pos: [0, 0.95, 4.7], target: [0, 0.72, 0] },
+}
+const CAT_VIEW: Record<Cat, View> = { presets: 'full', body: 'full', face: 'head', hair: 'head', hat: 'head', outfit: 'body', extras: 'full', scene: 'full' }
+
+/** Hazır obrazlar — bir kliklə başlanğıc; sonra istənilən detal dəyişdirilə bilər. */
+const PRESETS: { id: keyof typeof V.presets; e: string; c: Partial<AvatarConfig> }[] = [
+  { id: 'student', e: '🎒', c: { hair: 'short', top: 'hoodie', topColor: '#F0262F', pattern: 'logo', bottom: 'joggers', bottomColor: '#111827', shoes: 'sneakers', shoeColor: '#F5F5F7', back: 'backpack', backColor: '#3B82F6', pose: 'wave', bg: 0 } },
+  { id: 'teacher', e: '📘', c: { hair: 'sidepart', glasses: 'round', glassesColor: '#111827', top: 'shirt', topColor: '#F5F5F7', topColor2: '#3B82F6', pattern: 'solid', bottom: 'pants', bottomColor: '#374151', shoes: 'loafers', shoeColor: '#7C4A2D', hand: 'book', eyes: 'round', mouth: 'smile', pose: 'idle', bg: 2 } },
+  { id: 'champion', e: '🏆', c: { hair: 'spiky', hairColor: '#1C1714', top: 'jersey', topColor: '#3B82F6', topColor2: '#F5F5F7', number: 10, pattern: 'number', bottom: 'shorts', bottomColor: '#F5F5F7', shoes: 'hightops', shoeColor: '#F0262F', neck: 'medal', neckColor: '#F0262F', hand: 'trophy', eyes: 'happy', mouth: 'grin', pose: 'cheer', bg: 4 } },
+  { id: 'wizard', e: '🧙', c: { hair: 'long', hairColor: '#A8A8B0', facial: 'beard', hat: 'wizard', hatColor: '#6366F1', top: 'sweater', topColor: '#6366F1', topColor2: '#FFC531', pattern: 'solid', bottom: 'pants', bottomColor: '#1E3A5F', shoes: 'boots', shoeColor: '#7C4A2D', back: 'cape', backColor: '#A855F7', brows: 'thick', eyes: 'round', pose: 'idle', bg: 6 } },
+  { id: 'musician', e: '🎸', c: { hair: 'wavy', hairColor: '#8B6CF6', hat: 'headphones', hatColor: '#F0262F', glasses: 'sun', glassesColor: '#111827', top: 'jacket', topColor: '#111827', topColor2: '#F5F5F7', pattern: 'solid', bottom: 'jeans', bottomColor: '#3B82F6', shoes: 'hightops', shoeColor: '#F5F5F7', back: 'guitar', backColor: '#F0262F', hand: 'mic', mouth: 'open', pose: 'dance', bg: 1 } },
+  { id: 'astronaut', e: '🚀', c: { hair: 'buzz', glasses: 'visor', glassesColor: '#3B82F6', top: 'jacket', topColor: '#F5F5F7', topColor2: '#FF7A1A', pattern: 'logo', bottom: 'cargo', bottomColor: '#F5F5F7', shoes: 'boots', shoeColor: '#9CA3AF', back: 'jetpack', backColor: '#9CA3AF', pose: 'cheer', mouth: 'grin', bg: 5 } },
+  { id: 'royal', e: '👑', c: { hair: 'bun', hairColor: '#E6C27A', hat: 'crown', eyes: 'lashes', eyeColor: '#3B82F6', mouth: 'smile', blush: true, top: 'dress', topColor: '#EC4899', topColor2: '#FFC531', pattern: 'solid', shoes: 'loafers', shoeColor: '#FFC531', neck: 'chain', neckColor: '#FFC531', back: 'wings', pose: 'wave', bg: 7 } },
+  { id: 'cat', e: '🐱', c: { hair: 'bob', hairColor: '#F07AA8', hat: 'cat', hatColor: '#F07AA8', eyes: 'sparkle', eyeColor: '#14B8A6', mouth: 'cat', blush: true, top: 'sweater', topColor: '#FDE68A', topColor2: '#F07AA8', pattern: 'stripes', bottom: 'skirt', bottomColor: '#A855F7', shoes: 'sneakers', shoeColor: '#F5F5F7', hand: 'icecream', pose: 'idle', bg: 3 } },
+]
+
+interface CaptureApi { capture: (bg: readonly [string, string], size?: number) => string }
 /** Portret kadrı: kameranı müvəqqəti üzə yönəldir, render edir, kvadrat webp qaytarır. */
 const Capturer = forwardRef<CaptureApi>(function Capturer(_, ref) {
   const { gl, scene, camera, size } = useThree()
   useImperativeHandle(ref, () => ({
-    capture(bg) {
+    capture(bg, S = 320) {
       const cam = camera as THREE.PerspectiveCamera
       const saved = { pos: cam.position.clone(), quat: cam.quaternion.clone(), aspect: cam.aspect }
-      cam.position.set(0, 1.78, 2.55); cam.lookAt(0, 1.72, 0); cam.updateProjectionMatrix()
+      cam.position.set(0, HEAD_Y + 0.1, 3.9); cam.lookAt(0, HEAD_Y + 0.04, 0); cam.updateProjectionMatrix()
       gl.render(scene, cam)
-      const src = gl.domElement, S = 320, out = document.createElement('canvas'); out.width = out.height = S
+      const src = gl.domElement, out = document.createElement('canvas'); out.width = out.height = S
       const g = out.getContext('2d')!
       const gr = g.createLinearGradient(0, 0, S, S); gr.addColorStop(0, bg[0]); gr.addColorStop(1, bg[1]); g.fillStyle = gr; g.fillRect(0, 0, S, S)
       const side = Math.min(src.width, src.height), sx = (src.width - side) / 2, sy = (src.height - side) / 2
@@ -43,37 +65,60 @@ const Capturer = forwardRef<CaptureApi>(function Capturer(_, ref) {
   return null
 })
 
-/** Studiya: üç nöqtəli işıq, prosedur mühit xəritəsi (şəbəkəsiz), yumşaq kölgələr, AO + bloom + SMAA. */
-function Stage({ cfg, capRef, hq }: { cfg: AvatarConfig; capRef: React.RefObject<CaptureApi | null>; hq: boolean }) {
+/** Kameranı seçilmiş baxışa yumşaq aparır (istifadəçi sonra sərbəst fırlada bilər). */
+interface OrbitImpl { target: THREE.Vector3; update: () => void }
+function Rig({ view }: { view: View }) {
+  const controls = useThree((s) => s.controls) as unknown as OrbitImpl | null
+  const camera = useThree((s) => s.camera)
+  const left = useRef(0)
+  const to = useMemo(() => ({ pos: new THREE.Vector3(...VIEWS[view].pos), target: new THREE.Vector3(...VIEWS[view].target) }), [view])
+  useEffect(() => { left.current = 1.1 }, [view])
+  useFrame((_, dt) => {
+    if (!controls || left.current <= 0) return
+    left.current -= dt
+    const k = 1 - Math.exp(-dt * 7)
+    camera.position.lerp(to.pos, k); controls.target.lerp(to.target, k); controls.update()
+  })
+  return null
+}
+/** Döşəmədə yumşaq işıq ləkəsi (kənarlara doğru əriyir). */
+function useSpot() {
+  return useMemo(() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 256
+    const g = cv.getContext('2d')!, gr = g.createRadialGradient(128, 128, 0, 128, 128, 128)
+    gr.addColorStop(0, 'rgba(255,255,255,.2)'); gr.addColorStop(0.55, 'rgba(255,255,255,.07)'); gr.addColorStop(1, 'rgba(255,255,255,0)')
+    g.fillStyle = gr; g.fillRect(0, 0, 256, 256)
+    return new THREE.CanvasTexture(cv)
+  }, [])
+}
+
+/** Studiya: yumşaq üç nöqtəli işıq, prosedur mühit xəritəsi (şəbəkəsiz), döşəmədə kölgə və işıq ləkəsi. */
+function Stage({ cfg, capRef, hq, view, spin }: { cfg: AvatarConfig; capRef: React.RefObject<CaptureApi | null>; hq: boolean; view: View; spin: boolean }) {
+  const spot = useSpot()
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.4, 6.6], fov: 30 }} gl={{ preserveDrawingBuffer: true, alpha: true, antialias: !hq, powerPreference: 'high-performance' }} aria-label={V.title}>
-      {/* əsas (isti), doldurucu (soyuq), arxa kontur işıqları */}
-      <hemisphereLight args={['#FFFFFF', '#2B2F55', 0.45]} />
-      <directionalLight position={[2.6, 4.6, 3.6]} intensity={2.1} color="#FFF4E6" castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-radius={6}
+    <Canvas shadows dpr={[1, 2]} camera={{ position: VIEWS.full.pos, fov: 30 }} gl={{ preserveDrawingBuffer: true, alpha: true, antialias: !hq, powerPreference: 'high-performance' }} aria-label={V.title}>
+      <hemisphereLight args={['#FFFFFF', '#5A5F86', 0.75]} />
+      <directionalLight position={[2.4, 4.4, 4]} intensity={1.9} color="#FFF6EC" castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-normalBias={0.02} shadow-radius={8}
         shadow-camera-left={-2} shadow-camera-right={2} shadow-camera-top={3} shadow-camera-bottom={-0.5} />
-      <directionalLight position={[-3.5, 2.2, 2.2]} intensity={0.55} color="#9DB4FF" />
-      <directionalLight position={[-1.5, 3.2, -4]} intensity={1.6} color="#FF8A3D" />
-      <directionalLight position={[2, 2.4, -3.5]} intensity={0.9} color="#7C9CFF" />
-      {/* prosedur HDR mühit — metal və parıltılar üçün əks; xarici fayl yüklənmir */}
+      <directionalLight position={[-3.5, 2.4, 2.5]} intensity={0.6} color="#C9D6FF" />
+      <directionalLight position={[-1.5, 3, -4]} intensity={1.1} color="#FFFFFF" />
       <Environment resolution={256} frames={1}>
-        <Lightformer form="rect" intensity={2.2} color="#FFF1E0" position={[2.5, 3, 3]} scale={[4, 2, 1]} target={[0, 1.2, 0]} />
-        <Lightformer form="rect" intensity={1.1} color="#AFC3FF" position={[-3, 2, 2]} scale={[3, 2, 1]} target={[0, 1.2, 0]} />
-        <Lightformer form="ring" intensity={2.4} color="#FF7A1A" position={[0, 3, -4]} scale={2.5} target={[0, 1.2, 0]} />
-        <Lightformer form="rect" intensity={0.5} color="#FFFFFF" position={[0, -1, 0]} rotation-x={Math.PI / 2} scale={[6, 6, 1]} />
+        <Lightformer form="rect" intensity={2} color="#FFFFFF" position={[2.5, 3.5, 3]} scale={[5, 3, 1]} target={[0, 1.1, 0]} />
+        <Lightformer form="rect" intensity={1} color="#DCE6FF" position={[-3.5, 2, 2]} scale={[3, 3, 1]} target={[0, 1.1, 0]} />
+        <Lightformer form="rect" intensity={1.4} color="#FFFFFF" position={[0, 3, -4]} scale={[5, 2, 1]} target={[0, 1.1, 0]} />
+        <Lightformer form="rect" intensity={0.6} color="#FFFFFF" position={[0, -1, 0]} rotation-x={Math.PI / 2} scale={[6, 6, 1]} />
       </Environment>
       <Suspense fallback={null}><Character cfg={cfg} interactive /></Suspense>
-      {/* fırlanan pedestal */}
-      <mesh position={[0, -0.03, 0]} receiveShadow><cylinderGeometry args={[0.95, 1.02, 0.06, 64]} /><meshPhysicalMaterial color="#141733" roughness={0.35} metalness={0.4} clearcoat={0.6} clearcoatRoughness={0.2} /></mesh>
-      <mesh position={[0, 0.002, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[0.93, 0.96, 96]} /><meshBasicMaterial color="#FF7A1A" toneMapped={false} /></mesh>
-      <ContactShadows position={[0, 0.004, 0]} opacity={0.55} scale={3} blur={2.2} far={1.6} resolution={512} />
-      <OrbitControls target={[0, 1.25, 0]} enablePan={false} minDistance={3.2} maxDistance={8} minPolarAngle={0.9} maxPolarAngle={1.75} enableDamping />
+      <mesh position={[0, 0.001, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[2.4, 64]} /><meshBasicMaterial map={spot} transparent depthWrite={false} toneMapped={false} /></mesh>
+      <ContactShadows position={[0, 0.004, 0]} opacity={0.5} scale={4} blur={2.6} far={1.8} resolution={512} />
+      <OrbitControls makeDefault target={VIEWS.full.target} enablePan={false} minDistance={2.6} maxDistance={8} minPolarAngle={0.8} maxPolarAngle={1.72} enableDamping autoRotate={spin} autoRotateSpeed={2.2} />
+      <Rig view={view} />
       <Capturer ref={capRef} />
       {hq && (
         <EffectComposer multisampling={0} enableNormalPass={false}>
-          <N8AO aoRadius={0.35} intensity={2.2} distanceFalloff={0.6} quality="medium" halfRes />
-          <Bloom luminanceThreshold={0.95} luminanceSmoothing={0.2} intensity={0.35} mipmapBlur />
+          <N8AO aoRadius={0.3} intensity={1.6} distanceFalloff={0.6} quality="medium" halfRes />
+          <Bloom luminanceThreshold={1} luminanceSmoothing={0.2} intensity={0.25} mipmapBlur />
           <SMAA />
-          <Vignette offset={0.25} darkness={0.45} />
         </EffectComposer>
       )}
     </Canvas>
@@ -120,23 +165,35 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
 /** Avatar studiyası: 3D personajı qurmaq, saxlamaq. */
 export default function AvatarStudio() {
   const { loading, user } = useAccount()
-  const [cfg, setCfg] = useState<AvatarConfig>(DEFAULT_AVATAR)
+  // geri al / təkrarla: eyni sahənin ardıcıl dəyişiklikləri (məs. rəng seçicini sürüşdürmək) bir addım sayılır
+  const [st, setSt] = useState<{ cfg: AvatarConfig; past: AvatarConfig[]; future: AvatarConfig[] }>({ cfg: DEFAULT_AVATAR, past: [], future: [] })
+  const cfg = st.cfg
+  const last = useRef({ key: '', at: 0 })
+  const setCfgRaw = useCallback((next: AvatarConfig | ((c: AvatarConfig) => AvatarConfig)) => setSt((s) => ({ ...s, cfg: typeof next === 'function' ? next(s.cfg) : next })), [])
+  const change = useCallback((next: AvatarConfig | ((c: AvatarConfig) => AvatarConfig), key = '') => {
+    const now = Date.now(), merge = !!key && key === last.current.key && now - last.current.at < 900
+    last.current = { key, at: now }
+    setSt((s) => ({ cfg: typeof next === 'function' ? next(s.cfg) : next, past: merge ? s.past : [...s.past.slice(-59), s.cfg], future: [] }))
+  }, [])
+  const undo = () => { last.current.key = ''; setSt((s) => (s.past.length ? { cfg: s.past[s.past.length - 1], past: s.past.slice(0, -1), future: [...s.future, s.cfg] } : s)) }
+  const redo = () => { last.current.key = ''; setSt((s) => (s.future.length ? { cfg: s.future[s.future.length - 1], past: [...s.past, s.cfg], future: s.future.slice(0, -1) } : s)) }
   // yüksək keyfiyyət (AO, bloom, SMAA) — güclü cihazlarda; zəif telefonlarda sürət üçün söndürülür
   const [hq] = useState(() => { try { return !matchMedia('(max-width: 640px)').matches && (navigator.hardwareConcurrency ?? 4) >= 4 && !new URLSearchParams(location.search).has('lq') } catch { return false } })
   // inkişaf rejimi: avtomatlaşdırılmış vizual yoxlama üçün konfiqurasiyanı xaricdən təyin etmək
   useEffect(() => {
     if (!import.meta.env.DEV) return
-    ;(window as unknown as { __setAvatar?: (c: Partial<AvatarConfig>) => void }).__setAvatar = (c) => setCfg((x) => ({ ...x, ...c }))
-  }, [])
+    ;(window as unknown as { __setAvatar?: (c: Partial<AvatarConfig>) => void }).__setAvatar = (c) => setCfgRaw((x) => ({ ...x, ...c }))
+  }, [setCfgRaw])
   const [saved, setSaved] = useState<string>(JSON.stringify(DEFAULT_AVATAR))
   const [ready, setReady] = useState(false)
-  const [cat, setCat] = useState<Cat>('body')
+  const [cat, setCat] = useState<Cat>('presets')
+  const [spin, setSpin] = useState(false)
   const [busy, setBusy] = useState(false)
   const capRef = useRef<CaptureApi | null>(null)
   useEffect(() => {
     if (!user) return
-    void loadAvatar(user.uid).then((a) => { if (a) { setCfg(a.config); setSaved(JSON.stringify(a.config)) } }).finally(() => setReady(true))
-  }, [user])
+    void loadAvatar(user.uid).then((a) => { if (a) { setCfgRaw(a.config); setSaved(JSON.stringify(a.config)); setCat('body') } }).finally(() => setReady(true))
+  }, [user, setCfgRaw])
   const dirty = ready && JSON.stringify(cfg) !== saved
   useEffect(() => {
     if (!dirty) return
@@ -144,7 +201,7 @@ export default function AvatarStudio() {
     window.addEventListener('beforeunload', h)
     return () => window.removeEventListener('beforeunload', h)
   }, [dirty])
-  const set = useCallback(<K extends keyof AvatarConfig>(k: K, v: AvatarConfig[K]) => setCfg((c) => ({ ...c, [k]: v })), [])
+  const set = useCallback(<K extends keyof AvatarConfig>(k: K, v: AvatarConfig[K]) => change((c) => ({ ...c, [k]: v }), k), [change])
   const bg = BACKGROUNDS[cfg.bg]
   const save = async () => {
     if (!user || !capRef.current) return
@@ -155,7 +212,30 @@ export default function AvatarStudio() {
       setSaved(JSON.stringify(cfg)); toast(V.saved)
     } catch { toast(t.app.error, 'error') } finally { setBusy(false) }
   }
+  const download = () => {
+    if (!capRef.current) return
+    const a = document.createElement('a'); a.href = capRef.current.capture(bg, 1024); a.download = 'jabr-avatar.webp'; a.click()
+  }
   const panels: Record<Cat, React.ReactNode> = useMemo(() => ({
+    presets: <>
+      <p className="text-sm text-muted">{V.presetsHint}</p>
+      <div className="grid grid-cols-2 gap-2.5">
+        {PRESETS.map((p) => {
+          const c = { ...DEFAULT_AVATAR, glasses: 'none', hat: 'none', back: 'none', neck: 'none', hand: 'none', facial: 'none', ...p.c } as AvatarConfig
+          return (
+            <button key={p.id} type="button" onClick={() => change({ ...c, skin: cfg.skin })}
+              className="group flex items-center gap-3 rounded-2xl border border-line bg-white/[.02] p-3 text-left transition hover:border-orange-400/50 hover:bg-white/[.05]">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-2xl" style={{ background: `linear-gradient(135deg, ${BACKGROUNDS[c.bg][0]}, ${BACKGROUNDS[c.bg][1]})` }} aria-hidden>{p.e}</span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{V.presets[p.id]}</span>
+                <span className="mt-1 flex gap-1">{[c.topColor, c.bottomColor, c.hairColor, c.shoeColor].map((x, i) => <span key={i} className="h-3 w-3 rounded-full border border-white/20" style={{ background: x }} />)}</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+      <button type="button" className="btn btn-secondary" onClick={() => change(randomAvatar())}><Dices />{V.random}</button>
+    </>,
     body: <>
       <Group title={V.f.skin}><Swatches name={V.f.skin} colors={SKIN} value={cfg.skin} onPick={(v) => set('skin', v)} /></Group>
       <Group title={V.f.build}><Tiles k="build" value={cfg.build} onPick={(v) => set('build', v as AvatarConfig['build'])} /></Group>
@@ -213,45 +293,54 @@ export default function AvatarStudio() {
       </Group>
       <Group title={V.f.pose}><Tiles k="pose" value={cfg.pose} onPick={(v) => set('pose', v as AvatarConfig['pose'])} /></Group>
     </>,
-  }), [cfg, set])
+  }), [cfg, set, change])
 
   if (loading) return <div className="bg-app flex min-h-dvh items-center justify-center"><Spinner /></div>
   if (!user || user.isAnonymous) return <Navigate to={`/start?next=/avatar`} replace />
+  const canUndo = st.past.length > 0, canRedo = st.future.length > 0
+  const tool = 'btn btn-sm border-white/15 bg-black/30 text-[#fff] backdrop-blur hover:bg-black/45 disabled:opacity-40'
   return (
     <StudentShell back="-1" title={V.title} width="max-w-7xl" actions={
       <button className="btn btn-primary btn-sm" disabled={busy || !dirty} onClick={() => void save()}>{busy ? <Loader2 className="animate-spin" /> : <Save />}<span className="hidden sm:inline">{busy ? V.saving : V.save}</span></button>
     }>
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_440px]">
-        <section className="relative overflow-hidden rounded-[var(--radius)] border border-line lg:sticky lg:top-20 lg:h-[calc(100dvh-7rem)]" style={{ background: `radial-gradient(120% 90% at 50% 0%, ${bg[0]}, ${bg[1]} 55%, #0B0C19 120%)` }}>
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent" />
-          <div className="h-[56dvh] min-h-80 lg:h-full">{ready ? <Stage cfg={cfg} capRef={capRef} hq={hq} /> : <div className="flex h-full items-center justify-center"><Spinner /></div>}</div>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_460px]">
+        <section className="theme-dark relative overflow-hidden rounded-[var(--radius)] border border-line lg:sticky lg:top-20 lg:h-[calc(100dvh-7rem)]"
+          style={{ background: `radial-gradient(85% 65% at 50% 38%, color-mix(in srgb, ${bg[0]} 72%, #fff) 0%, ${bg[0]} 45%, ${bg[1]} 100%)` }}>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_40%,transparent_55%,rgba(8,9,20,.45)_100%)]" />
+          <div className="h-[56dvh] min-h-80 lg:h-full">{ready ? <Stage cfg={cfg} capRef={capRef} hq={hq} view={CAT_VIEW[cat]} spin={spin} /> : <div className="flex h-full items-center justify-center"><Spinner /></div>}</div>
           <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-            <button className="btn btn-sm border-white/15 bg-black/35 text-[#fff] backdrop-blur hover:bg-black/50" onClick={() => setCfg(randomAvatar())}><Dices />{V.random}</button>
-            <button className="btn btn-sm border-white/15 bg-black/35 text-[#fff] backdrop-blur hover:bg-black/50" onClick={() => setCfg(DEFAULT_AVATAR)}><RotateCcw />{V.reset}</button>
+            <button className={tool} onClick={() => change(randomAvatar())}><Dices /><span className="hidden sm:inline">{V.random}</span></button>
+            <button className={`${tool} btn-icon`} disabled={!canUndo} onClick={undo} aria-label={V.undo} title={V.undo}><Undo2 /></button>
+            <button className={`${tool} btn-icon`} disabled={!canRedo} onClick={redo} aria-label={V.redo} title={V.redo}><Redo2 /></button>
+            <button className={`${tool} btn-icon`} onClick={() => change(DEFAULT_AVATAR)} aria-label={V.reset} title={V.reset}><RotateCcw /></button>
+          </div>
+          <div className="absolute right-3 top-3 flex gap-2">
+            {dirty && <span className="hidden items-center rounded-full bg-amber-400/90 px-3 text-xs font-semibold text-black sm:flex">{V.unsaved}</span>}
+            <button className={`${tool} btn-icon ${spin ? 'bg-white/25' : ''}`} aria-pressed={spin} onClick={() => setSpin((x) => !x)} aria-label={V.spin} title={V.spin}><RotateCw className={spin ? 'animate-spin [animation-duration:3s]' : ''} /></button>
+            <button className={`${tool} btn-icon`} onClick={download} aria-label={V.download} title={V.download}><Download /></button>
           </div>
           <div className="absolute inset-x-3 bottom-3 flex flex-wrap items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 rounded-full bg-black/35 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur"><Move3d className="h-3.5 w-3.5" />{V.rotate}</span>
-            <div className="flex gap-1 rounded-full bg-black/35 p-1 backdrop-blur" role="radiogroup" aria-label={V.f.pose}>
+            <span className="flex items-center gap-1.5 rounded-full bg-black/30 px-3 py-1.5 text-xs font-medium text-white/85 backdrop-blur"><Move3d className="h-3.5 w-3.5" />{V.rotate}</span>
+            <div className="flex gap-1 rounded-full bg-black/30 p-1 backdrop-blur" role="radiogroup" aria-label={V.f.pose}>
               {(OPTIONS.pose as readonly Opt[]).map((p) => (
                 <button key={p.id} type="button" role="radio" aria-checked={cfg.pose === p.id} title={label(p)} onClick={() => set('pose', p.id as AvatarConfig['pose'])}
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-base transition ${cfg.pose === p.id ? 'bg-white/25' : 'hover:bg-white/10'}`}>{p.e}</button>
+                  className={`flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-[#fff] transition ${cfg.pose === p.id ? 'bg-white/25' : 'hover:bg-white/10'}`}><span className="text-base" aria-hidden>{p.e}</span><span className="hidden md:inline">{label(p)}</span></button>
               ))}
             </div>
           </div>
-          {dirty && <span className="absolute right-3 top-3 hidden rounded-full bg-amber-400/90 px-3 py-1 text-xs font-semibold text-black sm:inline">{V.unsaved}</span>}
         </section>
 
         <section className="card flex min-h-0 flex-col overflow-hidden lg:h-[calc(100dvh-7rem)]">
           <div className="border-b border-line p-3">
             <h1 className="flex items-center gap-2 px-1 font-sans text-lg font-semibold"><Sparkles className="h-4 w-4 text-orange-300" />{V.title}</h1>
             <p className="mb-3 px-1 text-xs text-muted">{V.sub}</p>
-            <div className="grid grid-cols-7 gap-1" role="tablist">
-              {(Object.keys(V.cats) as Cat[]).map((k) => {
+            <div className="grid grid-cols-4 gap-1" role="tablist">
+              {CATS.map((k) => {
                 const Icon = CAT_ICON[k], on = cat === k
                 return (
                   <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setCat(k)} title={V.cats[k]}
                     className={`flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10.5px] font-semibold transition ${on ? 'bg-white/[.08] text-fg' : 'text-muted hover:bg-white/[.04] hover:text-fg'}`}>
-                    <Icon className={`h-[18px] w-[18px] ${on ? 'text-orange-300' : ''}`} /><span className="truncate">{V.cats[k]}</span>
+                    <Icon className={`h-[18px] w-[18px] ${on ? 'text-orange-300' : ''}`} /><span className="max-w-full truncate">{V.cats[k]}</span>
                   </button>
                 )
               })}
@@ -259,7 +348,7 @@ export default function AvatarStudio() {
           </div>
           <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4 scrollbar-thin" role="tabpanel">{panels[cat]}</div>
           <div className="flex items-center gap-2 border-t border-line p-3">
-            {dirty ? <span className="mr-auto text-xs text-amber-300">{V.unsaved}</span> : <span className="mr-auto flex items-center gap-1.5 text-xs text-muted"><Footprints className="h-3.5 w-3.5" />{V.rotate}</span>}
+            <span className={`mr-auto text-xs ${dirty ? 'text-amber-300' : 'text-muted'}`}>{dirty ? V.unsaved : V.savedHint}</span>
             <button className="btn btn-primary" disabled={busy || !dirty} onClick={() => void save()}>{busy ? <Loader2 className="animate-spin" /> : <Save />}{busy ? V.saving : V.save}</button>
           </div>
         </section>
