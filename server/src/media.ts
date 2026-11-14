@@ -17,7 +17,7 @@ import { loadDoc } from './store.js'
 
 const DIR = () => path.join(process.env.FILES_DIR ?? '/data/files', 'public')
 const MAX = 400 * 1024
-const KINDS = ['photo', 'logo'] as const
+const KINDS = ['photo', 'logo', 'sign'] as const
 type Kind = (typeof KINDS)[number]
 const TYPES: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp' }
 const fail = (code: string, statusCode = 400) => Object.assign(new Error(code), { statusCode, code })
@@ -66,8 +66,8 @@ export function mediaRoutes(app: FastifyInstance) {
   for (const kind of KINDS) {
     app.post(`/api/media/${kind}`, { bodyLimit: MAX, preHandler: limit(`media-${kind}`, 30, 600_000) }, async (req) => {
       const uid = await who(req)
-      // loqo yalnız təlimçi/admin hesabları üçündür
-      if (kind === 'logo' && !(await loadDoc(`admins/${uid}`))) throw fail('permission-denied', 403)
+      // loqo və imza yalnız təlimçi/admin hesabları üçündür
+      if (kind !== 'photo' && !(await loadDoc(`admins/${uid}`))) throw fail('permission-denied', 403)
       const body = req.body as Buffer
       if (!Buffer.isBuffer(body) || !body.length) throw fail('file-empty')
       if (body.length > MAX) throw fail('file-too-large', 413)

@@ -614,7 +614,7 @@ export const az = {
     button: 'Sertifikat', title: 'İŞTİRAK SERTİFİKATI', given: 'Bu sertifikat təsdiq edir ki,',
     completed: 'aşağıdakı interaktiv təlim quizində uğurla iştirak etmişdir:', place: (p: number, n: number) => `${p}-ci yer · ${n} iştirakçı`,
     score: (s: string) => `${s} xal`, trainer: 'Təlimçi', date: 'Tarix',
-    badgeLabel: 'YER', badgeAria: (p: number) => `${p}-ci yer nişanı`,
+    badgeLabel: 'YER', verify: 'Yoxlamaq üçün QR-ı skan edin', badgeAria: (p: number) => `${p}-ci yer nişanı`,
   },
   qa: {
     button: 'Sual ver', title: 'Sual-cavab', placeholder: 'Təlimçiyə sualınızı yazın…', send: 'Göndər', sent: 'Sualınız göndərildi ✓',
@@ -769,6 +769,11 @@ export const az = {
   brand: { title: 'Şirkət brendi', sub: 'Oyun ekranlarında öz loqonuz və rənginiz', on: 'Brendi göstər', onDesc: 'Aparıcı ekranında və oyunçuların telefonunda Jabr loqosunun yerində sizin loqonuz və rənginiz görünür. Yeni başlanan oyunlara tətbiq olunur.',
     name: 'Brend adı', logo: 'Loqo', logoHint: 'Şəffaf fonlu PNG və ya WebP tövsiyə olunur — tünd fonda yaxşı görünən (açıq rəngli) versiya.', uploadLogo: 'Loqo yüklə', changeLogo: 'Loqonu dəyiş',
     color: 'Vurğu rəngi', defaultColor: 'Jabr', preview: 'Önizləmə', saved: 'Loqo yeniləndi', locked: 'Öz loqonuz, adınız və rənginiz oyun ekranlarında — tədbir və korporativ təlimlər üçün.', member: 'Brendi təşkilatınızın sahibi idarə edir — onun qurduğu loqo və rəng sizin oyunlarınızda da görünür.' },
+  certd: { title: 'Sertifikat dizaynı', sub: 'İştirakçılara verilən sertifikatların görünüşü', on: 'Öz dizaynımı istifadə et', onDesc: 'Oyun, kurs və məşq sertifikatları sizin şablon, rəng, başlıq və imzanızla çıxır. Hər sertifikatın unikal kodu və yoxlama QR-ı var.',
+    template: 'Şablon', templates: { classic: 'Klassik', modern: 'Müasir', minimal: 'Minimal' } as Record<string, string>, color: 'Rəng', auto: 'Brend rəngi', heading: 'Başlıq', headingHint: 'Boş qalsa: "İŞTİRAK SERTİFİKATI"',
+    signer: 'İmza edən', signerTitle: 'Vəzifəsi', signature: 'İmza şəkli', signatureHint: 'Ağ və ya şəffaf fonda imza (PNG tövsiyə olunur).', uploadSig: 'İmza yüklə', changeSig: 'İmzanı dəyiş',
+    preview: 'Sertifikatın önizləməsi', download: 'Nümunəni yüklə', fixedNote: 'Yuxarıdakı "Jabr | loqonuz" bloku və QR hər dizaynda sabit qalır.', noBrand: 'Şirkət loqosunun sertifikatda görünməsi üçün yuxarıda "Şirkət brendi"ni aktiv edin.',
+    sampleName: 'Aysel Məmmədova', sampleQuiz: 'Rəqəmsal marketinqin əsasları', locked: 'Öz loqonuz, rənginiz və imzanızla sertifikatlar — QR ilə yoxlanılan.', member: 'Sertifikat dizaynını təşkilatınızın sahibi idarə edir.' },
   av: {
     title: 'Avatar studiyası', sub: 'Öz 3D avatarınızı yaradın — saç, üz, papaq, geyim, çanta və daha çoxu', save: 'Yadda saxla', saving: 'Saxlanılır…', saved: 'Avatar yadda saxlanıldı',
     mine: 'Mənim 3D avatarım', create: '3D avatar yarat', random: 'Təsadüfi', reset: 'Sıfırla', rotate: 'Fırlatmaq üçün sürüşdürün', unsaved: 'Yadda saxlanmamış dəyişikliklər var', custom: 'Öz rəngin', loginNeeded: 'Avatar yaratmaq üçün daxil olun',

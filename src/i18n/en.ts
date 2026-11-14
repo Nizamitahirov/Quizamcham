@@ -360,7 +360,7 @@ export const en: Dict = {
   cert: {
     button: 'Certificate', title: 'CERTIFICATE OF PARTICIPATION', given: 'This certifies that', completed: 'successfully took part in the interactive training quiz:',
     place: (p: number, n: number) => `${ord(p)} place · ${n} participants`, score: (s: string) => `${s} points`, trainer: 'Trainer', date: 'Date',
-    badgeLabel: 'PLACE', badgeAria: (p: number) => `${ord(p)} place badge`,
+    verify: 'Scan the QR code to verify', badgeLabel: 'PLACE', badgeAria: (p: number) => `${ord(p)} place badge`,
   },
   qa: {
     button: 'Ask', title: 'Q&A', placeholder: 'Write your question for the trainer…', send: 'Send', sent: 'Your question was sent ✓',
@@ -502,6 +502,11 @@ export const en: Dict = {
   brand: { title: 'Company branding', sub: 'Your logo and colour on the game screens', on: 'Show branding', onDesc: 'Your logo and colour replace the Jabr logo on the host screen and on players\' phones. Applies to newly started games.',
     name: 'Brand name', logo: 'Logo', logoHint: 'A PNG or WebP with a transparent background works best — a light version that reads well on a dark background.', uploadLogo: 'Upload logo', changeLogo: 'Change logo',
     color: 'Accent colour', defaultColor: 'Jabr', preview: 'Preview', saved: 'Logo updated', locked: 'Your own logo, name and colour on the game screens — for events and corporate trainings.', member: 'Branding is managed by your organisation\'s owner — their logo and colour appear in your games too.' },
+  certd: { title: 'Certificate design', sub: 'How participants\' certificates look', on: 'Use my design', onDesc: 'Game, course and practice certificates use your template, colour, heading and signature. Each one has a unique code and a QR code for verification.',
+    template: 'Template', templates: { classic: 'Classic', modern: 'Modern', minimal: 'Minimal' } as Record<string, string>, color: 'Colour', auto: 'Brand colour', heading: 'Heading', headingHint: 'If empty: "CERTIFICATE OF PARTICIPATION"',
+    signer: 'Signed by', signerTitle: 'Title', signature: 'Signature image', signatureHint: 'A signature on a white or transparent background (PNG recommended).', uploadSig: 'Upload signature', changeSig: 'Change signature',
+    preview: 'Certificate preview', download: 'Download sample', fixedNote: 'The "Jabr | your logo" block and the QR code stay in place in every design.', noBrand: 'Turn on Company branding above to show your logo on certificates.',
+    sampleName: 'Aysel Mammadova', sampleQuiz: 'Digital marketing basics', locked: 'Certificates with your logo, colour and signature — verifiable by QR.', member: 'Certificate design is managed by your organisation\'s owner.' },
   av: {
     title: 'Avatar studio', sub: 'Create your own 3D avatar — hair, face, hats, outfits, bags and more', save: 'Save', saving: 'Saving…', saved: 'Avatar saved',
     mine: 'My 3D avatar', create: 'Create a 3D avatar', random: 'Randomize', reset: 'Reset', rotate: 'Drag to rotate', unsaved: 'You have unsaved changes', custom: 'Custom', loginNeeded: 'Sign in to create an avatar',

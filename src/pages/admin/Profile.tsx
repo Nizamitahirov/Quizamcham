@@ -6,6 +6,7 @@ import { loadProfile, saveProfile } from '../../firebase/db'
 import { updateMyProfile } from '../../lib/account'
 import { PhotoUpload } from '../../components/PhotoUpload'
 import { BrandSettings } from '../../components/BrandSettings'
+import { CertSettings } from '../../components/CertSettings'
 import { withDefaults } from '../../lib/defaults'
 import { t } from '../../i18n/az'
 import { PageHeader, Spinner } from '../../components/ui'
@@ -124,6 +125,7 @@ export default function Profile() {
           </Section>
 
           <BrandSettings admin={admin} profile={p} onChange={(brand) => setP((x) => (x ? { ...x, brand } : x))} />
+          <CertSettings admin={admin} profile={p} onChange={(cert) => setP((x) => (x ? { ...x, cert } : x))} />
 
           <Section icon={KeyRound} title={t.profile.security} sub={user.email ?? ''}>
             <div className="grid items-end gap-4 md:grid-cols-[1fr_1fr_auto]">
