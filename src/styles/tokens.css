@@ -334,3 +334,17 @@ html[data-theme="light"] :is(.theme-dark, .bg-night, .bg-grad, .bg-brand, .bg-gr
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
   .float-shape, .grid-floor, .orb, .scan { display: none; }
 }
+
+/* ───────── Oyunçu əlçatanlığı (src/lib/a11y.ts) ───────── */
+html[data-a11y-font="readable"] body, html[data-a11y-font="readable"] .font-display { font-family: 'Atkinson Hyperlegible', system-ui, sans-serif !important; letter-spacing: .01em; }
+/* Disleksiya rejimi: oxunaqlı şrift + geniş hərf/söz/sətir aralığı (BDA tövsiyələri) */
+html[data-a11y-font="dyslexic"] body, html[data-a11y-font="dyslexic"] .font-display { font-family: 'Atkinson Hyperlegible', system-ui, sans-serif !important; letter-spacing: .06em !important; word-spacing: .16em; line-height: 1.6; }
+html[data-a11y-font] :is(h1, h2, h3, button, label, span) { hyphens: manual; }
+html[data-a11y-large] { font-size: 118.75%; }
+/* cavab düymələri dardır: əlçatanlıq rejimində forma nişanı kiçilir, söz hərf-hərf bölünməsin deyə mətn bir az sıxılır */
+html:is([data-a11y-large], [data-a11y-font="dyslexic"]) [data-tile-icon] { width: 2rem; height: 2rem; }
+html:is([data-a11y-large], [data-a11y-font="dyslexic"]) [data-tile-text] { letter-spacing: .02em !important; word-spacing: .06em; overflow-wrap: normal; hyphens: manual; font-size: clamp(.85rem, 4.2vw, 1.05rem); }
+html[data-a11y-contrast] body { --fg2: #FFFFFF; --muted: #E4E6F2; }
+html[data-a11y-contrast] .text-white\/55, html[data-a11y-contrast] .text-white\/60, html[data-a11y-contrast] .text-white\/65, html[data-a11y-contrast] .text-white\/70, html[data-a11y-contrast] .text-muted { color: #F3F4FB !important; }
+html[data-a11y-contrast] .glass, html[data-a11y-contrast] .card { border-color: rgba(255,255,255,.55) !important; }
+html[data-a11y-contrast] .noise::before, html[data-a11y-contrast] .noise::after { display: none; }

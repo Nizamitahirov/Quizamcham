@@ -774,6 +774,9 @@ export const az = {
     signer: 'İmza edən', signerTitle: 'Vəzifəsi', signature: 'İmza şəkli', signatureHint: 'Ağ və ya şəffaf fonda imza (PNG tövsiyə olunur).', uploadSig: 'İmza yüklə', changeSig: 'İmzanı dəyiş',
     preview: 'Sertifikatın önizləməsi', download: 'Nümunəni yüklə', fixedNote: 'Yuxarıdakı "Jabr | loqonuz" bloku və QR hər dizaynda sabit qalır.', noBrand: 'Şirkət loqosunun sertifikatda görünməsi üçün yuxarıda "Şirkət brendi"ni aktiv edin.',
     sampleName: 'Aysel Məmmədova', sampleQuiz: 'Rəqəmsal marketinqin əsasları', locked: 'Öz loqonuz, rənginiz və imzanızla sertifikatlar — QR ilə yoxlanılan.', member: 'Sertifikat dizaynını təşkilatınızın sahibi idarə edir.' },
+  access2: { title: 'Əlçatanlıq', tts: 'Sualı səsli oxu', ttsHint: 'Hər yeni sual və variantlar avtomatik oxunur', readNow: 'İndi oxu', font: 'Şrift',
+    fonts: { default: 'Standart', readable: 'Oxunaqlı', dyslexic: 'Disleksiya' } as Record<string, string>, large: 'Böyük mətn', contrast: 'Yüksək kontrast',
+    addTime: '+15 san', addTimeHint: 'Bu sual üçün hamıya 15 saniyə əlavə et' },
   av: {
     title: 'Avatar studiyası', sub: 'Öz 3D avatarınızı yaradın — saç, üz, papaq, geyim, çanta və daha çoxu', save: 'Yadda saxla', saving: 'Saxlanılır…', saved: 'Avatar yadda saxlanıldı',
     mine: 'Mənim 3D avatarım', create: '3D avatar yarat', random: 'Təsadüfi', reset: 'Sıfırla', rotate: 'Fırlatmaq üçün sürüşdürün', unsaved: 'Yadda saxlanmamış dəyişikliklər var', custom: 'Öz rəngin', loginNeeded: 'Avatar yaratmaq üçün daxil olun',

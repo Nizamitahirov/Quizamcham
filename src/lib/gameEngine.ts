@@ -233,6 +233,14 @@ export async function resumeQuestion(game: Game) {
 }
 
 /** Vaxtı dərhal bitir (bir az gecikmə ilə cavabların çatması üçün). */
+/** Hamıya əlavə vaxt (yavaş oxuyanlar üçün): bitmə vaxtı uzadılır, fasilədədirsə qalan vaxta əlavə olunur. */
+export async function addQuestionTime(game: Game, sec = 15) {
+  if (game.phase !== 'question') return
+  if (game.pausedRemainingMs != null) return updateDoc(gref(game.id), { pausedRemainingMs: game.pausedRemainingMs + sec * 1000 })
+  if (!game.questionEndsAt) return
+  const base = Math.max(game.questionEndsAt.toMillis(), serverNow())
+  return updateDoc(gref(game.id), { questionEndsAt: Timestamp.fromMillis(base + sec * 1000) })
+}
 export const endTimeNow = (gameId: string) => updateDoc(gref(gameId), { questionEndsAt: Timestamp.fromMillis(serverNow()), pausedRemainingMs: null })
 
 /** 50/50: oyunçunun sorğusuna cavab olaraq iki səhv variantı gizlədir (yalnız həmin oyunçuya). */

@@ -507,6 +507,9 @@ export const en: Dict = {
     signer: 'Signed by', signerTitle: 'Title', signature: 'Signature image', signatureHint: 'A signature on a white or transparent background (PNG recommended).', uploadSig: 'Upload signature', changeSig: 'Change signature',
     preview: 'Certificate preview', download: 'Download sample', fixedNote: 'The "Jabr | your logo" block and the QR code stay in place in every design.', noBrand: 'Turn on Company branding above to show your logo on certificates.',
     sampleName: 'Aysel Mammadova', sampleQuiz: 'Digital marketing basics', locked: 'Certificates with your logo, colour and signature — verifiable by QR.', member: 'Certificate design is managed by your organisation\'s owner.' },
+  access2: { title: 'Accessibility', tts: 'Read the question aloud', ttsHint: 'Each new question and its options are read automatically', readNow: 'Read now', font: 'Font',
+    fonts: { default: 'Default', readable: 'Readable', dyslexic: 'Dyslexia' } as Record<string, string>, large: 'Larger text', contrast: 'High contrast',
+    addTime: '+15 s', addTimeHint: 'Give everyone 15 more seconds for this question' },
   av: {
     title: 'Avatar studio', sub: 'Create your own 3D avatar — hair, face, hats, outfits, bags and more', save: 'Save', saving: 'Saving…', saved: 'Avatar saved',
     mine: 'My 3D avatar', create: 'Create a 3D avatar', random: 'Randomize', reset: 'Reset', rotate: 'Drag to rotate', unsaved: 'You have unsaved changes', custom: 'Custom', loginNeeded: 'Sign in to create an avatar',

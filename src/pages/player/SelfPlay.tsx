@@ -1,3 +1,4 @@
+import { ReadAloud } from '../../components/A11yMenu'
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -136,6 +137,7 @@ function SelfQuestion({ game, player, uid, qi, q, waiting, onSent, onResult, onS
   const frac = Math.max(0, remaining / (q.timeLimit * 1000))
   return (
     <div className="flex flex-1 flex-col gap-4">
+      {q.type !== 'slide' && <ReadAloud k={`${game.id}:${qi}`} text={q.text} options={q.options} />}
       <div className="flex items-center gap-3">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full transition-[width] duration-200" style={{ width: `${frac * 100}%`, background: remaining < 5000 ? '#ef4444' : 'linear-gradient(90deg,#FFB020,#FF4D1F)' }} /></div>
         <span className="font-display w-10 text-right text-xl font-black tabular-nums">{Math.max(0, Math.ceil(remaining / 1000))}</span>
