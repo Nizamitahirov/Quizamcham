@@ -38,14 +38,9 @@ export default function CoursePage() {
   const name = who
   const cert = async () => {
     if (!course) return
-    const { renderCertificate } = await import('../../lib/shareCard')
-    const blob = await renderCertificate(
-      { name, quiz: course.title, place: 0, total: 0, score: 0, trainer: course.ownerName, date: prog?.completedAt?.toDate() ?? new Date() },
-      { title: t.cert.title, given: t.cert.given, completed: K.completeTitle.replace(/ 🎉$/, ''), place: '', score: K.progress(course.items.length, course.items.length), trainer: t.cert.trainer, date: t.cert.date },
-    )
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `jabr-course-${course.id}.png`; a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 2000)
+    const { downloadCertificate } = await import('../../lib/certificate')
+    await downloadCertificate('course', course.id, { name, quiz: course.title, place: 0, total: 0, date: prog?.completedAt?.toDate() ?? new Date(), trainer: course.ownerName,
+      completed: K.completeTitle.replace(/ 🎉$/, ''), result: K.progress(course.items.length, course.items.length) }, `jabr-course-${course.id}.png`)
   }
   return (
     <StudentShell back="/learn" title={course?.title} width="max-w-3xl">

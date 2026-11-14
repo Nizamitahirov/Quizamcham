@@ -217,14 +217,9 @@ function CertButton({ item, score, correct, total }: { item: CatalogItem; score:
   const make = async () => {
     setBusy(true)
     try {
-      const { renderCertificate } = await import('../../lib/shareCard')
-      const blob = await renderCertificate(
-        { name, quiz: item.title, place: 0, total: 0, score, trainer: item.author, date: new Date() },
-        { title: t.cert.title, given: t.cert.given, completed: `${A.certFor} · ${correct}/${total}`, place: '', score: t.cert.score(score.toLocaleString(LOCALE)), trainer: t.cert.trainer, date: t.cert.date },
-      )
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a'); a.href = url; a.download = `jabr-certificate-${item.id}.png`; a.click()
-      setTimeout(() => URL.revokeObjectURL(url), 2000)
+      const { downloadCertificate } = await import('../../lib/certificate')
+      await downloadCertificate('practice', item.id, { name, quiz: item.title, place: 0, total: 0, date: new Date(), trainer: item.author,
+        completed: A.certFor, result: `${correct}/${total} · ${t.cert.score(score.toLocaleString(LOCALE))}` }, `jabr-certificate-${item.id}.png`)
     } finally { setBusy(false) }
   }
   return <button className="btn btn-ghost w-full" disabled={busy || !name} onClick={() => void make()}><Award />{A.certificate}</button>

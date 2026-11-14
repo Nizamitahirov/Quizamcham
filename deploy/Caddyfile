@@ -15,7 +15,7 @@
 	}
 
 	# ictimai quiz səhifələri (SEO): serverdə hazır HTML
-	@seo path /quizzes /quiz/* /sitemap-quizzes.xml
+	@seo path /quizzes /quiz/* /sitemap-quizzes.xml /verify/*
 	handle @seo {
 		reverse_proxy api:3000
 	}

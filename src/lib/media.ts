@@ -27,14 +27,14 @@ async function render(file: File, max: number, square: boolean): Promise<Blob> {
   throw new MediaError('too-large')
 }
 
-export async function uploadMedia(kind: 'photo' | 'logo', file: File): Promise<string> {
+export async function uploadMedia(kind: 'photo' | 'logo' | 'sign', file: File): Promise<string> {
   const blob = await render(file, kind === 'photo' ? 320 : 512, kind === 'photo')
   const r = await fetch(`/api/media/${kind}`, { method: 'POST', headers: { ...(await bearer()), 'content-type': 'application/octet-stream' }, body: blob })
   const j = (await r.json().catch(() => null)) as { url?: string } | null
   if (!r.ok || !j?.url) throw new MediaError(r.status === 413 ? 'too-large' : r.status === 400 ? 'type' : 'failed')
   return j.url
 }
-export async function removeMedia(kind: 'photo' | 'logo') {
+export async function removeMedia(kind: 'photo' | 'logo' | 'sign') {
   await fetch(`/api/media/${kind}`, { method: 'DELETE', headers: await bearer() }).catch(() => {})
 }
 /** Öz yüklədiyimiz şəkildirmi (3D avatardan və Google şəklindən üstün tutulur). */

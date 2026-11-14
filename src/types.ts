@@ -173,7 +173,9 @@ export interface TeamEntry { team: number; score: number; members: number; total
 /** Şirkət brendi (Business planı): oyun ekranlarında loqo, ad və vurğu rəngi. */
 export interface Brand { name: string; color: string; logo: string }
 export interface HostProfile { name: string; title?: string; org?: string; avatar?: AvatarData | null; photoUrl?: string }
-export interface TrainerProfile extends HostProfile { brand?: Partial<Brand> & { on?: boolean }; bio?: string; email?: string; defaults?: Partial<QuizSettings> }
+/** Sertifikat dizaynı (Business): profiles/{uid}.cert */
+export interface CertSettings { on?: boolean; template?: 'classic' | 'modern' | 'minimal'; color?: string; title?: string; signer?: string; signerTitle?: string; signature?: string }
+export interface TrainerProfile extends HostProfile { brand?: Partial<Brand> & { on?: boolean }; cert?: CertSettings; bio?: string; email?: string; defaults?: Partial<QuizSettings> }
 export interface SelfReveal { correct: string[]; accepted?: string[] | null; sliderAnswer?: number | null; explanation?: string | null; pairs?: { left: string; right: string }[]; blanks?: string[][]; hotspot?: Hotspot; text?: string }
 
 export interface ReviewItem { type: QuestionType; text: string; options: Option[]; correct: string[]; accepted: string[] | null; sliderAnswer: number | null; explanation: string | null; scored: boolean; pairs?: { left: string; right: string }[]; blanks?: string[][]; hotspot?: Hotspot; imageUrl?: string }

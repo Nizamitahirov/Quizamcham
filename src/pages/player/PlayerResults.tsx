@@ -8,7 +8,7 @@ import { AnimatedNumber } from '../../components/AnimatedNumber'
 import { burst, celebrate } from '../../components/Confetti'
 import { shortName } from '../../lib/nameFilter'
 import { recordPlay } from '../../lib/account'
-import { renderCertificate, renderShareCard } from '../../lib/shareCard'
+import { renderShareCard } from '../../lib/shareCard'
 import { FeedbackForm } from '../../components/FeedbackForm'
 import { useDocSnap } from '../../lib/hooks'
 import { TeamBoard } from '../../components/TeamBoard'
@@ -73,11 +73,9 @@ export default function PlayerResults({ game, player }: { game: Game; player: Pl
   const cert = async () => {
     setBusy(true)
     try {
-      const blob = await renderCertificate(
-        { name: `${player.firstName} ${player.lastName}`, quiz: game.title, place: rank, total, score: player.score, trainer: game.host?.name, date: new Date() },
-        { title: t.cert.title, given: t.cert.given, completed: t.cert.completed, place: t.cert.place(rank, total), score: t.cert.score(player.score.toLocaleString(LOCALE)), trainer: t.cert.trainer, date: t.cert.date },
-      )
-      download(`sertifikat-${player.firstName}-${player.lastName}.png`, blob)
+      const { downloadCertificate } = await import('../../lib/certificate')
+      await downloadCertificate('game', game.id, { name: `${player.firstName} ${player.lastName}`, quiz: game.title, place: rank, total, date: new Date(), trainer: game.host?.name,
+        completed: t.cert.completed, result: `${t.cert.place(rank, total)}  ·  ${t.cert.score(player.score.toLocaleString(LOCALE))}` }, `sertifikat-${player.firstName}-${player.lastName}.png`)
     } catch { /* noop */ } finally { setBusy(false) }
   }
 

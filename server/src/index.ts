@@ -14,6 +14,7 @@ import { mailRoutes } from './campaigns.js'
 import { learnRoutes } from './learn.js'
 import { publicPageRoutes } from './publicPages.js'
 import { mediaRoutes } from './media.js'
+import { certRoutes, migrateCerts } from './certs.js'
 import { fileRoutes, migrateFiles } from './files.js'
 import { clearAll, commit, DbError, getDoc, migrate, pool, runQuery, type Query, type Write } from './store.js'
 
@@ -68,6 +69,7 @@ mailRoutes(app)
 learnRoutes(app)
 publicPageRoutes(app)
 mediaRoutes(app)
+certRoutes(app)
 fileRoutes(app)
 await realtimeRoutes(app)
 
@@ -79,4 +81,5 @@ await migrate()
 await migrateAuth()
 await migrateAi()
 await migrateFiles()
+await migrateCerts()
 await app.listen({ port: PORT, host: process.env.HOST ?? '0.0.0.0' })
