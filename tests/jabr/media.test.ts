@@ -9,7 +9,7 @@ const auth = (uid: string, anon = false) => ({ 'x-test-auth': Buffer.from(JSON.s
 // 1×1 şəffaf PNG
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
 const up = (kind: string, uid: string | null, body: Buffer, anon = false) =>
-  fetch(`${BASE}/api/media/${kind}`, { method: 'POST', headers: { 'content-type': 'application/octet-stream', ...(uid ? auth(uid, anon) : {}) }, body })
+  fetch(`${BASE}/api/media/${kind}`, { method: 'POST', headers: { 'content-type': 'application/octet-stream', ...(uid ? auth(uid, anon) : {}) }, body: new Uint8Array(body) })
 const brand = async (uid: string) => ((await (await fetch(`${BASE}/api/brand`, { headers: auth(uid) })).json()) as { brand: unknown }).brand
 
 beforeAll(async () => {

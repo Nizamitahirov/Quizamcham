@@ -81,7 +81,7 @@ function Glasses({ kind, color }: { kind: AvatarConfig['glasses']; color: string
   if (kind === 'none') return null
   if (kind === 'visor') return (
     <group position={[0, EYE[1], 0]}>
-      <mesh castShadow><cylinderGeometry args={[0.535, 0.535, 0.17, 48, 1, true, -1.2, 2.4]} /><M c={color} r={0.15} m={0.3} cc={1} e={shade(color, 0.12)} side={THREE.DoubleSide} /></mesh>
+      <mesh castShadow><cylinderGeometry args={[0.535, 0.535, 0.13, 48, 1, true, -1.2, 2.4]} /><M c={color} r={0.12} m={0.2} cc={1} o={0.82} side={THREE.DoubleSide} /></mesh>
       <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.515, 0.03, 10, 48]} /><M c="#1B1D2E" r={0.4} /></mesh>
     </group>
   )
