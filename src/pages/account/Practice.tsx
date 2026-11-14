@@ -1,3 +1,4 @@
+import { A11yMenu, ReadAloud } from '../../components/A11yMenu'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NewTypeReveal } from '../../components/NewTypeReveal'
 import { parseBlanks } from '../../lib/scoring'
@@ -42,11 +43,11 @@ function Shell({ children, title, report }: { children: React.ReactNode; title?:
   return (
     <div className="noise relative flex min-h-dvh flex-col overflow-hidden bg-night text-[#fff]">
       <FuturisticBg floor={false} intensity={0.5} />
-      <header className="relative z-10 mx-auto flex w-full max-w-3xl items-center gap-3 px-4 pt-5">
+      <header className="relative z-30 mx-auto flex w-full max-w-3xl items-center gap-3 px-4 pt-5">
         <Link to="/learn" className="btn btn-ghost btn-icon" aria-label={A.toCatalog}><ArrowLeft className="h-4 w-4" /></Link>
         <Logo size={28} />
         {title && <span className="ml-2 truncate text-sm font-semibold text-white/65">{title}</span>}
-        {report && <span className="ml-auto">{report}</span>}
+        <span className="ml-auto flex items-center gap-2">{report}<A11yMenu /></span>
       </header>
       <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-6">{children}</main>
     </div>
@@ -175,6 +176,7 @@ function Run({ item, uid, onRetry }: { item: CatalogItem; uid: string; onRetry: 
           </>
         )}
       </div>
+      {q.type !== 'slide' && <ReadAloud k={`${item.id}:${i}`} text={q.type === 'fill' ? q.text.replace(/\[[^\]]*\]/g, '...') : q.text} options={q.type === 'single' || q.type === 'multi' || q.type === 'truefalse' || q.type === 'poll' ? q.options : []} />}
       {q.type !== 'fill' && <h2 className="font-display text-center text-2xl font-black leading-snug lg:mt-[8vh] lg:text-3xl">{q.text}</h2>}
       {q.imageUrl && q.type !== 'hotspot' && <img src={q.imageUrl} alt="" className="mx-auto max-h-48 rounded-2xl object-contain" />}
 

@@ -15,6 +15,7 @@ import { Spinner } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
 import { Avatar } from '../../components/Avatar'
 import { MuteButton } from '../../components/MuteButton'
+import { A11yMenu, ReadAloud, partsOf } from '../../components/A11yMenu'
 import { ReactionBar } from '../../components/ReactionBar'
 import { FloatingEmojis, useFlying } from '../../components/FloatingEmojis'
 import { QuestionIntro } from '../../components/QuestionIntro'
@@ -124,6 +125,7 @@ export default function PlayerGame() {
               {player.score.toLocaleString(LOCALE)}
             </span>
           )}
+          <A11yMenu readNow={view.phase === 'question' ? () => partsOf(game.currentQuestion) : undefined} />
           <MuteButton />
         </div>
       </header>
@@ -322,6 +324,7 @@ function QuestionView({ game, uid, player }: { game: Game; uid: string; player: 
   const done = state === 'sent' || state === 'sending'
   return (
     <div className="flex flex-1 flex-col gap-4">
+      {q && <ReadAloud k={`${game.id}:${game.questionIndex}`} text={q.text} options={q.options} />}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <span className="chip chip-dark">{t.game.questionOf(game.questionIndex + 1, game.totalQuestions)}</span>

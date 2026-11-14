@@ -8,7 +8,7 @@ import { db } from '../../firebase/config'
 import { useAdmin } from '../../firebase/auth'
 import { useGame } from '../../lib/hooks'
 import {
-  answersQuery, assignTeams, createGame, grantFifty, setQuestionEnd, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
+  addQuestionTime, answersQuery, assignTeams, createGame, grantFifty, setQuestionEnd, readMsFor, startSelf, endTimeNow, finishGame, finishQuestion, GRACE_MS, kickPlayer, loadSecret, nextAfterReveal,
   pauseQuestion, resumeQuestion, scheduleQuestion, updateLeaderboard, fetchPlayers, setLocked, toCountdown, toPhase, toQuestion, updateLobby,
 } from '../../lib/gameEngine'
 import { serverNow, syncClock } from '../../lib/timeSync'
@@ -22,7 +22,7 @@ import { QuestionIntro } from '../../components/QuestionIntro'
 import { useLeaveGuard, useWakeLock } from '../../lib/useWakeLock'
 import { useOnline } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
-import { Lock, Unlock, Maximize, Volume2, VolumeX, Pause, Play, SkipForward, Flag, ChevronRight, Users } from 'lucide-react'
+import { Lock, Unlock, Maximize, Volume2, VolumeX, Pause, Play, SkipForward, Flag, ChevronRight, Users, TimerReset } from 'lucide-react'
 import { celebrate } from '../../components/Confetti'
 import { HostLobby } from './HostLobby'
 import { HostQuestion, HostReveal } from './HostQuestion'
@@ -364,6 +364,7 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
           {isQ && (
             <>
               <button className="btn btn-ghost" onClick={togglePause}>{game.pausedRemainingMs != null ? <><Play />{t.host.resume}</> : <><Pause />{t.host.pause}</>}</button>
+              {game.currentQuestion?.type !== 'slide' && <button className="btn btn-ghost" title={t.access2.addTimeHint} onClick={() => void addQuestionTime(game, 15)}><TimerReset />{t.access2.addTime}</button>}
               <button className="btn btn-ghost" onClick={skip} disabled={busy}><SkipForward />{t.host.skip}</button>
             </>
           )}

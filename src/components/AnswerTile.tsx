@@ -53,8 +53,8 @@ export function AnswerTile({ index, text, onClick, selected, dimmed, checked, co
       style={{ background: tileBg(index) }}
     >
       <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/18 to-transparent" />
-      <span className={`relative flex shrink-0 items-center justify-center rounded-xl bg-black/20 ${big ? 'h-16 w-16' : 'h-11 w-11'}`}><Shape i={index} size={big ? 36 : 22} /></span>
-      <span className="relative min-w-0 flex-1 leading-snug [overflow-wrap:break-word] [hyphens:auto]" lang="az">{text}</span>
+      <span data-tile-icon className={`relative flex shrink-0 items-center justify-center rounded-xl bg-black/20 ${big ? 'h-16 w-16' : 'h-11 w-11'}`}><Shape i={index} size={big ? 36 : 22} /></span>
+      <span data-tile-text className="relative min-w-0 flex-1 leading-snug [overflow-wrap:break-word] [hyphens:auto]" lang="az">{text}</span>
       {checked !== undefined && (
         <span className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-[#fff] ${checked ? 'bg-[#fff] text-onlight' : ''}`} aria-hidden>
           {checked && <Check className="h-5 w-5" strokeWidth={3.5} />}
