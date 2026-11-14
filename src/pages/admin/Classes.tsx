@@ -1,8 +1,9 @@
+import { ShareMenu } from '../../components/ShareMenu'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom'
 import {
   ArchiveRestore, Archive, ArrowLeft, BookOpen, CalendarClock, CheckCircle2, ClipboardList, Copy, Download, Gamepad2, GraduationCap,
-  FileText, Pencil, Plus, QrCode, Share2, Target, Trash2, TrendingUp, UserMinus, Users,
+  FileText, Pencil, Plus, QrCode, Target, Trash2, TrendingUp, UserMinus, Users,
 } from 'lucide-react'
 import { Timestamp } from 'firebase/firestore'
 import { t } from '../../i18n/az'
@@ -148,7 +149,6 @@ export function ClassDetail() {
   if (!cls) return <div className="mx-auto max-w-3xl p-8"><p className="card p-6 text-sm font-semibold text-amber-300">{t.admin.noAccess}</p></div>
   const url = joinUrl(cls.code)
   const copy = () => void navigator.clipboard.writeText(url).then(() => toast(C2.copiedLink), () => {})
-  const share = () => { if (navigator.share) void navigator.share({ title: cls.name, text: `${C.code}: ${cls.code}`, url }).catch(() => {}); else copy() }
   const rename = async () => {
     const name = await promptDialog({ title: C2.rename, label: C2.renameTitle, initial: cls.name, maxLength: 80 })
     if (name && name.trim().length >= 2 && name !== cls.name) { await renameClass(cls.id, name).then(() => toast(C2.saved)).catch(() => toast(t.app.error, 'error')); reload() }
@@ -182,7 +182,7 @@ export function ClassDetail() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-secondary btn-sm" onClick={copy}><Copy />{C.copy}</button>
-          <button className="btn btn-secondary btn-sm" onClick={share}><Share2 />{C2.share}</button>
+          <ShareMenu url={url} title={t.share.classInvite(cls.name)} text={`${C.code}: ${cls.code}`} />
           <button className="btn btn-primary btn-sm" onClick={() => setQr(true)}><QrCode />{C2.showQr}</button>
         </div>
       </section>
@@ -367,6 +367,10 @@ function TasksTab({ cid, tasks, members, results, onChange }: { cid: string; tas
                 )}
                 <div className="flex gap-1">
                   {x.kind === 'game' && x.gameId && <Link className="btn btn-ghost-dark btn-sm" to={`/admin/games/${x.gameId}`}>{C.report}</Link>}
+                  {(x.kind === 'assignment' || x.kind === 'practice' || (x.kind === 'game' && x.pin)) && (
+                    <ShareMenu compact btnClass="btn btn-ghost-dark btn-icon btn-sm" label={t.share.share} title={t.share.taskInvite(x.title)}
+                      url={x.kind === 'assignment' ? `${location.origin}/learn/class/${cid}/task/${x.id}` : x.kind === 'practice' ? `${location.origin}/learn/${x.quizId}?class=${cid}&task=${x.id}` : `${location.origin}/join?pin=${x.pin}`} />
+                  )}
                   <button className="btn btn-ghost-dark btn-icon btn-sm" aria-label={C2.editTask} title={C2.editTask} onClick={() => setForm({ edit: x })}><Pencil /></button>
                   <button className="btn btn-ghost-dark btn-icon btn-sm hover:text-red-300" aria-label={C.del} title={C.del} onClick={() => void del(x)}><Trash2 /></button>
                 </div>
