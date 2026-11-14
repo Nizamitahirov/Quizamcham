@@ -1,51 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { CheckCircle2, Clock, FlaskConical, ImageIcon, Info, Mail, Megaphone, Monitor, Plus, Send, Smartphone, Trash2, Users } from 'lucide-react'
+import { CheckCircle2, Clock, FlaskConical, ImageIcon, Info, Mail, Megaphone, Monitor, Plus, Send, Smartphone, Trash2, Undo2, UserMinus, Users, X } from 'lucide-react'
 import type { AdminState } from '../../firebase/auth'
 import { t } from '../../i18n/az'
 import { Field, Section, Segmented, EmptyState } from '../../components/kit'
 import { confirmDialog, toast } from '../../components/dialogs'
+import { blank, fromTpl, TPL_FILTER, type Tpl } from '../../lib/mailTemplates'
 import { campAudience, campList, campPreview, campSend, type AiLang, type CampContent, type CampFilter, type CampItem, type CampLicense, type CampTier } from '../../lib/ai'
 
 const C = t.camp
 const TIERS: CampTier[] = ['trial', 'free', 'trainer', 'pro', 'business', 'team']
 const LANGS: AiLang[] = ['az', 'ru', 'en']
 const DRAFT = 'jabr.camp.draft'
-const site = typeof location !== 'undefined' ? location.origin : 'https://jabr.az'
 
-type Tpl = 'launch' | 'offer' | 'news' | 'renew' | 'expiring' | 'blank'
-const TPL: Record<AiLang, Record<Exclude<Tpl, 'blank'>, Omit<CampContent, 'lang' | 'hero'>>> = {
-  az: {
-    launch: { subject: 'Jabr-da yenilik: {ad}, bunu sınamısınız? ✨', preheader: 'Yeni imkanlar artıq hesabınızda', title: 'Quizləriniz indi daha güclüdür', body: 'Salam, {ad}!\n\nJabr-a yeni imkanlar əlavə etdik — dərslərinizi və təlimlərinizi daha canlı etmək üçün.\n\nAşağıda ən vacibləri:', features: [{ emoji: '⚡', title: 'AI ilə quiz', text: 'PDF və ya təqdimat yükləyin — suallar saniyələr içində hazır.' }, { emoji: '🧑‍🚀', title: '3D avatarlar', text: 'İştirakçılar öz 3D obrazları ilə oyuna qoşulur.' }, { emoji: '📊', title: 'Dərin analitika', text: 'Hər sual üzrə kim nəyi bilmir — bir baxışda.' }], ctaLabel: 'Yenilikləri sına', ctaUrl: `${site}/admin` },
-    offer: { subject: '{ad}, Pro plana xüsusi təklif 🎁', preheader: 'Məhdud müddətli endirim', title: 'Pro ilə auditoriyanızı böyüdün', body: 'Salam, {ad}!\n\nPro plan ilə bir oyunda 200 iştirakçıya qədər, AI ilə qiymətləndirmə və kurslar sizin olur.\n\nBu həftə ərzində Pro plana keçənlər üçün xüsusi endirim etdik.', features: [{ emoji: '👥', title: '200 iştirakçı', text: 'Böyük auditoriya və tədbirlər üçün.' }, { emoji: '🤖', title: 'AI qiymətləndirmə', text: 'Açıq cavablar avtomatik yoxlanılır.' }, { emoji: '🎓', title: 'Kurslar', text: 'Quizləri ardıcıl təlim proqramına çevirin.' }], ctaLabel: 'Təklifə bax', ctaUrl: `${site}/pricing` },
-    renew: { subject: '{ad}, Jabr lisenziyanız bitib', preheader: 'Quizləriniz yerindədir — planı yeniləyin', title: 'Lisenziyanız {tarix} tarixində bitib', body: 'Salam, {ad}!\n\nJabr lisenziyanızın müddəti {tarix} tarixində başa çatıb. Hesabınız pulsuz plana keçib: quizləriniz, siniflər və nəticələr yerindədir, amma oyunlarda iştirakçı sayı və AI imkanları məhdudlaşıb.\n\nPlanı yeniləmək üçün aşağıdakı düyməyə klikləyin və ya bu məktuba cavab yazın — sizinlə əlaqə saxlayaq.', features: [{ emoji: '👥', title: 'Böyük auditoriya', text: 'Bir oyunda daha çox iştirakçı.' }, { emoji: '🤖', title: 'AI ilə quiz', text: 'Suallar mövzudan və ya fayldan saniyələr içində.' }, { emoji: '📊', title: 'Analitika və hesabatlar', text: 'Excel ixracı, sertifikatlar, dərin təhlil.' }], ctaLabel: 'Planı yenilə', ctaUrl: `${site}/pricing` },
-    expiring: { subject: '{ad}, lisenziyanız {tarix} tarixində bitir', preheader: 'Fasilə olmasın — vaxtında yeniləyin', title: 'Lisenziyanız tezliklə bitir', body: 'Salam, {ad}!\n\nJabr lisenziyanızın müddəti {tarix} tarixində bitir. Dərs və təlimləriniz yarımçıq qalmasın deyə planı əvvəlcədən yeniləməyi tövsiyə edirik.\n\nSualınız varsa, bu məktuba cavab yazın.', features: [], ctaLabel: 'Planı yenilə', ctaUrl: `${site}/pricing` },
-    news: { subject: 'Jabr xəbərləri', preheader: 'Bu ay platformada nələr oldu', title: 'Bu ayın xəbərləri', body: 'Salam, {ad}!\n\nBu ay Jabr-da nələr dəyişdi — qısaca.', features: [], ctaLabel: 'Jabr-ı aç', ctaUrl: site },
-  },
-  ru: {
-    launch: { subject: 'Новое в Jabr: {имя}, уже пробовали? ✨', preheader: 'Новые возможности уже в вашем аккаунте', title: 'Ваши квизы стали мощнее', body: 'Здравствуйте, {имя}!\n\nМы добавили в Jabr новые возможности, чтобы ваши уроки и тренинги стали живее.\n\nСамое важное:', features: [{ emoji: '⚡', title: 'Квиз с AI', text: 'Загрузите PDF или презентацию — вопросы готовы за секунды.' }, { emoji: '🧑‍🚀', title: '3D-аватары', text: 'Участники входят в игру со своим 3D-образом.' }, { emoji: '📊', title: 'Глубокая аналитика', text: 'Что не усвоено — по каждому вопросу.' }], ctaLabel: 'Попробовать', ctaUrl: `${site}/admin` },
-    offer: { subject: '{имя}, особое предложение на Pro 🎁', preheader: 'Скидка на ограниченное время', title: 'Расширьте аудиторию с Pro', body: 'Здравствуйте, {имя}!\n\nС Pro — до 200 участников в игре, AI-проверка ответов и курсы.\n\nНа этой неделе для перехода на Pro действует особая скидка.', features: [{ emoji: '👥', title: '200 участников', text: 'Для больших аудиторий и мероприятий.' }, { emoji: '🤖', title: 'AI-проверка', text: 'Открытые ответы проверяются автоматически.' }, { emoji: '🎓', title: 'Курсы', text: 'Соберите квизы в учебную программу.' }], ctaLabel: 'Смотреть предложение', ctaUrl: `${site}/pricing` },
-    renew: { subject: '{имя}, срок вашей лицензии Jabr истёк', preheader: 'Ваши квизы на месте — продлите план', title: 'Лицензия истекла {дата}', body: 'Здравствуйте, {имя}!\n\nСрок вашей лицензии Jabr истёк {дата}. Аккаунт переведён на бесплатный план: квизы, классы и результаты сохранены, но число участников и AI-функции ограничены.\n\nЧтобы продлить план, нажмите кнопку ниже или ответьте на это письмо — мы свяжемся с вами.', features: [{ emoji: '👥', title: 'Большая аудитория', text: 'Больше участников в одной игре.' }, { emoji: '🤖', title: 'Квизы с AI', text: 'Вопросы по теме или файлу за секунды.' }, { emoji: '📊', title: 'Аналитика и отчёты', text: 'Экспорт в Excel, сертификаты, глубокий анализ.' }], ctaLabel: 'Продлить план', ctaUrl: `${site}/pricing` },
-    expiring: { subject: '{имя}, ваша лицензия истекает {дата}', preheader: 'Продлите заранее, чтобы не было перерыва', title: 'Лицензия скоро истекает', body: 'Здравствуйте, {имя}!\n\nСрок вашей лицензии Jabr истекает {дата}. Чтобы занятия и тренинги не прерывались, рекомендуем продлить план заранее.\n\nЕсли есть вопросы — просто ответьте на это письмо.', features: [], ctaLabel: 'Продлить план', ctaUrl: `${site}/pricing` },
-    news: { subject: 'Новости Jabr', preheader: 'Что нового на платформе за месяц', title: 'Новости месяца', body: 'Здравствуйте, {имя}!\n\nКоротко о том, что изменилось в Jabr за этот месяц.', features: [], ctaLabel: 'Открыть Jabr', ctaUrl: site },
-  },
-  en: {
-    launch: { subject: 'New in Jabr: {name}, have you tried this? ✨', preheader: 'New features are already in your account', title: 'Your quizzes just got more powerful', body: 'Hi {name}!\n\nWe added new features to Jabr to make your classes and trainings more engaging.\n\nThe highlights:', features: [{ emoji: '⚡', title: 'AI quiz builder', text: 'Upload a PDF or a deck — questions are ready in seconds.' }, { emoji: '🧑‍🚀', title: '3D avatars', text: 'Players join with their own 3D look.' }, { emoji: '📊', title: 'Deep analytics', text: 'See what was missed, question by question.' }], ctaLabel: 'Try it now', ctaUrl: `${site}/admin` },
-    offer: { subject: '{name}, a special Pro offer 🎁', preheader: 'Limited-time discount', title: 'Grow your audience with Pro', body: 'Hi {name}!\n\nPro gives you up to 200 players per game, AI grading and courses.\n\nThis week only, upgrading to Pro comes with a special discount.', features: [{ emoji: '👥', title: '200 players', text: 'For large audiences and events.' }, { emoji: '🤖', title: 'AI grading', text: 'Open answers are checked automatically.' }, { emoji: '🎓', title: 'Courses', text: 'Turn quizzes into a learning path.' }], ctaLabel: 'See the offer', ctaUrl: `${site}/pricing` },
-    renew: { subject: '{name}, your Jabr licence has expired', preheader: 'Your quizzes are safe — renew your plan', title: 'Your licence expired on {date}', body: 'Hi {name}!\n\nYour Jabr licence expired on {date}. Your account has moved to the free plan: your quizzes, classes and results are safe, but player numbers and AI features are now limited.\n\nTo renew, click the button below or reply to this email and we will get in touch.', features: [{ emoji: '👥', title: 'Bigger audiences', text: 'More players in a single game.' }, { emoji: '🤖', title: 'AI quizzes', text: 'Questions from a topic or a file in seconds.' }, { emoji: '📊', title: 'Analytics and reports', text: 'Excel export, certificates, deep insights.' }], ctaLabel: 'Renew my plan', ctaUrl: `${site}/pricing` },
-    expiring: { subject: '{name}, your licence ends on {date}', preheader: 'Renew early to avoid a break', title: 'Your licence ends soon', body: 'Hi {name}!\n\nYour Jabr licence ends on {date}. Renew ahead of time so your classes and trainings are not interrupted.\n\nQuestions? Just reply to this email.', features: [], ctaLabel: 'Renew my plan', ctaUrl: `${site}/pricing` },
-    news: { subject: 'Jabr news', preheader: 'What happened on the platform this month', title: 'This month at Jabr', body: 'Hi {name}!\n\nA quick look at what changed in Jabr this month.', features: [], ctaLabel: 'Open Jabr', ctaUrl: site },
-  },
-}
-const blank = (lang: AiLang): CampContent => ({ subject: '', preheader: '', title: '', body: '', hero: '', features: [], ctaLabel: '', ctaUrl: site, lang })
-const fromTpl = (lang: AiLang, k: Tpl): CampContent => (k === 'blank' ? blank(lang) : { ...TPL[lang][k], hero: '', lang })
 const DEFAULT_FILTER: CampFilter = { audience: 'all', tiers: [], langs: [], joinedDays: 0, emails: [], kind: 'marketing', license: 'any', licenseDays: 0 }
 const LICENSES: CampLicense[] = ['any', 'expiring', 'expired', 'trialEnded']
-/** Lisenziya şablonu seçiləndə auditoriya da uyğun qurulur (xidməti elan — hesabla bağlı məlumat). */
-const TPL_FILTER: Partial<Record<Tpl, Partial<CampFilter>>> = {
-  renew: { audience: 'trainers', tiers: [], license: 'expired', licenseDays: 30, kind: 'service' },
-  expiring: { audience: 'trainers', tiers: [], license: 'expiring', licenseDays: 7, kind: 'service' },
-}
 
 function loadDraft(): { content: CampContent; filter: CampFilter } {
   try {
@@ -85,11 +54,17 @@ export default function Campaigns() {
   useEffect(() => { const id = setTimeout(() => setF({ emails: emailsText.split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean) }), 400); return () => clearTimeout(id) }, [emailsText])
 
   // auditoriya sayı (gecikmə ilə)
+  const [audErr, setAudErr] = useState('')
+  const [q, setQ] = useState('')
+  const [showAll, setShowAll] = useState(false)
   useEffect(() => {
-    setAud(null)
-    const id = setTimeout(() => { void campAudience(filter).then(setAud).catch(() => setAud({ count: 0, noConsent: 0, sample: [] })) }, 350)
+    setAud(null); setAudErr('')
+    const id = setTimeout(() => { void campAudience(filter).then(setAud).catch((e: unknown) => { setAudErr((e as Error).message || C.audErr); setAud(null) }) }, 350)
     return () => clearTimeout(id)
   }, [filter])
+  const excluded = filter.exclude ?? []
+  const exclude = (email: string) => setF({ exclude: [...excluded, email] })
+  const restore = (email: string) => setF({ exclude: excluded.filter((e) => e !== email) })
   // önizləmə
   const seq = useRef(0)
   useEffect(() => {
@@ -171,20 +146,41 @@ export default function Campaigns() {
               </Field>
               <div className="rounded-2xl border border-line bg-white/[.03] p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-2xl font-black tabular-nums">{aud ? aud.count : '…'}</span>
-                  <span className="text-sm text-fg2">{aud ? C.recipients(aud.count).replace(/^\d+\s*/, '') : C.counting}</span>
-                  {!!aud?.noConsent && <span className="chip chip-warn ml-auto">{C.noConsent(aud.noConsent)}</span>}
+                  <span className="text-2xl font-black tabular-nums">{aud ? aud.count : audErr ? '!' : '…'}</span>
+                  <span className="text-sm text-fg2">{aud ? C.recipients(aud.count).replace(/^\d+\s*/, '') : audErr ? C.audErr : C.counting}</span>
+                  {!!aud?.noConsent && <span className="chip chip-warn ml-auto" title={aud.noConsentEmails.join('\n')}>{C.noConsent(aud.noConsent)}</span>}
                 </div>
+                {audErr && <p className="mt-2 text-xs text-red-300">{audErr}</p>}
+                {!!aud?.notFound.length && <p className="mt-2 text-xs text-amber-300" title={aud.notFound.join('\n')}>{C.notFound(aud.notFound.length)}: <span className="break-all font-mono">{aud.notFound.slice(0, 5).join(', ')}{aud.notFound.length > 5 ? '…' : ''}</span></p>}
+                {aud && aud.count === 0 && (
+                  <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
+                    <b>{C.zeroWhy}</b> {aud.noConsent ? C.zeroConsent(aud.noConsent) : aud.notFound.length ? C.notFound(aud.notFound.length) : C.zeroFilter}
+                    {!!aud.noConsent && filter.kind === 'marketing' && <button type="button" className="btn btn-secondary btn-sm mt-2" onClick={() => setF({ kind: 'service' })}>{C.service}</button>}
+                  </div>
+                )}
                 {!!aud?.sample.length && (
-                  <ul className="mt-3 space-y-1.5 border-t border-line pt-3">
-                    {aud.sample.map((r) => (
-                      <li key={r.email} className="flex min-w-0 items-center gap-2 text-xs">
-                        <span className="truncate font-medium text-fg2">{r.name || '—'}</span><span className="truncate text-muted">{r.email}</span>
-                        {r.until && filter.license !== 'any' && <span className="chip chip-warn ml-auto shrink-0">{(r.until > Date.now() ? C.until : C.ended)(new Date(r.until).toLocaleDateString())}</span>}
-                        <span className={`chip chip-muted shrink-0 ${r.until && filter.license !== 'any' ? '' : 'ml-auto'}`}>{r.tier ? C.tierNames[r.tier] : C.students}</span><span className="chip chip-muted shrink-0">{r.lang.toUpperCase()}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mt-3 border-t border-line pt-3">
+                    {aud.sample.length > 6 && <input className="input mb-2 h-9 text-xs" placeholder={C.search} value={q} onChange={(e) => setQ(e.target.value)} />}
+                    <ul className={`space-y-1 ${showAll || q ? 'max-h-80 overflow-y-auto pr-1 scrollbar-thin' : ''}`}>
+                      {aud.sample.filter((r) => !q || `${r.name} ${r.email}`.toLowerCase().includes(q.toLowerCase())).slice(0, showAll || q ? 5000 : 8).map((r) => (
+                        <li key={r.email} className="group flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 text-xs hover:bg-white/[.04]">
+                          <span className="truncate font-medium text-fg2">{r.name || '—'}</span><span className="truncate text-muted">{r.email}</span>
+                          {r.until && filter.license !== 'any' && <span className="chip chip-warn ml-auto shrink-0">{(r.until > Date.now() ? C.until : C.ended)(new Date(r.until).toLocaleDateString())}</span>}
+                          <span className={`chip chip-muted shrink-0 ${r.until && filter.license !== 'any' ? '' : 'ml-auto'}`}>{r.tier ? C.tierNames[r.tier] : C.students}</span><span className="chip chip-muted shrink-0">{r.lang.toUpperCase()}</span>
+                          <button type="button" className="btn btn-ghost-dark btn-icon btn-sm shrink-0 hover:text-red-300" title={C.exclude} aria-label={`${C.exclude}: ${r.email}`} onClick={() => exclude(r.email)}><X /></button>
+                        </li>
+                      ))}
+                    </ul>
+                    {!showAll && !q && aud.sample.length > 8 && <button type="button" className="mt-2 text-xs font-semibold text-orange-300 hover:underline" onClick={() => setShowAll(true)}>{C.showAll(aud.sample.length)}</button>}
+                  </div>
+                )}
+                {excluded.length > 0 && (
+                  <div className="mt-3 border-t border-line pt-3">
+                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-muted"><UserMinus className="h-3.5 w-3.5" />{C.excludedN(excluded.length)}<button type="button" className="ml-auto text-orange-300 hover:underline" onClick={() => setF({ exclude: [] })}>{C.clearExcluded}</button></div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {excluded.map((e) => <button key={e} type="button" title={C.restore} className="chip chip-muted gap-1 line-through decoration-red-400/60 hover:no-underline" onClick={() => restore(e)}>{e}<Undo2 className="h-3 w-3" /></button>)}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -196,7 +192,7 @@ export default function Campaigns() {
                 <Field label={C.letterLang}><Segmented size="sm" value={content.lang} onChange={(v) => set({ lang: v })} options={LANGS.map((x) => ({ value: x, label: x.toUpperCase() }))} /></Field>
                 <Field label={C.templates}>
                   <div className="flex flex-wrap gap-1.5">
-                    {(['launch', 'offer', 'news', 'renew', 'expiring', 'blank'] as Tpl[]).map((k) => <button key={k} type="button" className="btn btn-secondary btn-sm" onClick={() => { setContent(fromTpl(content.lang, k)); const f = TPL_FILTER[k]; if (f) setF(f) }}>{C.tplNames[k]}</button>)}
+                    {(['launch', 'offer', 'news', 'renew', 'expiring', 'trialEnded', 'blank'] as Tpl[]).map((k) => <button key={k} type="button" className="btn btn-secondary btn-sm" onClick={() => { setContent(fromTpl(content.lang, k)); const f = TPL_FILTER[k]; if (f) setF(f) }}>{C.tplNames[k]}</button>)}
                   </div>
                 </Field>
               </div>

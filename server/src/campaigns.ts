@@ -56,6 +56,7 @@ export interface Filter {
   langs?: Lang[]        // interfeys dili (boş — hamısı)
   joinedDays?: number   // son N gündə qeydiyyatdan keçənlər (0 — hamısı)
   emails?: string[]     // audience = custom
+  exclude?: string[]    // bu ünvanlar çıxarılır (siyahıdan əl ilə)
   /** təlimçilər: lisenziya vəziyyəti — bitib / yaxında bitir / sınaq bitib (any — hamısı) */
   license?: LicenseState
   /** expiring: növbəti N gün; expired/trialEnded: son N gündə bitənlər (0 — istənilən vaxt) */
@@ -94,7 +95,7 @@ function tierOf(a: Doc | null, owner: Doc | null, now: number): Tier {
   return now < end ? 'trial' : 'free'
 }
 
-export async function audience(f: Filter): Promise<{ list: Recipient[]; noConsent: number }> {
+export async function audience(f: Filter): Promise<{ list: Recipient[]; noConsent: number; noConsentEmails: string[]; notFound: string[]; excluded: number }> {
   const now = Date.now()
   const [users, admins, authUsers] = await Promise.all([
     pool.query<{ id: string; data: Doc }>("select id, data from docs where parent = 'users'"),
@@ -104,9 +105,12 @@ export async function audience(f: Filter): Promise<{ list: Recipient[]; noConsen
   const adm = new Map(admins.rows.map((r) => [r.id, r.data]))
   const au = new Map(authUsers.rows.map((r) => [r.uid, r]))
   const wanted = new Set((f.emails ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean))
+  const skip = new Set((f.exclude ?? []).map((e) => e.trim().toLowerCase()).filter(Boolean))
   const seen = new Set<string>()
+  const found = new Set<string>()
   const list: Recipient[] = []
-  let noConsent = 0
+  const noConsentEmails: string[] = []
+  let noConsent = 0, excluded = 0
   for (const { id: uid, data: u } of users.rows) {
     const a = au.get(uid)
     if (a?.disabled) continue
@@ -118,7 +122,7 @@ export async function audience(f: Filter): Promise<{ list: Recipient[]; noConsen
     const student = type === 'student'
     const tier = student ? null : tierOf(ad, typeof ad?.orgId === 'string' ? adm.get(ad.orgId) ?? null : null, now)
     const lang = pickLang(u.lang)
-    if (f.audience === 'custom') { if (!wanted.has(email)) continue }
+    if (f.audience === 'custom') { if (!wanted.has(email)) continue; found.add(email) }
     else {
       if (f.audience === 'students' && !student) continue
       if (f.audience === 'trainers' && student) continue
@@ -133,11 +137,13 @@ export async function audience(f: Filter): Promise<{ list: Recipient[]; noConsen
       if (!m.ok) continue
       until = m.until
     } else if (!student) until = licenseOf(ad, now).until
-    if (f.kind !== 'service' && u.marketing !== true) { noConsent++; continue }
+    if (skip.has(email)) { excluded++; continue }
+    if (f.kind !== 'service' && u.marketing !== true) { noConsent++; if (noConsentEmails.length < 200) noConsentEmails.push(email); continue }
     seen.add(email)
     list.push({ uid, email, name: String(u.firstName ?? '').trim() || String(u.displayName ?? '').split(' ')[0] || '', lang, type, tier, until: until || undefined })
   }
-  return { list, noConsent }
+  const notFound = f.audience === 'custom' ? [...wanted].filter((e) => !found.has(e)) : []
+  return { list, noConsent, noConsentEmails, notFound, excluded }
 }
 
 function parseFilter(v: unknown): Filter {
@@ -150,6 +156,7 @@ function parseFilter(v: unknown): Filter {
     langs: arr(o.langs).filter((x): x is Lang => ['az', 'ru', 'en'].includes(x)),
     joinedDays: Math.max(0, Math.min(3650, Number(o.joinedDays) || 0)),
     emails: arr(o.emails).slice(0, 2000).map((e) => e.slice(0, 200)),
+    exclude: arr(o.exclude).slice(0, 5000).map((e) => e.slice(0, 200)),
     license: (['expired', 'expiring', 'trialEnded'] as const).find((x) => x === o.license) ?? 'any',
     licenseDays: Math.max(0, Math.min(3650, Number(o.licenseDays) || 0)),
     kind: o.kind === 'service' ? 'service' : 'marketing',
@@ -164,6 +171,13 @@ function parseContent(v: unknown): CampaignContent {
   }
   if (!c.subject || !c.title) throw fail('invalid-argument')
   return c
+}
+
+/** Tək ünvanlı fərdi məktub (konsol): önizləmə və test həmin alıcının adı və bitmə tarixi ilə. */
+async function singleTarget(f: Filter): Promise<Recipient | null> {
+  if (f.audience !== 'custom' || (f.emails ?? []).length !== 1) return null
+  const { list } = await audience({ ...f, kind: 'service', exclude: [] })
+  return list[0] ?? null
 }
 
 /** Önizləmə və "özümə test" üçün {tarix}: seçilmiş lisenziya filtrinə uyğun nümunə tarix (öz tarixiniz uyğundursa — o). */
@@ -254,14 +268,18 @@ export function mailRoutes(app: FastifyInstance) {
   // ---- kampaniyalar (super admin) ----
   app.post<{ Body: { filter: unknown } }>('/api/campaigns/audience', { preHandler: limit('camp-aud', 60, 60_000) }, async (req) => {
     await requireSuper(req)
-    const { list, noConsent } = await audience(parseFilter(req.body?.filter))
-    return { count: list.length, noConsent, sample: list.slice(0, 8).map((r) => ({ email: r.email, name: r.name, type: r.type, tier: r.tier, lang: r.lang, until: r.until ?? null })) }
+    const { list, noConsent, noConsentEmails, notFound, excluded } = await audience(parseFilter(req.body?.filter))
+    // tam siyahı (5000-ə qədər) — panelda axtarış və əl ilə çıxarmaq üçün
+    const rows = list.slice(0, 5000).map((r) => ({ email: r.email, name: r.name, type: r.type, tier: r.tier, lang: r.lang, until: r.until ?? null }))
+    return { count: list.length, noConsent, noConsentEmails, notFound, excluded, sample: rows }
   })
   app.post<{ Body: { content: unknown; filter?: unknown } }>('/api/campaigns/preview', { preHandler: limit('camp-prev', 120, 60_000) }, async (req) => {
     const auth = await requireSuper(req)
     const content = parseContent(req.body?.content)
     const me = await loadDoc(`users/${auth.uid}`)
-    const m = campaignEmail(content, { name: String(me?.firstName ?? 'Aysel'), until: sampleUntil(parseFilter(req.body?.filter), await loadDoc(`admins/${auth.uid}`)), unsubscribe: unsubUrl(auth.uid) }, base())
+    const f = parseFilter(req.body?.filter)
+    const one = await singleTarget(f)
+    const m = campaignEmail(content, { name: one ? one.name : String(me?.firstName ?? 'Aysel'), until: one ? one.until : sampleUntil(f, await loadDoc(`admins/${auth.uid}`)), unsubscribe: f.kind === 'marketing' ? unsubUrl(auth.uid) : undefined }, base())
     return { subject: m.subject, html: m.html }
   })
   app.post<{ Body: { content: unknown; filter: unknown; test?: boolean } }>('/api/campaigns/send', { preHandler: limit('camp-send', 20, 600_000) }, async (req) => {
@@ -273,8 +291,9 @@ export function mailRoutes(app: FastifyInstance) {
       const to = r.rows[0]?.email
       if (!to) throw fail('auth/invalid-email')
       const me = await loadDoc(`users/${auth.uid}`)
-      const until = sampleUntil(filter, await loadDoc(`admins/${auth.uid}`))
-      const m = campaignEmail(content, { name: String(me?.firstName ?? ''), until, unsubscribe: filter.kind === 'marketing' ? unsubUrl(auth.uid) : undefined }, base())
+      const one = await singleTarget(filter)
+      const until = one ? one.until : sampleUntil(filter, await loadDoc(`admins/${auth.uid}`))
+      const m = campaignEmail(content, { name: one ? one.name : String(me?.firstName ?? ''), until, unsubscribe: filter.kind === 'marketing' ? unsubUrl(auth.uid) : undefined }, base())
       const res = await sendMail(to, `[TEST] ${m.subject}`, m.text, m.html)
       return { test: true, to, ...res }
     }

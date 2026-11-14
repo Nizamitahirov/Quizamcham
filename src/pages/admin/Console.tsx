@@ -1,3 +1,4 @@
+import { MailUserDialog, tplFor, type MailTarget } from '../../components/MailUserDialog'
 import { confirmDialog, alertDialog, toast } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Award, Eye, EyeOff, MoreHorizontal, Trash2, BellRing, BookOpen, Briefcase, ChevronDown, Copy, Coins, Rocket, CalendarClock, Clock, Download, GraduationCap, Hourglass, Inbox, Mail, MessageCircle, Phone, RefreshCw, Save, Search, ShieldCheck, Tag, TrendingUp, UserPlus, Users } from 'lucide-react'
@@ -58,7 +59,7 @@ export default function Console() {
     // Komanda üzvləri (qeydiyyat profili olmayanlar) da siyahıda
     const known = new Set(data.users.map((u) => u.uid))
     const team: Row[] = data.members.filter((m) => !known.has(m.uid)).map((m) => ({
-      uid: m.uid, name: m.name || m.email.split('@')[0], email: m.email, phone: '', type: 'team', org: m.source === 'org' ? `🏢 ${members.get(m.orgId ?? '')?.name || members.get(m.orgId ?? '')?.email || ''}` : '', position: m.role === 'super' ? t.team.super : m.role === 'admin' || m.role === 'owner' ? t.team.admin : t.team.trainer,
+      uid: m.uid, name: m.name || (m.email ?? '').split('@')[0] || m.uid, email: m.email ?? '', phone: '', type: 'team', org: m.source === 'org' ? `🏢 ${members.get(m.orgId ?? '')?.name || members.get(m.orgId ?? '')?.email || ''}` : '', position: m.role === 'super' ? t.team.super : m.role === 'admin' || m.role === 'owner' ? t.team.admin : t.team.trainer,
       status: 'team' as Status, endsAt: null, joined: m.createdAt?.toDate() ?? null,
       quizzes: data.quizOwners[m.uid] ?? 0, games: data.gameHosts[m.uid] ?? 0, attempts: 0,
       disabled: m.disabled === true, raw: { email: m.email, role: m.role }, member: m, licenses: [], seatsUsed: 0,
@@ -247,18 +248,19 @@ function UsersTable({ rows, reload }: { rows: Row[]; reload: () => void }) {
 
 function FragmentRow({ r, open, onToggle, busy, act }: { r: Row; open: boolean; onToggle: () => void; busy: boolean; act: (uid: string, fn: () => Promise<unknown>) => Promise<void> }) {
   const [mode, setMode] = useState<'details' | 'license'>('details')
+  const [mail, setMail] = useState<MailTarget | null>(null)
   const isClient = r.type === 'trainer' || r.type === 'institution'
   const details = Object.entries(r.raw).filter(([k, v]) => !['createdAt', 'lastLoginAt', 'termsAt', 'onboarded', 'photoURL', 'displayName', 'uid', 'dataConsentAt', 'marketingAt'].includes(k) && v !== '' && v != null)
   const show = (m: 'details' | 'license') => { if (open && mode === m) onToggle(); else { setMode(m); if (!open) onToggle() } }
   return (
     <>
+      <MailUserDialog target={mail} onClose={() => setMail(null)} />
       <tr className={r.disabled ? 'opacity-60' : ''}>
         <td className="px-4 py-3"><div className="font-semibold">{r.name}</div><div className="text-xs text-muted">{r.email}</div></td>
         <td className="px-4 py-3 whitespace-nowrap">
           {r.phone && <div className="flex items-center gap-2">
             <a className="font-medium hover:underline" href={`tel:${r.phone.replace(/\s/g, '')}`}>{r.phone}</a>
             <a href={`https://wa.me/${r.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-green-300" aria-label="WhatsApp"><MessageCircle className="h-4 w-4" /></a>
-            <a href={`mailto:${r.email}`} className="text-muted" aria-label="Email"><Mail className="h-4 w-4" /></a>
           </div>}
         </td>
         <td className="px-4 py-3">{r.type === 'team' ? t.team.title : A.types[r.type]?.title ?? r.type}</td>
@@ -268,6 +270,8 @@ function FragmentRow({ r, open, onToggle, busy, act }: { r: Row; open: boolean; 
         <td className="px-4 py-3 whitespace-nowrap text-xs text-muted">{r.joined ? fmtDateTime(r.joined) : '—'}</td>
         <td className="px-4 py-3">
           <div className="flex items-center justify-end gap-1">
+            {isClient && r.email && <button className="btn btn-secondary btn-sm" title={t.camp.one.title} onClick={() => setMail({ email: r.email, name: r.name, lang: String(r.raw.lang ?? ''), tpl: tplFor(r.status, !!r.member?.licenseUntil, r.endsAt) })}><Mail />{t.camp.one.btn}</button>}
+            {!isClient && r.email && <a href={`mailto:${r.email}`} className="btn btn-ghost-dark btn-icon btn-sm" aria-label="Email"><Mail /></a>}
             {isClient && <button className={`btn btn-sm ${open && mode === 'license' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => show('license')}><Award />{C.license}</button>}
             {r.type === 'student' && <button className="btn btn-secondary btn-sm" disabled={busy} title={C.convertHint} onClick={async () => { if ((await confirmDialog({ title: `${C.convert}?\n${C.convertHint}` }))) void act(r.uid, () => convertToTrainer(r.uid, r.email, r.name)) }}><Rocket />{C.convert}</button>}
             {r.type === 'team' && <Link to="/admin/team" className="btn btn-ghost-dark btn-sm" title={C.teamRow}>{C.manageTeam}</Link>}
@@ -345,18 +349,21 @@ function LicensePanel({ r, busy, act }: { r: Row; busy: boolean; act: (uid: stri
 /** Bu gün kimlə əlaqə saxlamalı: hazır WhatsApp/e-poçt mesajı ilə (avtomatik xatırlatma üçün server olmadığı halda). */
 function ContactToday({ rows, data }: { rows: Row[]; data: ConsoleData }) {
   const now = Date.now()
-  type Item = { key: string; name: string; email: string; phone: string; reason: string; msg: string }
+  type Item = { key: string; name: string; email: string; phone: string; reason: string; msg: string; tpl?: MailTarget['tpl']; lang?: string }
+  const [mail, setMail] = useState<MailTarget | null>(null)
   const first = (n: string) => n.split(' ')[0]
   const items: Item[] = []
   for (const r of rows) {
     if (r.type === 'student' || r.type === 'team' || !r.endsAt || r.disabled) continue
     const left = r.endsAt.getTime() - now
-    if (r.status === 'trial' && left < DAY) items.push({ key: r.uid + 't', name: r.name, email: r.email, phone: r.phone, reason: 'trialEnding', msg: C.msgTrialEnding(first(r.name)) })
-    else if (r.status === 'expired' && !r.member?.licenseUntil && -left < 7 * DAY) items.push({ key: r.uid + 'e', name: r.name, email: r.email, phone: r.phone, reason: 'trialEnded', msg: C.msgTrialEnded(first(r.name)) })
-    else if (r.status === 'licensed' && left < 7 * DAY) items.push({ key: r.uid + 'l', name: r.name, email: r.email, phone: r.phone, reason: 'licenseExpiring', msg: C.msgLicense(first(r.name), fmtDate(r.endsAt)) })
+    if (r.status === 'trial' && left < DAY) items.push({ key: r.uid + 't', name: r.name, email: r.email, phone: r.phone, reason: 'trialEnding', msg: C.msgTrialEnding(first(r.name)), tpl: 'trialEnded', lang: String(r.raw.lang ?? '') })
+    else if (r.status === 'expired' && !r.member?.licenseUntil && -left < 7 * DAY) items.push({ key: r.uid + 'e', name: r.name, email: r.email, phone: r.phone, reason: 'trialEnded', msg: C.msgTrialEnded(first(r.name)), tpl: 'trialEnded', lang: String(r.raw.lang ?? '') })
+    else if (r.status === 'licensed' && left < 7 * DAY) items.push({ key: r.uid + 'l', name: r.name, email: r.email, phone: r.phone, reason: 'licenseExpiring', msg: C.msgLicense(first(r.name), fmtDate(r.endsAt)), tpl: 'expiring', lang: String(r.raw.lang ?? '') })
   }
   for (const l of data.leads) if (l.status === 'new' && l.createdAt && now - l.createdAt.toMillis() > DAY) items.push({ key: l.id, name: l.name, email: l.email, phone: l.phone, reason: 'leadWaiting', msg: C.msgLead(first(l.name)) })
   return (
+    <>
+    <MailUserDialog target={mail} onClose={() => setMail(null)} />
     <Section icon={BellRing} title={`${C.contactToday} · ${items.length}`} sub={C.contactTodaySub} className="mb-4" bodyClassName="p-0">
       {items.length === 0 ? <p className="px-5 py-4 text-sm text-muted">{C.noContacts}</p> : (
         <ul className="grid divide-y divide-line md:grid-cols-2 md:divide-y-0">
@@ -364,13 +371,16 @@ function ContactToday({ rows, data }: { rows: Row[]; data: ConsoleData }) {
             <li key={it.key} className="flex flex-wrap items-center gap-3 border-line px-5 py-3 md:border-b">
               <div className="min-w-0 flex-1"><div className="truncate font-semibold">{it.name}</div><div className="text-xs font-semibold text-amber-300">{C.reasons[it.reason]}</div></div>
               {it.phone && <a className="btn btn-secondary btn-sm" href={`https://wa.me/${it.phone.replace(/\D/g, '')}?text=${encodeURIComponent(it.msg)}`} target="_blank" rel="noreferrer"><MessageCircle className="text-green-300" />WhatsApp</a>}
-              <a className="btn btn-ghost-dark btn-sm" href={`mailto:${it.email}?subject=${encodeURIComponent(C.subject)}&body=${encodeURIComponent(it.msg)}`}><Mail /></a>
+              {it.tpl && it.email
+                ? <button className="btn btn-ghost-dark btn-sm" title={t.camp.one.title} onClick={() => setMail({ email: it.email, name: it.name, lang: it.lang, tpl: it.tpl! })}><Mail /></button>
+                : <a className="btn btn-ghost-dark btn-sm" href={`mailto:${it.email}?subject=${encodeURIComponent(C.subject)}&body=${encodeURIComponent(it.msg)}`}><Mail /></a>}
               {it.phone && <a className="btn btn-ghost-dark btn-sm" href={`tel:${it.phone.replace(/\s/g, '')}`} aria-label={A.call}><Phone /></a>}
             </li>
           ))}
         </ul>
       )}
     </Section>
+    </>
   )
 }
 

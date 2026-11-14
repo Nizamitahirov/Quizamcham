@@ -39,11 +39,13 @@ export const mailWelcome = () => call<{ sent: boolean }>('/api/mail/welcome', { 
 // ---- E-poçt kampaniyaları (super admin) ----
 export type CampTier = 'trial' | 'free' | 'trainer' | 'pro' | 'business' | 'team'
 export type CampLicense = 'any' | 'expired' | 'expiring' | 'trialEnded'
-export interface CampFilter { audience: 'all' | 'students' | 'trainers' | 'custom'; tiers: CampTier[]; langs: AiLang[]; joinedDays: number; emails: string[]; kind: 'marketing' | 'service'; license: CampLicense; licenseDays: number }
+export interface CampFilter { audience: 'all' | 'students' | 'trainers' | 'custom'; tiers: CampTier[]; langs: AiLang[]; joinedDays: number; emails: string[]; kind: 'marketing' | 'service'; license: CampLicense; licenseDays: number; exclude?: string[] }
 export interface CampFeature { emoji: string; title: string; text: string }
 export interface CampContent { subject: string; preheader: string; title: string; body: string; hero: string; features: CampFeature[]; ctaLabel: string; ctaUrl: string; lang: AiLang }
 export interface CampItem { id: string; subject: string; kind: string; lang: string; total: number; sent: number; failed: number; status: string; errors: string[]; createdAt: number }
-export const campAudience = (filter: CampFilter) => call<{ count: number; noConsent: number; sample: { email: string; name: string; type: string; tier: string | null; lang: string; until: number | null }[] }>('/api/campaigns/audience', { filter })
+export interface CampRecipient { email: string; name: string; type: string; tier: string | null; lang: string; until: number | null }
+export interface CampAudience { count: number; noConsent: number; noConsentEmails: string[]; notFound: string[]; excluded: number; sample: CampRecipient[] }
+export const campAudience = (filter: CampFilter) => call<CampAudience>('/api/campaigns/audience', { filter })
 export const campPreview = (content: CampContent, filter?: CampFilter) => call<{ subject: string; html: string }>('/api/campaigns/preview', { content, filter })
 export const campSend = (content: CampContent, filter: CampFilter, test = false) => call<{ id?: string; total?: number; test?: boolean; to?: string; sent?: boolean; error?: string }>('/api/campaigns/send', { content, filter, test })
 export const campList = () => call<{ items: CampItem[] }>('/api/campaigns')
