@@ -15,6 +15,7 @@ import { learnRoutes } from './learn.js'
 import { publicPageRoutes } from './publicPages.js'
 import { mediaRoutes } from './media.js'
 import { certRoutes, migrateCerts } from './certs.js'
+import { monitorRoutes, startMonitor } from './monitor.js'
 import { fileRoutes, migrateFiles } from './files.js'
 import { clearAll, commit, DbError, getDoc, migrate, pool, runQuery, type Query, type Write } from './store.js'
 
@@ -70,6 +71,7 @@ learnRoutes(app)
 publicPageRoutes(app)
 mediaRoutes(app)
 certRoutes(app)
+monitorRoutes(app)
 fileRoutes(app)
 await realtimeRoutes(app)
 
@@ -82,4 +84,5 @@ await migrateAuth()
 await migrateAi()
 await migrateFiles()
 await migrateCerts()
+startMonitor()
 await app.listen({ port: PORT, host: process.env.HOST ?? '0.0.0.0' })

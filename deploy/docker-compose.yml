@@ -38,7 +38,11 @@ services:
       DKIM_DIR: /dkim
       DKIM_SELECTOR: jabr
       FILES_DIR: /data/files
+      # monitorinq: disk, ehtiyat nüsxəsinin yaşı — problem olanda bu ünvana məktub (deploy/.env)
+      ALERT_EMAIL: ${ALERT_EMAIL:-office@jabr.az}
+      BACKUPS_DIR: /backups
     volumes:
+      - ../backups:/backups:ro
       - dkim:/dkim:ro
       - files:/data/files
     depends_on:
@@ -70,6 +74,12 @@ services:
     entrypoint: ["/bin/sh", "/backup.sh"]
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
+      # kənar nüsxə (istəyə bağlı): S3-uyğun saxlanc — Contabo Object Storage, Cloudflare R2, Backblaze B2 və s.
+      BACKUP_S3_ENDPOINT: ${BACKUP_S3_ENDPOINT:-}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_REGION: ${BACKUP_S3_REGION:-auto}
+      BACKUP_S3_KEY: ${BACKUP_S3_KEY:-}
+      BACKUP_S3_SECRET: ${BACKUP_S3_SECRET:-}
     volumes:
       - ./backup.sh:/backup.sh:ro
       - ../backups:/backups

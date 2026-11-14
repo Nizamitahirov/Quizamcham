@@ -48,6 +48,8 @@ export interface CampAudience { count: number; noConsent: number; noConsentEmail
 export const campAudience = (filter: CampFilter) => call<CampAudience>('/api/campaigns/audience', { filter })
 export const campPreview = (content: CampContent, filter?: CampFilter) => call<{ subject: string; html: string }>('/api/campaigns/preview', { content, filter })
 export const campSend = (content: CampContent, filter: CampFilter, test = false) => call<{ id?: string; total?: number; test?: boolean; to?: string; sent?: boolean; error?: string }>('/api/campaigns/send', { content, filter, test })
+export interface MonitorCheck { id: string; ok: boolean; level: 'ok' | 'warn' | 'crit'; text: string }
+export const monitorStatus = () => call<{ checks: MonitorCheck[]; at: number }>('/api/monitor')
 export const campList = () => call<{ items: CampItem[] }>('/api/campaigns')
 
 export type AiLevel = 'easy' | 'medium' | 'hard'

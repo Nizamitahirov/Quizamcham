@@ -1,4 +1,5 @@
 import { MailUserDialog, tplFor, type MailTarget } from '../../components/MailUserDialog'
+import { monitorStatus, type MonitorCheck } from '../../lib/ai'
 import { confirmDialog, alertDialog, toast } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Award, Eye, EyeOff, MoreHorizontal, Trash2, BellRing, BookOpen, Briefcase, ChevronDown, Copy, Coins, Rocket, CalendarClock, Clock, Download, GraduationCap, Hourglass, Inbox, Mail, MessageCircle, Phone, RefreshCw, Save, Search, ShieldCheck, Tag, TrendingUp, UserPlus, Users } from 'lucide-react'
@@ -115,6 +116,7 @@ export default function Console() {
         <Kpi icon={CalendarClock} label={C.revenue.expiring} value={rows.filter((r) => r.status === 'licensed' && r.endsAt && r.endsAt.getTime() - now < 7 * DAY).length} warn={rows.some((r) => r.status === 'licensed' && r.endsAt && r.endsAt.getTime() - now < 7 * DAY)} />
       </div>
 
+      {admin.role === 'super' && <ServerHealth />}
       <ContactToday rows={rows} data={data} />
 
       <div className="mb-4 grid items-stretch gap-4 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
@@ -512,4 +514,25 @@ function MailTestButton() {
     } catch (e) { toast(t.mailTest.fail((e as Error).message), 'error') } finally { setBusy(false) }
   }
   return <button className="btn btn-secondary" disabled={busy} onClick={() => void run()}><Mail className={busy ? 'animate-pulse' : ''} />{t.mailTest.btn}</button>
+}
+
+/** Server vəziyyəti (super admin): baza, disk, ehtiyat nüsxə, kənar nüsxə — monitorinqin son yoxlaması. */
+function ServerHealth() {
+  const [checks, setChecks] = useState<MonitorCheck[] | null>(null)
+  useEffect(() => { void monitorStatus().then((r) => setChecks(r.checks)).catch(() => setChecks([])) }, [])
+  if (!checks?.length) return null
+  const worst = checks.some((c) => c.level === 'crit') ? 'crit' : checks.some((c) => !c.ok) ? 'warn' : 'ok'
+  return (
+    <Section icon={ShieldCheck} title={t.monitor.title} sub={t.monitor.sub} className="mb-4"
+      actions={<span className={`chip ${worst === 'ok' ? 'chip-ok' : worst === 'crit' ? 'chip-bad' : 'chip-warn'}`}>{t.monitor.state[worst]}</span>}>
+      <ul className="grid gap-2 sm:grid-cols-2">
+        {checks.map((c) => (
+          <li key={c.id} className="flex items-start gap-2 rounded-xl border border-line bg-white/[.02] px-3 py-2 text-sm">
+            <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${c.ok ? 'bg-emerald-400' : c.level === 'crit' ? 'bg-red-500' : 'bg-amber-400'}`} aria-hidden />
+            <span className={c.ok ? 'text-fg2' : c.level === 'crit' ? 'text-red-300' : 'text-amber-300'}>{c.text}</span>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  )
 }
