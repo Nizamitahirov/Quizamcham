@@ -1,0 +1,36 @@
+# Kənar uptime yoxlaması: hər 10 dəqiqədən bir jabr.az yoxlanılır.
+# Uğursuz olanda GitHub repozitoriya sahibinə avtomatik e-poçt göndərir (Settings → Notifications → Actions).
+name: Uptime
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: jabr.az cavab verir
+        env:
+          SITE: ${{ vars.SITE_HOST }}
+        run: |
+          host="$(echo "${SITE:-jabr.az}" | cut -d, -f1 | tr -d ' ')"
+          fail=0
+          check() {
+            # 3 cəhd — qısa şəbəkə titrəməsi xəbərdarlıq yaratmasın
+            for i in 1 2 3; do
+              code=$(curl -s -o /tmp/body -w '%{http_code}' -m 20 "$1" || echo 000)
+              if [ "$code" = "200" ] && grep -q "$2" /tmp/body; then echo "✅ $1"; return 0; fi
+              sleep 15
+            done
+            echo "::error::$1 cavab vermir (HTTP $code)"; fail=1
+          }
+          check "https://$host/api/health" '"ok":true'
+          check "https://$host/" '<div id="root">'
+          check "https://$host/quizzes" '<h1>'
+          exit $fail
