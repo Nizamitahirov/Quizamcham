@@ -1482,5 +1482,4580 @@
    "status": "live",
    "hasImages": false
   }
+ },
+ {
+  "id": "jabr-az-edebiyyat",
+  "data": {
+   "title": "Azərbaycan ədəbiyyatı",
+   "description": "Klassik və müasir Azərbaycan ədəbiyyatının əsas simaları və əsərləri haqqında 10 sual.",
+   "coverEmoji": "📚",
+   "coverColor": "#7C3AED",
+   "tags": [
+    "ədəbiyyat",
+    "Azərbaycan",
+    "poeziya"
+   ],
+   "questions": [
+    {
+     "id": "az-edebi-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Xəmsə\"nin müəllifi kimdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Xaqani Şirvani"
+      },
+      {
+       "id": "b",
+       "text": "Nizami Gəncəvi"
+      },
+      {
+       "id": "c",
+       "text": "İmadəddin Nəsimi"
+      },
+      {
+       "id": "d",
+       "text": "Məhəmməd Füzuli"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "\"Xəmsə\" Nizami Gəncəvinin beş poemadan ibarət məşhur əsəridir."
+    },
+    {
+     "id": "az-edebi-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Leyli və Məcnun\" poemasını Azərbaycan türkcəsində kim yazıb?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Hüseyn Cavid"
+      },
+      {
+       "id": "b",
+       "text": "Səməd Vurğun"
+      },
+      {
+       "id": "c",
+       "text": "Məhəmməd Füzuli"
+      },
+      {
+       "id": "d",
+       "text": "Molla Pənah Vaqif"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Füzulinin \"Leyli və Məcnun\" poeması (1536) Azərbaycan dilində yazılıb."
+    },
+    {
+     "id": "az-edebi-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Kitabi-Dədə Qorqud\" hansı janra aiddir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Roman"
+      },
+      {
+       "id": "b",
+       "text": "Dastan (epos)"
+      },
+      {
+       "id": "c",
+       "text": "Qəzəl"
+      },
+      {
+       "id": "d",
+       "text": "Komediya"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "\"Kitabi-Dədə Qorqud\" oğuz türklərinin qəhrəmanlıq dastanıdır."
+    },
+    {
+     "id": "az-edebi-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Azərbaycan dramaturgiyasının banisi sayılan yazıçı kimdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Nəcəf bəy Vəzirov"
+      },
+      {
+       "id": "b",
+       "text": "Cəlil Məmmədquluzadə"
+      },
+      {
+       "id": "c",
+       "text": "Əbdürrəhim bəy Haqverdiyev"
+      },
+      {
+       "id": "d",
+       "text": "Mirzə Fətəli Axundzadə"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "M.F. Axundzadənin 1850-ci illərdə yazdığı komediyalar Azərbaycan dramaturgiyasının əsasını qoydu."
+    },
+    {
+     "id": "az-edebi-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Molla Nəsrəddin\" jurnalının naşiri kim olub?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Cəlil Məmmədquluzadə"
+      },
+      {
+       "id": "b",
+       "text": "Ömər Faiq Nemanzadə"
+      },
+      {
+       "id": "c",
+       "text": "Üzeyir Hacıbəyli"
+      },
+      {
+       "id": "d",
+       "text": "Mirzə Ələkbər Sabir"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Jurnal 1906-cı ildə Tiflisdə Cəlil Məmmədquluzadə tərəfindən nəşrə başlayıb."
+    },
+    {
+     "id": "az-edebi-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Hophopnamə\" kimin şeirlər toplusudur?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Mirzə Ələkbər Sabir"
+      },
+      {
+       "id": "b",
+       "text": "Rəsul Rza"
+      },
+      {
+       "id": "c",
+       "text": "Mikayıl Müşfiq"
+      },
+      {
+       "id": "d",
+       "text": "Səməd Vurğun"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "\"Hophopnamə\" satirik şair M.Ə. Sabirin şeirlərinin toplusudur."
+    },
+    {
+     "id": "az-edebi-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Vaqif\" mənzum dramının müəllifi kimdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Süleyman Rüstəm"
+      },
+      {
+       "id": "b",
+       "text": "Hüseyn Cavid"
+      },
+      {
+       "id": "c",
+       "text": "Səməd Vurğun"
+      },
+      {
+       "id": "d",
+       "text": "Rəsul Rza"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "\"Vaqif\" (1937) Səməd Vurğunun məşhur mənzum dramıdır."
+    },
+    {
+     "id": "az-edebi-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "İmadəddin Nəsimi hansı əsrdə yaşayıb?",
+     "options": [
+      {
+       "id": "a",
+       "text": "XVI əsr"
+      },
+      {
+       "id": "b",
+       "text": "XIV əsr"
+      },
+      {
+       "id": "c",
+       "text": "XVIII əsr"
+      },
+      {
+       "id": "d",
+       "text": "XII əsr"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Nəsimi XIV əsrin ikinci yarısında yaşayıb, 1417-ci ildə Hələbdə edam edilib."
+    },
+    {
+     "id": "az-edebi-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "\"Əli və Nino\" romanı ilk dəfə alman dilində nəşr olunub.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Roman 1937-ci ildə Vyanada alman dilində, Qurban Səid imzası ilə çıxıb."
+    },
+    {
+     "id": "az-edebi-10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Arşın mal alan\" operettasının müəllifi kimdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Qara Qarayev"
+      },
+      {
+       "id": "b",
+       "text": "Üzeyir Hacıbəyli"
+      },
+      {
+       "id": "c",
+       "text": "Müslüm Maqomayev"
+      },
+      {
+       "id": "d",
+       "text": "Fikrət Əmirov"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Üzeyir Hacıbəyli 1913-cü ildə \"Arşın mal alan\" operettasını yazıb."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Tarix və mədəniyyət",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-excel-esaslar",
+  "data": {
+   "title": "Excel əsasları",
+   "description": "Cədvəllər, düsturlar və funksiyalar: ofis işində ən çox lazım olan Excel bilikləri.",
+   "coverEmoji": "📊",
+   "coverColor": "#16A34A",
+   "tags": [
+    "Excel",
+    "ofis",
+    "cədvəl"
+   ],
+   "questions": [
+    {
+     "id": "excel-es-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Excel-də düstur hansı simvolla başlayır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "@"
+      },
+      {
+       "id": "b",
+       "text": "#"
+      },
+      {
+       "id": "c",
+       "text": "="
+      },
+      {
+       "id": "d",
+       "text": "&"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Excel bütün düsturları bərabərlik işarəsi ilə başlayan ifadə kimi tanıyır."
+    },
+    {
+     "id": "excel-es-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "A1-dən A10-a qədər xanaların cəmini hansı düstur hesablayır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "=TOTAL(A1;A10)"
+      },
+      {
+       "id": "b",
+       "text": "=ADD(A1-A10)"
+      },
+      {
+       "id": "c",
+       "text": "=PLUS(A1:A10)"
+      },
+      {
+       "id": "d",
+       "text": "=SUM(A1:A10)"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "SUM funksiyası diapazondakı ədədləri toplayır; diapazon iki nöqtə ilə yazılır."
+    },
+    {
+     "id": "excel-es-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Ədədlərin orta qiymətini hansı funksiya qaytarır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "COUNT"
+      },
+      {
+       "id": "b",
+       "text": "MEAN"
+      },
+      {
+       "id": "c",
+       "text": "AVERAGE"
+      },
+      {
+       "id": "d",
+       "text": "MEDIAN"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "AVERAGE ədədi ortanı hesablayır; MEDIAN isə orta (median) dəyəri qaytarır."
+    },
+    {
+     "id": "excel-es-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "$A$1 yazılışı nə deməkdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Xəta işarəsi"
+      },
+      {
+       "id": "b",
+       "text": "Valyuta formatı"
+      },
+      {
+       "id": "c",
+       "text": "Mütləq istinad (kopyalananda dəyişmir)"
+      },
+      {
+       "id": "d",
+       "text": "Gizli xana"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Dollar işarələri sütunu və sətri sabitləyir — düstur köçürüləndə istinad dəyişmir."
+    },
+    {
+     "id": "excel-es-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Şərtə görə iki fərqli nəticə qaytaran funksiya hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "MATCH"
+      },
+      {
+       "id": "b",
+       "text": "CHOOSE"
+      },
+      {
+       "id": "c",
+       "text": "SWITCH"
+      },
+      {
+       "id": "d",
+       "text": "IF"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "=IF(şərt; doğrudursa; yanlışdırsa) — ən çox istifadə olunan məntiqi funksiyadır."
+    },
+    {
+     "id": "excel-es-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Boş olmayan xanaları saymaq üçün hansı funksiya istifadə olunur?",
+     "options": [
+      {
+       "id": "a",
+       "text": "COUNTA"
+      },
+      {
+       "id": "b",
+       "text": "COUNTBLANK"
+      },
+      {
+       "id": "c",
+       "text": "COUNT"
+      },
+      {
+       "id": "d",
+       "text": "SUM"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "COUNTA istənilən məzmunu olan xanaları sayır; COUNT yalnız ədədləri sayır."
+    },
+    {
+     "id": "excel-es-07",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Böyük cədvəli müxtəlif kəsiklərdə tez ümumiləşdirmək üçün hansı alət istifadə olunur?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Mətnin sütunlara bölünməsi"
+      },
+      {
+       "id": "b",
+       "text": "Pivot cədvəl (PivotTable)"
+      },
+      {
+       "id": "c",
+       "text": "Səhifə tərtibatı"
+      },
+      {
+       "id": "d",
+       "text": "Şərti formatlama"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Pivot cədvəl məlumatı sürüklə-burax ilə qruplaşdırıb cəmləyir."
+    },
+    {
+     "id": "excel-es-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "\"#DIV/0!\" xətası ədədin sıfıra bölündüyünü göstərir.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Excel sıfıra bölmədə bu xətanı qaytarır; IFERROR ilə gizlətmək olar."
+    },
+    {
+     "id": "excel-es-09",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Bir cədvəldə açara görə başqa sütundan dəyər tapan müasir funksiya hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "INDEXOF"
+      },
+      {
+       "id": "b",
+       "text": "SEARCH"
+      },
+      {
+       "id": "c",
+       "text": "FIND"
+      },
+      {
+       "id": "d",
+       "text": "XLOOKUP"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "XLOOKUP VLOOKUP-un daha çevik varisidir — hər istiqamətdə axtarır."
+    },
+    {
+     "id": "excel-es-10",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Seçilmiş xanaların dəyərini kopyalamaq üçün klaviatura qısayolu hansıdır (Windows)?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Ctrl + X"
+      },
+      {
+       "id": "b",
+       "text": "Ctrl + V"
+      },
+      {
+       "id": "c",
+       "text": "Ctrl + C"
+      },
+      {
+       "id": "d",
+       "text": "Ctrl + Z"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Ctrl+C kopyalayır, Ctrl+V yapışdırır, Ctrl+X kəsir, Ctrl+Z geri qaytarır."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Rəqəmsal bacarıqlar",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-maliyye-savadi",
+  "data": {
+   "title": "Maliyyə savadlılığı",
+   "description": "Büdcə, faiz, inflyasiya və yığım — gündəlik maliyyə qərarları üçün əsas anlayışlar.",
+   "coverEmoji": "💰",
+   "coverColor": "#F59E0B",
+   "tags": [
+    "maliyyə",
+    "büdcə",
+    "faiz"
+   ],
+   "questions": [
+    {
+     "id": "maliyye--01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"50/30/20\" büdcə qaydasında 20% nəyə ayrılır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Yığım və borcların ödənişi"
+      },
+      {
+       "id": "b",
+       "text": "Əyləncə"
+      },
+      {
+       "id": "c",
+       "text": "Nəqliyyat"
+      },
+      {
+       "id": "d",
+       "text": "Kirayə"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "50% zəruri xərclər, 30% istəklər, 20% yığım və borc ödənişi üçündür."
+    },
+    {
+     "id": "maliyye--02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "İnflyasiya nəyi bildirir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Faizlərin azalmasını"
+      },
+      {
+       "id": "b",
+       "text": "Qiymətlərin ümumi səviyyəsinin artmasını"
+      },
+      {
+       "id": "c",
+       "text": "Maaşların artmasını"
+      },
+      {
+       "id": "d",
+       "text": "Valyutanın möhkəmlənməsini"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "İnflyasiya zamanı eyni pulla daha az mal və xidmət almaq olur."
+    },
+    {
+     "id": "maliyye--03",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Mürəkkəb faiz nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kreditin cərimə faizi"
+      },
+      {
+       "id": "b",
+       "text": "Yalnız əsas məbləğə faiz"
+      },
+      {
+       "id": "c",
+       "text": "Faizin həm əsas məbləğə, həm də əvvəlki faizlərə hesablanması"
+      },
+      {
+       "id": "d",
+       "text": "Bankın xidmət haqqı"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Mürəkkəb faizdə qazanılan faiz növbəti dövrdə məbləğə qoşulur və gəlir sürətlə artır."
+    },
+    {
+     "id": "maliyye--04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "1000 AZN illik 10% sadə faizlə 2 ilə nə qədər olar?",
+     "options": [
+      {
+       "id": "a",
+       "text": "1210 AZN"
+      },
+      {
+       "id": "b",
+       "text": "1020 AZN"
+      },
+      {
+       "id": "c",
+       "text": "1200 AZN"
+      },
+      {
+       "id": "d",
+       "text": "1100 AZN"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Sadə faizdə hər il 100 AZN: 1000 + 2×100 = 1200. Mürəkkəb faizlə 1210 olardı."
+    },
+    {
+     "id": "maliyye--05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Təcili yardım fondu\" adətən neçə aylıq xərci əhatə etməlidir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "1 ay"
+      },
+      {
+       "id": "b",
+       "text": "3–6 ay"
+      },
+      {
+       "id": "c",
+       "text": "1 həftə"
+      },
+      {
+       "id": "d",
+       "text": "5 il"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Maliyyə məsləhətçiləri gözlənilməz hallar üçün 3–6 aylıq zəruri xərcləri saxlamağı tövsiyə edir."
+    },
+    {
+     "id": "maliyye--06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Diversifikasiya nə deməkdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Bütün pulu bir səhmə qoymaq"
+      },
+      {
+       "id": "b",
+       "text": "Krediti tez ödəmək"
+      },
+      {
+       "id": "c",
+       "text": "Nağd pul saxlamaq"
+      },
+      {
+       "id": "d",
+       "text": "Vəsaiti müxtəlif aktivlərə bölmək"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Riskin bölüşdürülməsi — bir aktivin itkisi bütün portfeli məhv etmir."
+    },
+    {
+     "id": "maliyye--07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Kredit kartının yalnız minimum ödənişini etmək borcu tez bağlamağın ən ucuz yoludur.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "f"
+     ],
+     "explanation": "Minimum ödənişdə qalan borca faiz hesablanır, borc uzanır və baha başa gəlir."
+    },
+    {
+     "id": "maliyye--08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Azərbaycanın milli valyutası hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Rubl"
+      },
+      {
+       "id": "b",
+       "text": "Lari"
+      },
+      {
+       "id": "c",
+       "text": "Lira"
+      },
+      {
+       "id": "d",
+       "text": "Manat (AZN)"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Manat Azərbaycanın milli valyutasıdır; 2006-cı ildə denominasiya edilib."
+    },
+    {
+     "id": "maliyye--09",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Kreditin real dəyərini müqayisə etmək üçün hansı göstəriciyə baxmaq lazımdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Yalnız aylıq ödəniş"
+      },
+      {
+       "id": "b",
+       "text": "Bankın reklamı"
+      },
+      {
+       "id": "c",
+       "text": "İllik faktiki faiz dərəcəsi (bütün komissiyalarla)"
+      },
+      {
+       "id": "d",
+       "text": "Kreditin müddəti"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Faktiki illik faiz bütün komissiya və xərcləri nəzərə alır, müqayisə üçün ən doğru göstəricidir."
+    },
+    {
+     "id": "maliyye--10",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Səhm nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Şirkətin mülkiyyət payını təsdiq edən qiymətli kağız"
+      },
+      {
+       "id": "b",
+       "text": "Sığorta polisi"
+      },
+      {
+       "id": "c",
+       "text": "Dövlət borcu"
+      },
+      {
+       "id": "d",
+       "text": "Bankda əmanət"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Səhm sahibi şirkətin hissədarıdır, dividend və dəyər artımından gəlir əldə edə bilər."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Maliyyə",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-marketinq-esaslar",
+  "data": {
+   "title": "Rəqəmsal marketinqin əsasları",
+   "description": "SEO, sosial media, e-poçt və ölçmə: onlayn marketinqin əsas anlayışları.",
+   "coverEmoji": "📣",
+   "coverColor": "#EC4899",
+   "tags": [
+    "marketinq",
+    "SEO",
+    "sosial media"
+   ],
+   "questions": [
+    {
+     "id": "marketin-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "SEO nə deməkdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Sosial şəbəkə reklamı"
+      },
+      {
+       "id": "b",
+       "text": "E-poçt kampaniyası"
+      },
+      {
+       "id": "c",
+       "text": "Satış hesabatı"
+      },
+      {
+       "id": "d",
+       "text": "Axtarış sistemləri üçün optimallaşdırma"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Search Engine Optimization — saytın axtarışda təbii (ödənişsiz) nəticələrdə yüksəlməsi üçün işdir."
+    },
+    {
+     "id": "marketin-02",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "CTR göstəricisi nəyi ölçür?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Göstərilmələrdən neçə faizinin kliklə nəticələndiyini"
+      },
+      {
+       "id": "b",
+       "text": "İzləyici sayını"
+      },
+      {
+       "id": "c",
+       "text": "Satış sayını"
+      },
+      {
+       "id": "d",
+       "text": "Sayt sürətini"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Click-Through Rate = klik / göstərilmə × 100%."
+    },
+    {
+     "id": "marketin-03",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Konversiya nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Valyuta mübadiləsi"
+      },
+      {
+       "id": "b",
+       "text": "Reklamın göstərilməsi"
+      },
+      {
+       "id": "c",
+       "text": "İstifadəçinin istənilən hərəkəti etməsi (alış, qeydiyyat və s.)"
+      },
+      {
+       "id": "d",
+       "text": "Saytın dizaynının dəyişməsi"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Konversiya — məqsəd hərəkəti: alış, qeydiyyat, müraciət forması və s."
+    },
+    {
+     "id": "marketin-04",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "A/B test nə üçün aparılır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Saytı sındırmaq üçün"
+      },
+      {
+       "id": "b",
+       "text": "Rəqibləri izləmək üçün"
+      },
+      {
+       "id": "c",
+       "text": "Reklamı dayandırmaq üçün"
+      },
+      {
+       "id": "d",
+       "text": "İki variantdan hansının daha yaxşı işlədiyini ölçmək üçün"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Auditoriya iki qrupa bölünür, hər birinə fərqli variant göstərilir və nəticələr müqayisə olunur."
+    },
+    {
+     "id": "marketin-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Hədəf auditoriya\" nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Məhsulun yönəldiyi konkret insan qrupu"
+      },
+      {
+       "id": "b",
+       "text": "Bütün internet istifadəçiləri"
+      },
+      {
+       "id": "c",
+       "text": "Şirkətin işçiləri"
+      },
+      {
+       "id": "d",
+       "text": "Rəqiblər"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Marketinq mesajı yaş, maraq, məkan kimi əlamətlərlə seçilmiş qrupa yönəlir."
+    },
+    {
+     "id": "marketin-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "ROI göstəricisi nəyi bildirir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "İşçi sayını"
+      },
+      {
+       "id": "b",
+       "text": "İnvestisiyanın gəlirliliyini"
+      },
+      {
+       "id": "c",
+       "text": "Reklam göstərilmələrini"
+      },
+      {
+       "id": "d",
+       "text": "Saytın reytinqini"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Return on Investment = (gəlir − xərc) / xərc."
+    },
+    {
+     "id": "marketin-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "E-poçt marketinqində alıcıların razılığı olmadan məktub göndərmək düzgün təcrübədir.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "f"
+     ],
+     "explanation": "Razılıq (opt-in) və abunəlikdən çıxma imkanı həm qanuni tələb, həm də yaxşı çatdırılma üçün vacibdir."
+    },
+    {
+     "id": "marketin-08",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Kontent marketinqin əsas məqsədi nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Yalnız endirim elan etmək"
+      },
+      {
+       "id": "b",
+       "text": "Saytı gizlətmək"
+      },
+      {
+       "id": "c",
+       "text": "Spam göndərmək"
+      },
+      {
+       "id": "d",
+       "text": "Faydalı məzmunla auditoriyanı cəlb edib etimad qazanmaq"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Məqalə, video, bələdçi kimi faydalı məzmun potensial müştəri ilə uzunmüddətli əlaqə yaradır."
+    },
+    {
+     "id": "marketin-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Satış hunisinin (funnel) ilk mərhələsi hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Məlumatlılıq (tanınma)"
+      },
+      {
+       "id": "b",
+       "text": "Tövsiyə"
+      },
+      {
+       "id": "c",
+       "text": "Sadiqlik"
+      },
+      {
+       "id": "d",
+       "text": "Alış"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Huni adətən: məlumatlılıq → maraq → qərar → alış → sadiqlik mərhələlərindən keçir."
+    },
+    {
+     "id": "marketin-10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Hansı göstərici müştərinin şirkətə gətirdiyi ümumi gəliri ifadə edir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "CTR"
+      },
+      {
+       "id": "b",
+       "text": "Bounce rate"
+      },
+      {
+       "id": "c",
+       "text": "CPM"
+      },
+      {
+       "id": "d",
+       "text": "Müştərinin ömürlük dəyəri (LTV)"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "LTV — müştərinin bütün əməkdaşlıq dövrü ərzində gətirəcəyi gəlirdir."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Marketinq",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-python-baslangic",
+  "data": {
+   "title": "Python: başlanğıc",
+   "description": "Dəyişənlər, tiplər, şərtlər və dövrlər — Python proqramlaşdırmasına ilk addımlar.",
+   "coverEmoji": "🐍",
+   "coverColor": "#2563EB",
+   "tags": [
+    "Python",
+    "proqramlaşdırma",
+    "kod"
+   ],
+   "questions": [
+    {
+     "id": "python-b-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Python-da ekrana mətn çıxaran funksiya hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "console.log()"
+      },
+      {
+       "id": "b",
+       "text": "echo()"
+      },
+      {
+       "id": "c",
+       "text": "write()"
+      },
+      {
+       "id": "d",
+       "text": "print()"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "print(\"Salam\") mətni standart çıxışa yazır."
+    },
+    {
+     "id": "python-b-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "type(3.14) nə qaytarır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "<class 'str'>"
+      },
+      {
+       "id": "b",
+       "text": "<class 'float'>"
+      },
+      {
+       "id": "c",
+       "text": "<class 'int'>"
+      },
+      {
+       "id": "d",
+       "text": "<class 'decimal'>"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Kəsr hissəsi olan ədədlər float tipindədir."
+    },
+    {
+     "id": "python-b-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Python-da kod blokları necə ayrılır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Nöqtəli vergül ilə"
+      },
+      {
+       "id": "b",
+       "text": "Girinti (indentasiya) ilə"
+      },
+      {
+       "id": "c",
+       "text": "Fiqurlu mötərizə { } ilə"
+      },
+      {
+       "id": "d",
+       "text": "begin/end sözləri ilə"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Python-da girinti sintaksisin bir hissəsidir — blok eyni səviyyəli boşluqlarla müəyyən olunur."
+    },
+    {
+     "id": "python-b-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "len(\"Jabr\") nəyə bərabərdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "0"
+      },
+      {
+       "id": "b",
+       "text": "5"
+      },
+      {
+       "id": "c",
+       "text": "4"
+      },
+      {
+       "id": "d",
+       "text": "3"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "len() sətirdəki simvolların sayını qaytarır."
+    },
+    {
+     "id": "python-b-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Siyahının sonuna element əlavə edən metod hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "insert_end()"
+      },
+      {
+       "id": "b",
+       "text": "append()"
+      },
+      {
+       "id": "c",
+       "text": "push()"
+      },
+      {
+       "id": "d",
+       "text": "add()"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "lst.append(x) x-i siyahının sonuna əlavə edir."
+    },
+    {
+     "id": "python-b-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "range(3) hansı ədədləri verir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "0, 1, 2, 3"
+      },
+      {
+       "id": "b",
+       "text": "3, 2, 1"
+      },
+      {
+       "id": "c",
+       "text": "1, 2, 3"
+      },
+      {
+       "id": "d",
+       "text": "0, 1, 2"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "range(n) 0-dan n-1-ə qədər ədədlər yaradır."
+    },
+    {
+     "id": "python-b-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "7 // 2 ifadəsinin nəticəsi nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "3"
+      },
+      {
+       "id": "b",
+       "text": "1"
+      },
+      {
+       "id": "c",
+       "text": "3.5"
+      },
+      {
+       "id": "d",
+       "text": "4"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "// tam bölmədir: kəsr hissəsi atılır. 7 % 2 isə qalığı (1) verir."
+    },
+    {
+     "id": "python-b-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Python-da \"==\" müqayisə, \"=\" isə mənimsətmə operatorudur.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "x = 5 dəyər verir, x == 5 isə bərabərliyi yoxlayır."
+    },
+    {
+     "id": "python-b-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Açar–dəyər cütlərini saxlayan Python tipi hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "dict"
+      },
+      {
+       "id": "b",
+       "text": "set"
+      },
+      {
+       "id": "c",
+       "text": "list"
+      },
+      {
+       "id": "d",
+       "text": "tuple"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "dict (lüğət): {\"ad\": \"Aysel\", \"yaş\": 21}."
+    },
+    {
+     "id": "python-b-10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Xətanı tutub proqramın dayanmasının qarşısını alan quruluş hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "def / return"
+      },
+      {
+       "id": "b",
+       "text": "if / else"
+      },
+      {
+       "id": "c",
+       "text": "try / except"
+      },
+      {
+       "id": "d",
+       "text": "for / in"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "try blokunda xəta baş verərsə, except bloku icra olunur."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Proqramlaşdırma",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-ingilis-a2",
+  "data": {
+   "title": "İngilis dili: A2 qrammatika",
+   "description": "Zamanlar, müqayisə dərəcələri və gündəlik ifadələr — A2 səviyyəsi üçün test.",
+   "coverEmoji": "🇬🇧",
+   "coverColor": "#0EA5E9",
+   "tags": [
+    "ingilis dili",
+    "qrammatika",
+    "A2"
+   ],
+   "questions": [
+    {
+     "id": "ingilis--01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "She ___ to school every day.",
+     "options": [
+      {
+       "id": "a",
+       "text": "going"
+      },
+      {
+       "id": "b",
+       "text": "goes"
+      },
+      {
+       "id": "c",
+       "text": "go"
+      },
+      {
+       "id": "d",
+       "text": "gone"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Present Simple-da he/she/it ilə feilə -s/-es artırılır: goes."
+    },
+    {
+     "id": "ingilis--02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Yesterday I ___ a great film.",
+     "options": [
+      {
+       "id": "a",
+       "text": "watching"
+      },
+      {
+       "id": "b",
+       "text": "watched"
+      },
+      {
+       "id": "c",
+       "text": "have watch"
+      },
+      {
+       "id": "d",
+       "text": "watch"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "\"Yesterday\" keçmişdə bitmiş hərəkəti göstərir — Past Simple: watched."
+    },
+    {
+     "id": "ingilis--03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "This book is ___ than that one.",
+     "options": [
+      {
+       "id": "a",
+       "text": "most interesting"
+      },
+      {
+       "id": "b",
+       "text": "more interesting"
+      },
+      {
+       "id": "c",
+       "text": "interestinger"
+      },
+      {
+       "id": "d",
+       "text": "interesting"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Uzun sifətlər müqayisə dərəcəsində \"more\" ilə işlənir."
+    },
+    {
+     "id": "ingilis--04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Look! It ___ outside.",
+     "options": [
+      {
+       "id": "a",
+       "text": "rains"
+      },
+      {
+       "id": "b",
+       "text": "is raining"
+      },
+      {
+       "id": "c",
+       "text": "rained"
+      },
+      {
+       "id": "d",
+       "text": "rain"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "\"Look!\" indi baş verən hərəkəti göstərir — Present Continuous."
+    },
+    {
+     "id": "ingilis--05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "There isn't ___ milk in the fridge.",
+     "options": [
+      {
+       "id": "a",
+       "text": "many"
+      },
+      {
+       "id": "b",
+       "text": "some"
+      },
+      {
+       "id": "c",
+       "text": "a"
+      },
+      {
+       "id": "d",
+       "text": "any"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "İnkar və sual cümlələrində sayılmayan isimlərlə \"any\" işlənir."
+    },
+    {
+     "id": "ingilis--06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Good\" sifətinin üstünlük dərəcəsi hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "the best"
+      },
+      {
+       "id": "b",
+       "text": "the most good"
+      },
+      {
+       "id": "c",
+       "text": "the goodest"
+      },
+      {
+       "id": "d",
+       "text": "the better"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Qeyri-qanuni forma: good → better → the best."
+    },
+    {
+     "id": "ingilis--07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "I have lived here ___ 2020.",
+     "options": [
+      {
+       "id": "a",
+       "text": "for"
+      },
+      {
+       "id": "b",
+       "text": "since"
+      },
+      {
+       "id": "c",
+       "text": "from"
+      },
+      {
+       "id": "d",
+       "text": "at"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "\"Since\" başlanğıc nöqtəsini (2020), \"for\" müddəti (5 years) göstərir."
+    },
+    {
+     "id": "ingilis--08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Which sentence is correct?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Can you help me?"
+      },
+      {
+       "id": "b",
+       "text": "You can help me?"
+      },
+      {
+       "id": "c",
+       "text": "Do you can help me?"
+      },
+      {
+       "id": "d",
+       "text": "Can you to help me?"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Modal feillər (can) sualda özü əvvələ keçir, köməkçi feil və \"to\" lazım deyil."
+    },
+    {
+     "id": "ingilis--09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "\"Children\" sözü \"child\" sözünün cəmidir.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Qeyri-qanuni cəm: child → children, man → men, mouse → mice."
+    },
+    {
+     "id": "ingilis--10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "We ___ to Baku next week. (plan)",
+     "options": [
+      {
+       "id": "a",
+       "text": "travels"
+      },
+      {
+       "id": "b",
+       "text": "are going to travel"
+      },
+      {
+       "id": "c",
+       "text": "have travelled"
+      },
+      {
+       "id": "d",
+       "text": "travelled"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Əvvəlcədən planlaşdırılmış gələcək üçün \"be going to\" işlənir."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Dillər",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-liderlik",
+  "data": {
+   "title": "Liderlik və komanda işi",
+   "description": "Rəhbərlik üslubları, rəy vermə, motivasiya və effektiv komanda qurmaq haqqında 10 sual.",
+   "coverEmoji": "🧭",
+   "coverColor": "#0D9488",
+   "tags": [
+    "liderlik",
+    "komanda",
+    "idarəetmə"
+   ],
+   "questions": [
+    {
+     "id": "liderlik-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "SMART məqsəd modelində \"M\" hərfi nəyi bildirir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Motivasiyalı"
+      },
+      {
+       "id": "b",
+       "text": "Monitorinq"
+      },
+      {
+       "id": "c",
+       "text": "Ölçülə bilən (Measurable)"
+      },
+      {
+       "id": "d",
+       "text": "Maksimal"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "SMART: Specific, Measurable, Achievable, Relevant, Time-bound."
+    },
+    {
+     "id": "liderlik-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Tuckman modelinə görə komanda inkişafının ilk mərhələsi hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Fırtına (Storming)"
+      },
+      {
+       "id": "b",
+       "text": "Normalaşma (Norming)"
+      },
+      {
+       "id": "c",
+       "text": "Formalaşma (Forming)"
+      },
+      {
+       "id": "d",
+       "text": "Fəaliyyət (Performing)"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Forming → Storming → Norming → Performing (→ Adjourning)."
+    },
+    {
+     "id": "liderlik-03",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Konstruktiv rəy (feedback) vermək üçün hansı yanaşma daha effektivdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Hamının qarşısında danlamaq"
+      },
+      {
+       "id": "b",
+       "text": "Ümumi sözlərlə tərifləmək"
+      },
+      {
+       "id": "c",
+       "text": "Konkret davranış və onun təsiri barədə danışmaq"
+      },
+      {
+       "id": "d",
+       "text": "Şəxsiyyəti tənqid etmək"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Konkret davranışa və nəticəyə fokuslanan rəy insanın inkişafına kömək edir."
+    },
+    {
+     "id": "liderlik-04",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Eisenhower matrisində \"vacib, amma təcili deyil\" işlərlə nə etmək tövsiyə olunur?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Planlaşdırmaq"
+      },
+      {
+       "id": "b",
+       "text": "Başqasına həvalə etmək"
+      },
+      {
+       "id": "c",
+       "text": "Ləğv etmək"
+      },
+      {
+       "id": "d",
+       "text": "Dərhal etmək"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Vacib + təcili → et; vacib + təcili deyil → planla; təcili + vacib deyil → həvalə et; heç biri → sil."
+    },
+    {
+     "id": "liderlik-05",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Psixoloji təhlükəsizlik\" komandada nə deməkdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Ofisin fiziki təhlükəsizliyi"
+      },
+      {
+       "id": "b",
+       "text": "Məlumatların şifrələnməsi"
+      },
+      {
+       "id": "c",
+       "text": "İşdən çıxarılmamaq zəmanəti"
+      },
+      {
+       "id": "d",
+       "text": "Üzvlərin səhv və fikirlərini qorxmadan bölüşə bilməsi"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Google-un \"Aristotle\" tədqiqatı bunu effektiv komandaların ən mühüm amili kimi göstərib."
+    },
+    {
+     "id": "liderlik-06",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Həvalə etmə (delegation) zamanı ən vacib nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Tapşırığı izah etmədən vermək"
+      },
+      {
+       "id": "b",
+       "text": "Yalnız asan işləri vermək"
+      },
+      {
+       "id": "c",
+       "text": "Hər addımı nəzarətdə saxlamaq"
+      },
+      {
+       "id": "d",
+       "text": "Nəticəni, səlahiyyəti və müddəti aydın razılaşdırmaq"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Aydın gözlənti və uyğun səlahiyyət olmadan həvalə uğursuz olur."
+    },
+    {
+     "id": "liderlik-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Aktiv dinləmə — həmsöhbətin dediklərini öz sözlərinlə təkrarlayıb dəqiqləşdirməyi də əhatə edir.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Parafraz və dəqiqləşdirici suallar anlaşılmazlıqları azaldır."
+    },
+    {
+     "id": "liderlik-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Daxili motivasiyanı ən çox nə gücləndirir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Daimi nəzarət"
+      },
+      {
+       "id": "b",
+       "text": "Rəqabət cədvəlləri"
+      },
+      {
+       "id": "c",
+       "text": "Muxtariyyət, ustalıq və məna hissi"
+      },
+      {
+       "id": "d",
+       "text": "Yalnız cərimələr"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Daniel Pink-in modeli: autonomy, mastery, purpose."
+    },
+    {
+     "id": "liderlik-09",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Münaqişədə \"qazan–qazan\" yanaşması nəyə əsaslanır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Güzəştə getməməyə"
+      },
+      {
+       "id": "b",
+       "text": "Münaqişəni görməzlikdən gəlməyə"
+      },
+      {
+       "id": "c",
+       "text": "Hər iki tərəfin maraqlarını təmin edən həll axtarmağa"
+      },
+      {
+       "id": "d",
+       "text": "Yalnız rəhbərin qərarına"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Mövqelərə yox, maraqlara fokuslanmaq hər iki tərəf üçün uyğun həll tapmağa imkan verir."
+    },
+    {
+     "id": "liderlik-10",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "1:1 görüşlərin əsas məqsədi nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Hesabat yazmaq"
+      },
+      {
+       "id": "b",
+       "text": "İşçinin inkişafı, problemləri və rəyi barədə müntəzəm söhbət"
+      },
+      {
+       "id": "c",
+       "text": "Maaş müzakirəsi"
+      },
+      {
+       "id": "d",
+       "text": "Yalnız tapşırıq vermək"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Müntəzəm fərdi görüşlər etimad yaradır və problemləri erkən üzə çıxarır."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Liderlik",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-biznes-esaslar",
+  "data": {
+   "title": "Biznesin əsasları",
+   "description": "Startap, gəlir modeli, xərclər və bazar — sahibkarlıq üçün əsas anlayışlar.",
+   "coverEmoji": "🚀",
+   "coverColor": "#F0262F",
+   "tags": [
+    "biznes",
+    "startap",
+    "sahibkarlıq"
+   ],
+   "questions": [
+    {
+     "id": "biznes-e-01",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "MVP (minimum işlək məhsul) nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Ən bahalı versiya"
+      },
+      {
+       "id": "b",
+       "text": "Tam hazır məhsul"
+      },
+      {
+       "id": "c",
+       "text": "Reklam kampaniyası"
+      },
+      {
+       "id": "d",
+       "text": "Fərziyyəni yoxlamaq üçün ən sadə işlək versiya"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "MVP ilə real istifadəçilərdən tez və ucuz rəy toplanır."
+    },
+    {
+     "id": "biznes-e-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Mənfəət necə hesablanır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Satış sayı × işçi sayı"
+      },
+      {
+       "id": "b",
+       "text": "Gəlir + xərclər"
+      },
+      {
+       "id": "c",
+       "text": "Gəlir − xərclər"
+      },
+      {
+       "id": "d",
+       "text": "Kapital / borc"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Mənfəət (profit) gəlirdən bütün xərclər çıxıldıqdan sonra qalan məbləğdir."
+    },
+    {
+     "id": "biznes-e-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Zərərsizlik nöqtəsi (break-even) nəyi göstərir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Maksimum mənfəəti"
+      },
+      {
+       "id": "b",
+       "text": "Gəlirin xərcləri tam ödədiyi satış həcmini"
+      },
+      {
+       "id": "c",
+       "text": "Vergi borcunu"
+      },
+      {
+       "id": "d",
+       "text": "İflas anını"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Bu nöqtədən sonrakı hər satış mənfəət gətirir."
+    },
+    {
+     "id": "biznes-e-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "SWOT təhlilində \"T\" nəyi bildirir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Komanda (Team)"
+      },
+      {
+       "id": "b",
+       "text": "Texnologiya"
+      },
+      {
+       "id": "c",
+       "text": "Təhdidlər (Threats)"
+      },
+      {
+       "id": "d",
+       "text": "Hədəf (Target)"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Strengths, Weaknesses, Opportunities, Threats."
+    },
+    {
+     "id": "biznes-e-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Abunə (subscription) modelinin əsas üstünlüyü nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Bir dəfəlik böyük gəlir"
+      },
+      {
+       "id": "b",
+       "text": "Xərclərin olmaması"
+      },
+      {
+       "id": "c",
+       "text": "Proqnozlaşdırıla bilən təkrarlanan gəlir"
+      },
+      {
+       "id": "d",
+       "text": "Müştəri ehtiyacının olmaması"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Aylıq/illik ödənişlər sabit və planlana bilən gəlir axını yaradır."
+    },
+    {
+     "id": "biznes-e-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Sabit xərcə nümunə hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Satılan məhsulun xammalı"
+      },
+      {
+       "id": "b",
+       "text": "Satış komissiyası"
+      },
+      {
+       "id": "c",
+       "text": "Çatdırılma xərci (hər sifarişə)"
+      },
+      {
+       "id": "d",
+       "text": "Ofis kirayəsi"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Sabit xərclər satış həcmindən asılı olmayaraq dəyişmir."
+    },
+    {
+     "id": "biznes-e-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Pul axını (cash flow) müsbət olan şirkət kağız üzərində zərərdə ola bilər.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Mənfəət və pul axını fərqlidir: məsələn, amortizasiya zərər göstərsə də, nağd pul daxil ola bilər."
+    },
+    {
+     "id": "biznes-e-08",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Product–market fit\" nə deməkdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Məhsulun patentli olması"
+      },
+      {
+       "id": "b",
+       "text": "Məhsulun ucuz olması"
+      },
+      {
+       "id": "c",
+       "text": "Məhsulun real bazar ehtiyacını güclü şəkildə qarşılaması"
+      },
+      {
+       "id": "d",
+       "text": "Reklamın çox olması"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Müştərilər məhsulu özləri tövsiyə edir və istifadəni davam etdirirsə, bu, fit əlamətidir."
+    },
+    {
+     "id": "biznes-e-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "B2B nə deməkdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Onlayn hərrac"
+      },
+      {
+       "id": "b",
+       "text": "Şirkətin fərdi müştərilərə satışı"
+      },
+      {
+       "id": "c",
+       "text": "Dövlət satınalması"
+      },
+      {
+       "id": "d",
+       "text": "Şirkətin digər şirkətlərə satışı"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Business-to-Business; fərdi istehlakçıya satış isə B2C adlanır."
+    },
+    {
+     "id": "biznes-e-10",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Müştəri əldə etmə xərci (CAC) necə hesablanır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kirayə / ay"
+      },
+      {
+       "id": "b",
+       "text": "Marketinq və satış xərcləri / yeni müştəri sayı"
+      },
+      {
+       "id": "c",
+       "text": "Mənfəət / işçi sayı"
+      },
+      {
+       "id": "d",
+       "text": "Gəlir / müştəri sayı"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "CAC LTV ilə müqayisə edilir: sağlam biznesdə LTV CAC-dan xeyli böyük olmalıdır."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Biznes",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-riyaziyyat-5-6",
+  "data": {
+   "title": "Riyaziyyat: 5–6-cı siniflər",
+   "description": "Kəsrlər, faizlər, bölünmə və həndəsə — məktəb proqramı üzrə 10 sual.",
+   "coverEmoji": "➗",
+   "coverColor": "#4F46E5",
+   "tags": [
+    "riyaziyyat",
+    "məktəb",
+    "kəsr"
+   ],
+   "questions": [
+    {
+     "id": "riyaziyy-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "3/4 + 1/8 = ?",
+     "options": [
+      {
+       "id": "a",
+       "text": "5/8"
+      },
+      {
+       "id": "b",
+       "text": "4/12"
+      },
+      {
+       "id": "c",
+       "text": "7/8"
+      },
+      {
+       "id": "d",
+       "text": "1/2"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "3/4 = 6/8; 6/8 + 1/8 = 7/8."
+    },
+    {
+     "id": "riyaziyy-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "200-ün 15%-i neçədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "15"
+      },
+      {
+       "id": "b",
+       "text": "20"
+      },
+      {
+       "id": "c",
+       "text": "35"
+      },
+      {
+       "id": "d",
+       "text": "30"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "200 × 0,15 = 30."
+    },
+    {
+     "id": "riyaziyy-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Hansı ədəd 9-a qalıqsız bölünür?",
+     "options": [
+      {
+       "id": "a",
+       "text": "486"
+      },
+      {
+       "id": "b",
+       "text": "625"
+      },
+      {
+       "id": "c",
+       "text": "497"
+      },
+      {
+       "id": "d",
+       "text": "512"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Rəqəmlərin cəmi 9-a bölünürsə, ədəd 9-a bölünür: 4+8+6 = 18."
+    },
+    {
+     "id": "riyaziyy-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Tərəfi 6 sm olan kvadratın sahəsi nə qədərdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "36 sm²"
+      },
+      {
+       "id": "b",
+       "text": "30 sm²"
+      },
+      {
+       "id": "c",
+       "text": "24 sm²"
+      },
+      {
+       "id": "d",
+       "text": "12 sm²"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Kvadratın sahəsi tərəfin kvadratına bərabərdir: 6 × 6 = 36."
+    },
+    {
+     "id": "riyaziyy-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "12 və 18-in ən böyük ortaq böləni neçədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "6"
+      },
+      {
+       "id": "b",
+       "text": "9"
+      },
+      {
+       "id": "c",
+       "text": "3"
+      },
+      {
+       "id": "d",
+       "text": "36"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "12 = 2·2·3, 18 = 2·3·3 → ortaq vuruqlar 2·3 = 6."
+    },
+    {
+     "id": "riyaziyy-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "0,25 hansı adi kəsrə bərabərdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "2/5"
+      },
+      {
+       "id": "b",
+       "text": "1/25"
+      },
+      {
+       "id": "c",
+       "text": "1/2"
+      },
+      {
+       "id": "d",
+       "text": "1/4"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "0,25 = 25/100 = 1/4."
+    },
+    {
+     "id": "riyaziyy-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Üçbucağın daxili bucaqlarının cəmi neçə dərəcədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "180°"
+      },
+      {
+       "id": "b",
+       "text": "90°"
+      },
+      {
+       "id": "c",
+       "text": "360°"
+      },
+      {
+       "id": "d",
+       "text": "270°"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "İstənilən üçbucaqda daxili bucaqların cəmi 180°-dir."
+    },
+    {
+     "id": "riyaziyy-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "−5 + 8 = ?",
+     "options": [
+      {
+       "id": "a",
+       "text": "13"
+      },
+      {
+       "id": "b",
+       "text": "−13"
+      },
+      {
+       "id": "c",
+       "text": "−3"
+      },
+      {
+       "id": "d",
+       "text": "3"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Fərqli işarəli ədədlərin toplanmasında modulların fərqi böyük modullu ədədin işarəsi ilə götürülür."
+    },
+    {
+     "id": "riyaziyy-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "1 sadə ədəd deyil.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Sadə ədədin düz iki fərqli böləni olmalıdır; 1-in yalnız bir böləni var."
+    },
+    {
+     "id": "riyaziyy-10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Saatda 60 km sürətlə gedən avtomobil 2,5 saatda neçə km yol gedər?",
+     "options": [
+      {
+       "id": "a",
+       "text": "180 km"
+      },
+      {
+       "id": "b",
+       "text": "150 km"
+      },
+      {
+       "id": "c",
+       "text": "120 km"
+      },
+      {
+       "id": "d",
+       "text": "125 km"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Yol = sürət × zaman: 60 × 2,5 = 150 km."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Riyaziyyat",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-fizika-esaslar",
+  "data": {
+   "title": "Fizika: əsas anlayışlar",
+   "description": "Qüvvə, enerji, işıq və elektrik — orta məktəb fizikasından əsas suallar.",
+   "coverEmoji": "⚛️",
+   "coverColor": "#0EA5E9",
+   "tags": [
+    "fizika",
+    "elm",
+    "məktəb"
+   ],
+   "questions": [
+    {
+     "id": "fizika-e-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Qüvvənin BS (SI) vahidi hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Nyuton (N)"
+      },
+      {
+       "id": "b",
+       "text": "Paskal (Pa)"
+      },
+      {
+       "id": "c",
+       "text": "Vatt (W)"
+      },
+      {
+       "id": "d",
+       "text": "Coul (J)"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "1 N — 1 kq kütləyə 1 m/s² təcil verən qüvvədir."
+    },
+    {
+     "id": "fizika-e-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "İşığın vakuumda sürəti təxminən nə qədərdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "300 000 km/s"
+      },
+      {
+       "id": "b",
+       "text": "300 km/s"
+      },
+      {
+       "id": "c",
+       "text": "30 000 km/s"
+      },
+      {
+       "id": "d",
+       "text": "3 000 000 km/s"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Dəqiq dəyər 299 792 458 m/s-dir."
+    },
+    {
+     "id": "fizika-e-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Nyutonun ikinci qanunu hansı düsturla ifadə olunur?",
+     "options": [
+      {
+       "id": "a",
+       "text": "P = U·I"
+      },
+      {
+       "id": "b",
+       "text": "F = m·a"
+      },
+      {
+       "id": "c",
+       "text": "p = F/S"
+      },
+      {
+       "id": "d",
+       "text": "E = m·c²"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Qüvvə kütlə ilə təcilin hasilinə bərabərdir."
+    },
+    {
+     "id": "fizika-e-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Elektrik müqavimətinin vahidi hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Volt"
+      },
+      {
+       "id": "b",
+       "text": "Amper"
+      },
+      {
+       "id": "c",
+       "text": "Farad"
+      },
+      {
+       "id": "d",
+       "text": "Om"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Om qanunu: I = U / R."
+    },
+    {
+     "id": "fizika-e-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Suyun normal atmosfer təzyiqində qaynama temperaturu neçə dərəcədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "90 °C"
+      },
+      {
+       "id": "b",
+       "text": "100 °C"
+      },
+      {
+       "id": "c",
+       "text": "120 °C"
+      },
+      {
+       "id": "d",
+       "text": "80 °C"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Dəniz səviyyəsində (101,3 kPa) su 100 °C-də qaynayır; dağlarda bu temperatur aşağıdır."
+    },
+    {
+     "id": "fizika-e-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Səs hansı mühitdə yayıla bilməz?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Metalda"
+      },
+      {
+       "id": "b",
+       "text": "Havada"
+      },
+      {
+       "id": "c",
+       "text": "Suda"
+      },
+      {
+       "id": "d",
+       "text": "Vakuumda"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Səs mexaniki dalğadır, yayılmaq üçün maddi mühit lazımdır."
+    },
+    {
+     "id": "fizika-e-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Kinetik enerji nədən asılıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Yalnız temperaturdan"
+      },
+      {
+       "id": "b",
+       "text": "Kütlə və sürətdən"
+      },
+      {
+       "id": "c",
+       "text": "Rəngdən"
+      },
+      {
+       "id": "d",
+       "text": "Yalnız hündürlükdən"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Eₖ = m·v²/2 — sürət iki dəfə artanda enerji dörd dəfə artır."
+    },
+    {
+     "id": "fizika-e-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Ağır və yüngül cisimlər vakuumda eyni təcillə düşür.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Hava müqaviməti olmadıqda sərbəst düşmə təcili kütlədən asılı deyil (~9,8 m/s²)."
+    },
+    {
+     "id": "fizika-e-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Göy qurşağı hansı hadisə nəticəsində yaranır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Maqnit sahəsi"
+      },
+      {
+       "id": "b",
+       "text": "Səsin əks olunması"
+      },
+      {
+       "id": "c",
+       "text": "İşığın sınması və dispersiyası"
+      },
+      {
+       "id": "d",
+       "text": "İşığın udulması"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Damcılarda işıq sınır və müxtəlif dalğa uzunluqlarına (rənglərə) ayrılır."
+    },
+    {
+     "id": "fizika-e-10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Hansı material elektrik cərəyanını yaxşı keçirir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Mis"
+      },
+      {
+       "id": "b",
+       "text": "Taxta"
+      },
+      {
+       "id": "c",
+       "text": "Şüşə"
+      },
+      {
+       "id": "d",
+       "text": "Rezin"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Metallarda sərbəst elektronlar çoxdur; mis naqillərdə ən çox istifadə olunan keçiricidir."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Elm",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-kimya-esaslar",
+  "data": {
+   "title": "Kimya: elementlər və reaksiyalar",
+   "description": "Dövri cədvəl, molekullar və kimyəvi reaksiyalar haqqında 10 sual.",
+   "coverEmoji": "🧪",
+   "coverColor": "#16A34A",
+   "tags": [
+    "kimya",
+    "elm",
+    "dövri cədvəl"
+   ],
+   "questions": [
+    {
+     "id": "kimya-es-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Suyun kimyəvi formulu hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "CO₂"
+      },
+      {
+       "id": "b",
+       "text": "H₂O₂"
+      },
+      {
+       "id": "c",
+       "text": "O₂"
+      },
+      {
+       "id": "d",
+       "text": "H₂O"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Su molekulu iki hidrogen və bir oksigen atomundan ibarətdir."
+    },
+    {
+     "id": "kimya-es-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Na\" hansı elementin simvoludur?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Natrium"
+      },
+      {
+       "id": "b",
+       "text": "Neon"
+      },
+      {
+       "id": "c",
+       "text": "Azot"
+      },
+      {
+       "id": "d",
+       "text": "Nikel"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Na — latınca natrium; azot N, nikel Ni, neon Ne ilə işarə olunur."
+    },
+    {
+     "id": "kimya-es-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Dövri cədvəldə ən yüngül element hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Litium"
+      },
+      {
+       "id": "b",
+       "text": "Helium"
+      },
+      {
+       "id": "c",
+       "text": "Oksigen"
+      },
+      {
+       "id": "d",
+       "text": "Hidrogen"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Hidrogenin atom nömrəsi 1-dir."
+    },
+    {
+     "id": "kimya-es-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "pH = 7 olan məhlul necə adlanır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Neytral"
+      },
+      {
+       "id": "b",
+       "text": "Doymuş"
+      },
+      {
+       "id": "c",
+       "text": "Qələvi"
+      },
+      {
+       "id": "d",
+       "text": "Turş"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "pH < 7 turş, pH > 7 qələvi mühitdir; təmiz su neytraldır."
+    },
+    {
+     "id": "kimya-es-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Havada ən çox olan qaz hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Azot"
+      },
+      {
+       "id": "b",
+       "text": "Karbon qazı"
+      },
+      {
+       "id": "c",
+       "text": "Oksigen"
+      },
+      {
+       "id": "d",
+       "text": "Arqon"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Atmosferin ~78%-i azot, ~21%-i oksigendir."
+    },
+    {
+     "id": "kimya-es-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Bitkilər fotosintezdə hansı qazı udur?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Karbon qazı (CO₂)"
+      },
+      {
+       "id": "b",
+       "text": "Oksigen"
+      },
+      {
+       "id": "c",
+       "text": "Hidrogen"
+      },
+      {
+       "id": "d",
+       "text": "Azot"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Fotosintezdə CO₂ və su işığın təsiri ilə qlükoza və oksigenə çevrilir."
+    },
+    {
+     "id": "kimya-es-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Atomun nüvəsində hansı hissəciklər var?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Yalnız elektronlar"
+      },
+      {
+       "id": "b",
+       "text": "Elektronlar və protonlar"
+      },
+      {
+       "id": "c",
+       "text": "Fotonlar"
+      },
+      {
+       "id": "d",
+       "text": "Protonlar və neytronlar"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Elektronlar nüvənin ətrafında hərəkət edir."
+    },
+    {
+     "id": "kimya-es-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Qızılın kimyəvi simvolu \"Au\"-dur.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Au latınca \"aurum\" sözündəndir."
+    },
+    {
+     "id": "kimya-es-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Duz (NaCl) suda həll olanda nə baş verir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Qaza çevrilir"
+      },
+      {
+       "id": "b",
+       "text": "Yanır"
+      },
+      {
+       "id": "c",
+       "text": "Heç nə dəyişmir"
+      },
+      {
+       "id": "d",
+       "text": "İonlara parçalanır"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "NaCl suda Na⁺ və Cl⁻ ionlarına dissosiasiya edir, məhlul elektrik keçirir."
+    },
+    {
+     "id": "kimya-es-10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Dəmirin paslanması hansı prosesdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Buxarlanma"
+      },
+      {
+       "id": "b",
+       "text": "Ərimə"
+      },
+      {
+       "id": "c",
+       "text": "Kristallaşma"
+      },
+      {
+       "id": "d",
+       "text": "Oksidləşmə"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Dəmir oksigen və rütubətlə reaksiyaya girərək dəmir oksidləri əmələ gətirir."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Elm",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-dunya-cografiyasi",
+  "data": {
+   "title": "Dünya coğrafiyası",
+   "description": "Qitələr, okeanlar, çaylar və ölkələr — ümumi dünya biliyi.",
+   "coverEmoji": "🌍",
+   "coverColor": "#0D9488",
+   "tags": [
+    "coğrafiya",
+    "dünya",
+    "ölkələr"
+   ],
+   "questions": [
+    {
+     "id": "dunya-co-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Ərazisinə görə dünyanın ən böyük okeanı hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Şimal Buzlu okeanı"
+      },
+      {
+       "id": "b",
+       "text": "Atlantik okeanı"
+      },
+      {
+       "id": "c",
+       "text": "Hind okeanı"
+      },
+      {
+       "id": "d",
+       "text": "Sakit okean"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Sakit okean Yer səthinin təxminən üçdə birini tutur."
+    },
+    {
+     "id": "dunya-co-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Dünyanın ən hündür zirvəsi hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Elbrus"
+      },
+      {
+       "id": "b",
+       "text": "K2"
+      },
+      {
+       "id": "c",
+       "text": "Everest (Comolunqma)"
+      },
+      {
+       "id": "d",
+       "text": "Kilimancaro"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Everest dəniz səviyyəsindən təxminən 8849 m yüksəklikdədir."
+    },
+    {
+     "id": "dunya-co-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Ərazisinə görə ən böyük ölkə hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Çin"
+      },
+      {
+       "id": "b",
+       "text": "ABŞ"
+      },
+      {
+       "id": "c",
+       "text": "Kanada"
+      },
+      {
+       "id": "d",
+       "text": "Rusiya"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Rusiyanın ərazisi 17 milyon km²-dən çoxdur."
+    },
+    {
+     "id": "dunya-co-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Xəzər dənizi hansı qitələrin arasında yerləşir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Afrika və Asiya"
+      },
+      {
+       "id": "b",
+       "text": "Avropa və Afrika"
+      },
+      {
+       "id": "c",
+       "text": "Avropa və Asiya"
+      },
+      {
+       "id": "d",
+       "text": "Asiya və Avstraliya"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Xəzər dünyanın ən böyük qapalı su hövzəsidir və Avrasiyanın daxilindədir."
+    },
+    {
+     "id": "dunya-co-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Saxara səhrası hansı qitədədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Cənubi Amerika"
+      },
+      {
+       "id": "b",
+       "text": "Avstraliya"
+      },
+      {
+       "id": "c",
+       "text": "Asiya"
+      },
+      {
+       "id": "d",
+       "text": "Afrika"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Saxara Afrikanın şimalında yerləşən ən böyük isti səhradır."
+    },
+    {
+     "id": "dunya-co-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Yaponiyanın paytaxtı hansı şəhərdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kioto"
+      },
+      {
+       "id": "b",
+       "text": "Seul"
+      },
+      {
+       "id": "c",
+       "text": "Tokio"
+      },
+      {
+       "id": "d",
+       "text": "Osaka"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Seul Cənubi Koreyanın paytaxtıdır."
+    },
+    {
+     "id": "dunya-co-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Neçə qitə var (ən çox qəbul olunan bölgüyə görə)?",
+     "options": [
+      {
+       "id": "a",
+       "text": "5"
+      },
+      {
+       "id": "b",
+       "text": "6"
+      },
+      {
+       "id": "c",
+       "text": "7"
+      },
+      {
+       "id": "d",
+       "text": "8"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Afrika, Antarktida, Asiya, Avstraliya, Avropa, Şimali və Cənubi Amerika."
+    },
+    {
+     "id": "dunya-co-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Amazon çayı Cənubi Amerikadadır.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Amazon su həcminə görə dünyanın ən böyük çayıdır."
+    },
+    {
+     "id": "dunya-co-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Avstraliyanın paytaxtı hansı şəhərdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Sidney"
+      },
+      {
+       "id": "b",
+       "text": "Melburn"
+      },
+      {
+       "id": "c",
+       "text": "Kanberra"
+      },
+      {
+       "id": "d",
+       "text": "Pert"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Sidney ən böyük şəhər olsa da, paytaxt Kanberradır."
+    },
+    {
+     "id": "dunya-co-10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Ekvator Yer kürəsini hansı yarımkürələrə ayırır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Şimal və Cənub"
+      },
+      {
+       "id": "b",
+       "text": "Quru və su"
+      },
+      {
+       "id": "c",
+       "text": "Şərq və Qərb"
+      },
+      {
+       "id": "d",
+       "text": "Daxili və xarici"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Şərq və Qərb yarımkürələrini Qrinviç meridianı ayırır."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Elm",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-ai-istifade",
+  "data": {
+   "title": "Süni intellektdən gündəlik istifadə",
+   "description": "Promptlar, məsuliyyətli istifadə və AI alətləri ilə məhsuldar işləmək.",
+   "coverEmoji": "🤖",
+   "coverColor": "#7C3AED",
+   "tags": [
+    "süni intellekt",
+    "prompt",
+    "məhsuldarlıq"
+   ],
+   "questions": [
+    {
+     "id": "ai-istif-01",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Yaxşı prompt yazmağın ən vacib prinsipi hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Mümkün qədər qısa yazmaq"
+      },
+      {
+       "id": "b",
+       "text": "Yalnız açar sözlər yazmaq"
+      },
+      {
+       "id": "c",
+       "text": "Kontekst, məqsəd və istənilən formatı aydın yazmaq"
+      },
+      {
+       "id": "d",
+       "text": "Böyük hərflərlə yazmaq"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Model nə üçün, kim üçün və hansı formada cavab lazım olduğunu bildikdə daha dəqiq işləyir."
+    },
+    {
+     "id": "ai-istif-02",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Halüsinasiya\" AI kontekstində nə deməkdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Modelin yavaş işləməsi"
+      },
+      {
+       "id": "b",
+       "text": "Şəkil yaratma"
+      },
+      {
+       "id": "c",
+       "text": "Səsli cavab"
+      },
+      {
+       "id": "d",
+       "text": "Modelin inamla yanlış və ya uydurma məlumat verməsi"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Faktları, rəqəmləri və mənbələri həmişə yoxlamaq lazımdır."
+    },
+    {
+     "id": "ai-istif-03",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "AI-yə hansı məlumatı daxil etməkdən çəkinmək lazımdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Ümumi suallar"
+      },
+      {
+       "id": "b",
+       "text": "Şəxsi və məxfi məlumatları (parollar, müştəri dataları)"
+      },
+      {
+       "id": "c",
+       "text": "Açıq mənbəli mətnlər"
+      },
+      {
+       "id": "d",
+       "text": "Riyazi məsələlər"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Şirkət siyasətini və məlumatların harada emal olunduğunu bilmədən məxfi data paylaşmaq risklidir."
+    },
+    {
+     "id": "ai-istif-04",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Böyük dil modeli (LLM) mətni necə yaradır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "İnternetdən hazır cavabı kopyalayaraq"
+      },
+      {
+       "id": "b",
+       "text": "Təsadüfi sözlərlə"
+      },
+      {
+       "id": "c",
+       "text": "Növbəti ən ehtimallı sözləri (tokenləri) proqnozlaşdıraraq"
+      },
+      {
+       "id": "d",
+       "text": "İnsan operator vasitəsilə"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Model öyrəndiyi nümunələrə əsasən tokenləri ardıcıl proqnozlaşdırır."
+    },
+    {
+     "id": "ai-istif-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Modelə nümunələr verərək istənilən üslubu göstərmək necə adlanır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Few-shot prompting"
+      },
+      {
+       "id": "b",
+       "text": "Caching"
+      },
+      {
+       "id": "c",
+       "text": "Fine-tuning"
+      },
+      {
+       "id": "d",
+       "text": "Debugging"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Promptda bir neçə giriş–çıxış nümunəsi vermək modelə formatı göstərir."
+    },
+    {
+     "id": "ai-istif-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "AI-nin yaratdığı mətni işdə istifadə etməzdən əvvəl nə etmək lazımdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Olduğu kimi dərc etmək"
+      },
+      {
+       "id": "b",
+       "text": "Müəllifi gizlətmək"
+      },
+      {
+       "id": "c",
+       "text": "Heç nə"
+      },
+      {
+       "id": "d",
+       "text": "Faktları yoxlamaq və redaktə etmək"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Son məsuliyyət istifadəçidədir — dəqiqlik, ton və hüquqi məqamlar yoxlanmalıdır."
+    },
+    {
+     "id": "ai-istif-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "AI modelləri təlim məlumatlarındakı qərəzləri (bias) təkrarlaya bilər.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Bu səbəbdən qərar qəbulunda AI nəticələri insan nəzarəti ilə yoxlanmalıdır."
+    },
+    {
+     "id": "ai-istif-08",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Uzun sənədi ümumiləşdirmək üçün hansı tapşırıq daha yaxşıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "\"Mətn\""
+      },
+      {
+       "id": "b",
+       "text": "\"Nə düşünürsən?\""
+      },
+      {
+       "id": "c",
+       "text": "\"Bu mətni rəhbər üçün 5 əsas bənddə ümumiləşdir\""
+      },
+      {
+       "id": "d",
+       "text": "\"Qısalt\""
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Auditoriya, həcm və format göstərilən tapşırıq daha faydalı nəticə verir."
+    },
+    {
+     "id": "ai-istif-09",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Çoxaddımlı məntiqi məsələdə modelin dəqiqliyini nə artıra bilər?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Sualı çətinləşdirmək"
+      },
+      {
+       "id": "b",
+       "text": "Dili dəyişmək"
+      },
+      {
+       "id": "c",
+       "text": "Cavabı bir sözlə istəmək"
+      },
+      {
+       "id": "d",
+       "text": "Addım-addım düşünüb sonra cavab verməsini istəmək"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Aralıq addımları tələb etmək səhvləri azaldır və yoxlamağı asanlaşdırır."
+    },
+    {
+     "id": "ai-istif-10",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Müəllim AI-dən dərsdə ən faydalı necə istifadə edə bilər?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Dərsi tam AI ilə əvəz etmək"
+      },
+      {
+       "id": "b",
+       "text": "Qiymətləri tamamilə AI-yə tapşırmaq"
+      },
+      {
+       "id": "c",
+       "text": "Sual bankı, nümunə və fərdi tapşırıqlar hazırlamaq üçün köməkçi kimi"
+      },
+      {
+       "id": "d",
+       "text": "Tələbələrin şəxsi datalarını yükləmək"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "AI hazırlığı sürətləndirir, amma pedaqoji qərarlar müəllimdə qalmalıdır."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Süni intellekt",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-kibertehlukesizlik-2",
+  "data": {
+   "title": "Kibertəhlükəsizlik: iş yerində",
+   "description": "Fişinq, parollar, iki addımlı təsdiq və məlumatların qorunması — işçilər üçün təlim.",
+   "coverEmoji": "🛡️",
+   "coverColor": "#0F172A",
+   "tags": [
+    "kibertəhlükəsizlik",
+    "fişinq",
+    "parol"
+   ],
+   "questions": [
+    {
+     "id": "kiberteh-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Fişinq məktubunun ən tipik əlaməti hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Uzun mətn"
+      },
+      {
+       "id": "b",
+       "text": "Rəsmi imza"
+      },
+      {
+       "id": "c",
+       "text": "Təcili hərəkət tələbi və şübhəli keçid"
+      },
+      {
+       "id": "d",
+       "text": "Şirkət loqosu"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Təxribatçılar təcilik hissi yaradıb parol və ya ödəniş məlumatı istəyirlər."
+    },
+    {
+     "id": "kiberteh-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Ən güclü parol hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "\"123456\""
+      },
+      {
+       "id": "b",
+       "text": "Adınız"
+      },
+      {
+       "id": "c",
+       "text": "Doğum tarixi"
+      },
+      {
+       "id": "d",
+       "text": "Uzun parol ifadəsi: \"Bulud-Çay-Kitab-2026!\""
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Uzunluq güclülüyün əsas amilidir; parol meneceri ilə hər sayt üçün fərqli parol istifadə edin."
+    },
+    {
+     "id": "kiberteh-03",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "İki addımlı təsdiq (2FA) nə verir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Daha sürətli giriş"
+      },
+      {
+       "id": "b",
+       "text": "Parol oğurlansa belə hesabı qoruyan ikinci addım"
+      },
+      {
+       "id": "c",
+       "text": "Pulsuz yaddaş"
+      },
+      {
+       "id": "d",
+       "text": "Reklamların bloklanması"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Kod, tətbiq və ya açar olmadan oğurlanmış parol kifayət etmir."
+    },
+    {
+     "id": "kiberteh-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Naməlum USB fləş tapdınız. Nə etməlisiniz?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Həmkara vermək"
+      },
+      {
+       "id": "b",
+       "text": "Evə aparmaq"
+      },
+      {
+       "id": "c",
+       "text": "Kompüterə taxmadan İT bölməsinə vermək"
+      },
+      {
+       "id": "d",
+       "text": "Nə olduğunu görmək üçün taxmaq"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Zərərli proqram yaymaq üçün USB \"yemi\" geniş istifadə olunan üsuldur."
+    },
+    {
+     "id": "kiberteh-05",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Açıq Wi-Fi şəbəkəsində hansı davranış risklidir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "VPN olmadan bank və iş hesablarına daxil olmaq"
+      },
+      {
+       "id": "b",
+       "text": "Musiqi dinləmək"
+      },
+      {
+       "id": "c",
+       "text": "Xəbər oxumaq"
+      },
+      {
+       "id": "d",
+       "text": "Hava proqnozuna baxmaq"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Açıq şəbəkədə trafik ələ keçirilə bilər; həssas işlər üçün VPN və ya mobil internet istifadə edin."
+    },
+    {
+     "id": "kiberteh-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Proqramları və əməliyyat sistemini yeniləmək niyə vacibdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Rənglər dəyişir"
+      },
+      {
+       "id": "b",
+       "text": "Məlum təhlükəsizlik boşluqları bağlanır"
+      },
+      {
+       "id": "c",
+       "text": "Daha çox reklam göstərilir"
+      },
+      {
+       "id": "d",
+       "text": "Lisenziya ödənişi azalır"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "Hücumların çoxu artıq düzəldilmiş, amma yenilənməmiş boşluqlardan istifadə edir."
+    },
+    {
+     "id": "kiberteh-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Rəhbərdən gələn \"təcili pul köçür\" e-poçtunu əlavə kanalla (zəng) yoxlamaq lazımdır.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Bu, \"CEO fırıldağı\" adlanan geniş yayılmış hücumdur; başqa kanalla təsdiq tələb olunur."
+    },
+    {
+     "id": "kiberteh-08",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Ransomware nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Antivirus"
+      },
+      {
+       "id": "b",
+       "text": "Ehtiyat nüsxə proqramı"
+      },
+      {
+       "id": "c",
+       "text": "Brauzer əlavəsi"
+      },
+      {
+       "id": "d",
+       "text": "Faylları şifrələyib fidyə tələb edən zərərli proqram"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Ən yaxşı müdafiə — müntəzəm, ayrı saxlanan ehtiyat nüsxələri və yenilənmiş sistemlərdir."
+    },
+    {
+     "id": "kiberteh-09",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Keçidin həqiqi ünvanını necə yoxlamaq olar?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Kliklətmədən siçanı üzərində saxlayıb ünvana baxmaq"
+      },
+      {
+       "id": "b",
+       "text": "Keçidə klikləmək"
+      },
+      {
+       "id": "c",
+       "text": "Göndərənin adına baxmaq"
+      },
+      {
+       "id": "d",
+       "text": "Mətni oxumaq kifayətdir"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Görünən mətn ilə əsl ünvan fərqli ola bilər; domeni diqqətlə oxuyun."
+    },
+    {
+     "id": "kiberteh-10",
+     "timeLimit": 30,
+     "points": "standard",
+     "type": "single",
+     "text": "Şübhəli məktubu açıb keçidə kliklədinizsə, ilk addım nədir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Dərhal İT/təhlükəsizlik bölməsinə xəbər vermək və parolu dəyişmək"
+      },
+      {
+       "id": "b",
+       "text": "Kompüteri söndürüb unutmaq"
+      },
+      {
+       "id": "c",
+       "text": "Heç kimə deməmək"
+      },
+      {
+       "id": "d",
+       "text": "Məktubu həmkarlara göndərmək"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Tez xəbər vermək zərəri məhdudlaşdırır; gizlətmək vəziyyəti ağırlaşdırır."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Rəqəmsal bacarıqlar",
+   "level": "medium",
+   "status": "live",
+   "hasImages": false
+  }
+ },
+ {
+  "id": "jabr-umumi-bilik",
+  "data": {
+   "title": "Ümumi bilik: qarışıq",
+   "description": "Elm, tarix, incəsənət və idmandan maraqlı suallar — komanda oyunları üçün ideal.",
+   "coverEmoji": "🎯",
+   "coverColor": "#FF7A1A",
+   "tags": [
+    "ümumi bilik",
+    "əyləncə",
+    "qarışıq"
+   ],
+   "questions": [
+    {
+     "id": "umumi-bi-01",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Günəş sistemində ən böyük planet hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Yer"
+      },
+      {
+       "id": "b",
+       "text": "Neptun"
+      },
+      {
+       "id": "c",
+       "text": "Saturn"
+      },
+      {
+       "id": "d",
+       "text": "Yupiter"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Yupiter digər bütün planetlərin birlikdə kütləsindən daha ağırdır."
+    },
+    {
+     "id": "umumi-bi-02",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "\"Mona Liza\" tablosunun müəllifi kimdir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Mikelancelo"
+      },
+      {
+       "id": "b",
+       "text": "Rafael"
+      },
+      {
+       "id": "c",
+       "text": "Leonardo da Vinçi"
+      },
+      {
+       "id": "d",
+       "text": "Van Qoq"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Əsər Parisdəki Luvr muzeyində saxlanılır."
+    },
+    {
+     "id": "umumi-bi-03",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Bir ildə neçə həftə var (təxminən)?",
+     "options": [
+      {
+       "id": "a",
+       "text": "48"
+      },
+      {
+       "id": "b",
+       "text": "50"
+      },
+      {
+       "id": "c",
+       "text": "52"
+      },
+      {
+       "id": "d",
+       "text": "56"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "365 gün ÷ 7 ≈ 52,1 həftə."
+    },
+    {
+     "id": "umumi-bi-04",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "İnsan bədənində ən böyük orqan hansıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Dəri"
+      },
+      {
+       "id": "b",
+       "text": "Ağciyər"
+      },
+      {
+       "id": "c",
+       "text": "Beyin"
+      },
+      {
+       "id": "d",
+       "text": "Qaraciyər"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Dəri böyüklərdə təxminən 1,5–2 m² sahəni əhatə edir."
+    },
+    {
+     "id": "umumi-bi-05",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Olimpiya oyunlarının simvolunda neçə halqa var?",
+     "options": [
+      {
+       "id": "a",
+       "text": "5"
+      },
+      {
+       "id": "b",
+       "text": "4"
+      },
+      {
+       "id": "c",
+       "text": "6"
+      },
+      {
+       "id": "d",
+       "text": "7"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Beş halqa beş qitənin birliyini simvolizə edir."
+    },
+    {
+     "id": "umumi-bi-06",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Şahmatda hansı fiqur yalnız diaqonal hərəkət edir?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Top"
+      },
+      {
+       "id": "b",
+       "text": "At"
+      },
+      {
+       "id": "c",
+       "text": "Vəzir"
+      },
+      {
+       "id": "d",
+       "text": "Fil"
+      }
+     ],
+     "correct": [
+      "d"
+     ],
+     "explanation": "Vəzir həm düz, həm də diaqonal hərəkət edir; fil yalnız diaqonal."
+    },
+    {
+     "id": "umumi-bi-07",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "İnternetdə \"www\" nəyin qısaltmasıdır?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Wide Web World"
+      },
+      {
+       "id": "b",
+       "text": "World Wide Web"
+      },
+      {
+       "id": "c",
+       "text": "Web World Wide"
+      },
+      {
+       "id": "d",
+       "text": "World Web Wide"
+      }
+     ],
+     "correct": [
+      "b"
+     ],
+     "explanation": "World Wide Web 1989-cu ildə Tim Berners-Li tərəfindən təklif olunub."
+    },
+    {
+     "id": "umumi-bi-08",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "truefalse",
+     "text": "Ay öz işığını deyil, Günəşin işığını əks etdirir.",
+     "options": [
+      {
+       "id": "t",
+       "text": "Doğru"
+      },
+      {
+       "id": "f",
+       "text": "Yanlış"
+      }
+     ],
+     "correct": [
+      "t"
+     ],
+     "explanation": "Ayın fazaları Günəş, Yer və Ayın qarşılıqlı vəziyyəti ilə yaranır."
+    },
+    {
+     "id": "umumi-bi-09",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Bal arıları məlumatı bir-birinə necə ötürür?",
+     "options": [
+      {
+       "id": "a",
+       "text": "\"Rəqs\" hərəkətləri ilə"
+      },
+      {
+       "id": "b",
+       "text": "Rəng dəyişməklə"
+      },
+      {
+       "id": "c",
+       "text": "Səs dalğaları ilə"
+      },
+      {
+       "id": "d",
+       "text": "Ötürmürlər"
+      }
+     ],
+     "correct": [
+      "a"
+     ],
+     "explanation": "Arıların \"yellənən rəqsi\" çiçəklərin istiqaməti və məsafəsini bildirir."
+    },
+    {
+     "id": "umumi-bi-10",
+     "timeLimit": 20,
+     "points": "standard",
+     "type": "single",
+     "text": "Hansı alət simli musiqi aləti deyil?",
+     "options": [
+      {
+       "id": "a",
+       "text": "Saz"
+      },
+      {
+       "id": "b",
+       "text": "Kamança"
+      },
+      {
+       "id": "c",
+       "text": "Balaban"
+      },
+      {
+       "id": "d",
+       "text": "Tar"
+      }
+     ],
+     "correct": [
+      "c"
+     ],
+     "explanation": "Balaban nəfəsli alətdir; tar, kamança və saz simli alətlərdir."
+    }
+   ],
+   "questionCount": 10,
+   "publishedBy": "ii98moHX58SDPcn9lA4SYHWanou1",
+   "author": "Jabr",
+   "category": "Digər",
+   "level": "easy",
+   "status": "live",
+   "hasImages": false
+  }
  }
 ]
