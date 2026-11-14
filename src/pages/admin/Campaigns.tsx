@@ -117,7 +117,7 @@ export default function Campaigns() {
         <div className="min-w-0 space-y-6">
           <Section icon={Users} title={C.audience} sub={C.audienceSub}>
             <div className="space-y-5">
-              <Segmented value={filter.audience} onChange={(v) => setF({ audience: v })} options={[{ value: 'all', label: C.all }, { value: 'students', label: C.students }, { value: 'trainers', label: C.trainers }, { value: 'custom', label: C.custom }]} />
+              <Segmented value={filter.audience} onChange={(v) => setF(v === 'trainers' ? { audience: v } : { audience: v, tiers: [], license: 'any', licenseDays: 0 })} options={[{ value: 'all', label: C.all }, { value: 'students', label: C.students }, { value: 'trainers', label: C.trainers }, { value: 'custom', label: C.custom }]} />
               {filter.audience === 'custom' ? (
                 <Field label={C.emails} hint={C.emailsHint}><textarea className="input font-mono text-xs" rows={4} value={emailsText} onChange={(e) => setEmailsText(e.target.value)} placeholder={'ad@example.com\nsoyad@example.com'} /></Field>
               ) : (
@@ -155,7 +155,10 @@ export default function Campaigns() {
                 {aud && aud.count === 0 && (
                   <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-200">
                     <b>{C.zeroWhy}</b> {aud.noConsent ? C.zeroConsent(aud.noConsent) : aud.notFound.length ? C.notFound(aud.notFound.length) : C.zeroFilter}
-                    {!!aud.noConsent && filter.kind === 'marketing' && <button type="button" className="btn btn-secondary btn-sm mt-2" onClick={() => setF({ kind: 'service' })}>{C.service}</button>}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {!!aud.noConsent && filter.kind === 'marketing' && <button type="button" className="btn btn-secondary btn-sm" onClick={() => setF({ kind: 'service' })}>{C.service}</button>}
+                      <button type="button" className="btn btn-ghost-dark btn-sm" onClick={() => { setFilter({ ...DEFAULT_FILTER, kind: filter.kind }); setEmailsText('') }}>{C.resetFilters}</button>
+                    </div>
                   </div>
                 )}
                 {!!aud?.sample.length && (

@@ -27,7 +27,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 if (!googleCallback) createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <MotionConfig reducedMotion="user">
-      <RouterProvider router={router} />
+      <RouterProvider router={router} useTransitions />
     </MotionConfig>
   </StrictMode>,
 )

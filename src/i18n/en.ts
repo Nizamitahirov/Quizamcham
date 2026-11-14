@@ -543,7 +543,7 @@ export const en: Dict = {
     licDays: 'Period', licNext: { 7: 'Within 7 days', 14: 'Within 14 days', 30: 'Within 30 days' } as Record<number, string>, licPast: { 0: 'Any time', 7: 'Last 7 days', 30: 'Last 30 days', 90: 'Last 90 days' } as Record<number, string>,
     licHint: 'Only trainers who signed up themselves (team members are on their organisation\'s licence). This is account information, so "Service notice" is appropriate.',
     one: { btn: 'Email', title: 'Send an email', confirm: (e: string) => `Send this email to ${e}?`, send: 'Send', sent: (e: string) => `Sent to ${e}`, note: 'The preview uses this user\'s name and licence/trial end date. "Test to myself" sends the same email to you marked [TEST]. It goes as a service notice and is kept in the history.' },
-    search: 'Search recipients…', exclude: 'Exclude', restore: 'Restore', excludedN: (n: number) => `Excluded (${n})`, clearExcluded: 'Restore all',
+    resetFilters: 'Reset filters', search: 'Search recipients…', exclude: 'Exclude', restore: 'Restore', excludedN: (n: number) => `Excluded (${n})`, clearExcluded: 'Restore all',
     notFound: (n: number) => `${n} address(es) not found on the platform`, zeroWhy: 'Nobody selected. Why:', zeroConsent: (n: number) => `${n} people have not agreed to marketing — if this is account information, choose "Service notice".`, zeroFilter: 'No users match these filters — widen the plan, language, sign-up or licence filter.', audErr: 'Could not load recipients', showAll: (n: number) => `Show all (${n})`,
     until: (d: string) => `until ${d}`, ended: (d: string) => `ended ${d}`,
     emails: 'Email addresses', emailsHint: 'Separate with commas or new lines. Registered users only.',

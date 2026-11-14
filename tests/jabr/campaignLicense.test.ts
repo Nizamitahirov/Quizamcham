@@ -81,4 +81,9 @@ describe('kampaniya: lisenziya filtri', () => {
     const r = await post('/api/campaigns/preview', { content, filter: filter({ audience: 'custom', emails: ['exp5@x.az'], license: 'any' }) })
     expect(String(r.body.subject)).toMatch(/^exp5: \d{1,2} \S+ \d{4}$/)
   })
+  it('plan və lisenziya filtri yalnız "Təlimçilər"də işləyir (gizli qalmış filtr "Hamı"nı boşaltmır)', async () => {
+    const r = await post('/api/campaigns/audience', { filter: filter({ audience: 'all', license: 'expired', licenseDays: 30, tiers: ['pro'] }) })
+    expect(r.body.count).toBeGreaterThanOrEqual(7)
+    expect(emails(r.body)).toContain('stud@x.az')
+  })
 })
