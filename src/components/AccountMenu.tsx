@@ -7,6 +7,7 @@ import { setTheme, useTheme } from '../lib/theme'
 import { currentLang, t } from '../i18n/az'
 import { logout } from '../firebase/auth'
 import { LangList, LANGS } from './LangSwitch'
+import { isUploaded } from '../lib/media'
 import { useAvatarThumb } from '../lib/avatar3d'
 
 export interface MenuLink { to: string; label: string; icon: LucideIcon; hint?: string }
@@ -14,7 +15,8 @@ export interface MenuLink { to: string; label: string; icon: LucideIcon; hint?: 
 /** Profil şəkli: 3D avatar → foto → baş hərflər (qradiyentdə). */
 export function UserAvatar({ uid, name, photo, size = 32, ring = false }: { uid?: string; name: string; photo?: string | null; size?: number; ring?: boolean }) {
   const thumb = useAvatarThumb(uid)
-  const src = thumb || photo
+  // öz yüklədiyi şəkil > 3D avatar > Google şəkli
+  const src = isUploaded(photo) ? photo : thumb || photo
   const initials = name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?'
   return (
     <span className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full ${ring ? 'ring-2 ring-white/10' : ''}`}

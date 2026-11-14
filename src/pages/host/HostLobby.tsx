@@ -49,7 +49,7 @@ export function HostLobby({ game, players, onKick }: HostCtx & { onKick: (p: Pla
       <section className="flex min-h-[40vh] min-w-0 flex-1 flex-col lg:min-h-0">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3 lg:mb-6 lg:gap-6">
           <div className="min-w-0 flex-1">
-            <div className="label-dark">{t.app.tagline}</div>
+            <div className="label-dark">{game.brand?.name || t.app.tagline}</div>
             <h1 className="truncate text-2xl font-black sm:text-4xl xl:text-5xl">{game.title}</h1>
           </div>
           {game.host?.name && (

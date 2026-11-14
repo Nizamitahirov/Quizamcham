@@ -1,3 +1,4 @@
+import { BrandLogo, brandVars } from '../../components/CompanyBrand'
 import { confirmDialog } from '../../components/dialogs'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
@@ -21,7 +22,6 @@ import { QuestionIntro } from '../../components/QuestionIntro'
 import { useLeaveGuard, useWakeLock } from '../../lib/useWakeLock'
 import { useOnline } from '../../components/ui'
 import { FuturisticBg } from '../../components/FuturisticBg'
-import { Logo } from '../../components/Brand'
 import { Lock, Unlock, Maximize, Volume2, VolumeX, Pause, Play, SkipForward, Flag, ChevronRight, Users } from 'lucide-react'
 import { celebrate } from '../../components/Confetti'
 import { HostLobby } from './HostLobby'
@@ -315,20 +315,21 @@ function HostConsole({ gameId, uid, isOwner }: { gameId: string; uid: string; is
   const isQ = game.phase === 'question' && game.currentQuestion?.type !== 'slide'
 
   return (
-    <div className={`noise relative flex h-dvh flex-col overflow-hidden ${game.phase === 'podium' ? 'bg-brand' : 'bg-night'}`}>
+    <div className={`noise relative flex h-dvh flex-col overflow-hidden ${game.phase === 'podium' ? 'bg-brand' : 'bg-night'}`} style={brandVars(game.brand)}>
       {game.phase !== 'podium' && <FuturisticBg floor={game.phase === 'lobby' || game.phase === 'leaderboard'} intensity={isQ ? 0.5 : 1} />}
       {(game.phase === 'podium' || game.phase === 'leaderboard') && <FloatingShapes count={16} />}
       <FloatingEmojis items={flying.items} size={64} />
       {!online && <div className="absolute inset-x-0 top-0 z-50 bg-red-600 py-2 text-center text-lg font-bold" role="alert">{t.host.offline}</div>}
       {!opened && game.phase !== 'finished' && (
         <button className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-night/90 text-[#fff] backdrop-blur" onClick={() => { audio.unlock(); setOpened(true) }}>
-          <Logo size={72} />
+          <BrandLogo brand={game.brand} size={72} />
           <span className="btn btn-primary btn-lg text-2xl"><Play className="fill-current" />{t.host.openLobby}</span>
           <span className="text-lg text-white/60">{t.host.openLobbyHint}</span>
         </button>
       )}
       <header className="relative z-20 flex items-center gap-2 px-4 pt-4 sm:gap-4 lg:px-8 lg:pt-5">
-        <Logo size={36} mono={game.phase === 'podium'} />
+        <BrandLogo brand={game.brand} size={36} mono={game.phase === 'podium'} />
+        {game.brand && <span className="hidden text-[10px] font-semibold uppercase tracking-widest text-white/40 sm:inline">Jabr</span>}
         <span className="chip chip-dark"><span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />{t.host.live}</span>
         {game.phase !== 'lobby' && game.phase !== 'finished' && (
           <div className="mx-2 h-2 flex-1 overflow-hidden rounded-full bg-white/10 lg:mx-6">

@@ -250,7 +250,7 @@ export const setSoundsEnabled = (enabled: boolean) => setDoc(doc(db, 'sounds', '
 export async function loadProfile(uid: string): Promise<TrainerProfile | null> {
   try { const s = await getDoc(doc(db, 'profiles', uid)); return s.exists() ? (s.data() as TrainerProfile) : null } catch { return null }
 }
-export const saveProfile = (uid: string, p: TrainerProfile) => setDoc(doc(db, 'profiles', uid), JSON.parse(JSON.stringify(p)), { merge: true })
+export const saveProfile = (uid: string, p: Partial<TrainerProfile> & { brand?: unknown }) => setDoc(doc(db, 'profiles', uid), JSON.parse(JSON.stringify(p)), { merge: true })
 /** Təlimçinin qovluq siyahısı (boş qovluqlar da saxlanılır) — profiles/{uid}.quizFolders */
 export async function loadFolderList(uid: string): Promise<string[]> {
   const s = await getDoc(doc(db, 'profiles', uid)).catch(() => null)

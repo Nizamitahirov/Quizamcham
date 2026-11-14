@@ -1,732 +1,569 @@
 /**
- * Prosedur 3D personaj (yalnız primitivlərdən): "oyuncaq" üslubu, yumşaq materiallar.
- * Koordinatlar: ayaq y=0, baş mərkəzi y≈1.98, üz +z istiqamətində.
+ * Prosedur 3D personaj — "kolleksiya oyuncaq fiquru" üslubu: iri baş, yığcam bədən, hamar formalar.
+ * Üz və üst geyimin detalları toxuma kimi çəkilir (paint.ts), qalanı sadə həndəsədir — xarici model faylı yoxdur.
+ * Koordinatlar: ayaq y=0, baş mərkəzi y=HEAD_Y, üz +z istiqamətində. Baş qrupunun daxili ölçüsü: radius 0.5.
  */
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { RoundedBox } from '@react-three/drei'
 import * as THREE from 'three'
 import type { AvatarConfig } from '../../lib/avatar3d'
+import { FACE, paintFace, paintTorso, shade, TORSO } from './paint'
 
-const HEAD_Y = 1.98, HEAD_R = 0.4
-const BUILD = { slim: 0.88, regular: 1, broad: 1.16 } as const
+export const HEAD_Y = 1.5
+const BUILD = { slim: 0.9, regular: 1, broad: 1.13 } as const
 const GOLD = '#FFC531'
+type V3 = [number, number, number]
+type Hair = AvatarConfig['hair']
 
-function shade(hex: string, k: number) {
-  const c = new THREE.Color(hex); const h = { h: 0, s: 0, l: 0 }; c.getHSL(h)
-  return new THREE.Color().setHSL(h.h, h.s, Math.max(0, Math.min(1, h.l + k))).getStyle()
+/** Tutqun "vinil" material: yumşaq parıltı, yüngül lak qatı. */
+function M({ c, r = 0.55, m = 0, cc = 0.22, e, o, map, side }: { c?: string; r?: number; m?: number; cc?: number; e?: string; o?: number; map?: THREE.Texture | null; side?: THREE.Side }) {
+  return <meshPhysicalMaterial color={c ?? '#fff'} map={map ?? null} roughness={r} metalness={m} clearcoat={cc} clearcoatRoughness={0.5} emissive={e ?? '#000'} emissiveIntensity={e ? 1.4 : 0}
+    transparent={o != null} opacity={o ?? 1} side={side} envMapIntensity={0.9} />
 }
-/** Parça toxuması üçün prosedur bump xəritəsi (bir dəfə yaradılır). */
-let weave: THREE.CanvasTexture | null = null
-function weaveTex() {
-  if (weave || typeof document === 'undefined') return weave
-  const cv = document.createElement('canvas'); cv.width = cv.height = 64
-  const g = cv.getContext('2d')!
-  g.fillStyle = '#808080'; g.fillRect(0, 0, 64, 64)
-  for (let y = 0; y < 64; y += 4) for (let x = 0; x < 64; x += 4) {
-    const v = ((x + y) / 4) % 2 ? 150 : 105
-    g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(x, y, 4, 2); g.fillStyle = `rgb(${255 - v},${255 - v},${255 - v})`; g.fillRect(x, y + 2, 4, 2)
+/** Ellips formalı "damla" — saç, aksesuar və s. üçün əsas tikinti bloku. */
+function Blob({ p, s, c, rot, r, m, cc, e, o }: { p: V3; s: V3 | number; c: string; rot?: V3; r?: number; m?: number; cc?: number; e?: string; o?: number }) {
+  return <mesh position={p} scale={s} rotation={rot} castShadow><sphereGeometry args={[1, 32, 24]} /><M c={c} r={r} m={m} cc={cc} e={e} o={o} /></mesh>
+}
+/** Kürə örtüyü (təpədən aşağı thetaLen qədər), arxaya əyilmiş — saç dibi və papaqlar üçün. */
+function Shell({ r, len, tilt = 0, c, rough, y = 0 }: { r: number; len: number; tilt?: number; c: string; rough?: number; y?: number }) {
+  return <mesh rotation={[-tilt, 0, 0]} position={[0, y, 0]} castShadow><sphereGeometry args={[r, 48, 28, 0, Math.PI * 2, 0, len]} /><M c={c} r={rough ?? 0.7} side={THREE.DoubleSide} /></mesh>
+}
+
+// ───────────────────────── gövdə profili ─────────────────────────
+const PROFILE: [number, number][] = [[0.46, 0], [0.475, 0.14], [0.51, 0.235], [0.6, 0.268], [0.72, 0.266], [0.84, 0.252], [0.94, 0.232], [1.0, 0.202], [1.05, 0.15], [1.085, 0.085], [1.1, 0]]
+/** Hamar profil (Catmull-Rom) — bir dəfə sıx nümunələnir, sonra y üzrə axtarılır. */
+const SAMPLES = new THREE.SplineCurve(PROFILE.map(([y, r]) => new THREE.Vector2(r, y))).getPoints(240)
+function torsoR(y: number) {
+  for (let i = 1; i < SAMPLES.length; i++) if (y <= SAMPLES[i].y) {
+    const a = SAMPLES[i - 1], b = SAMPLES[i], k = b.y === a.y ? 0 : (y - a.y) / (b.y - a.y)
+    return Math.max(0, a.x + (b.x - a.x) * k)
   }
-  weave = new THREE.CanvasTexture(cv); weave.wrapS = weave.wrapT = THREE.RepeatWrapping; weave.repeat.set(10, 10)
-  return weave
+  return 0
 }
-let strands: THREE.CanvasTexture | null = null
-function strandTex() {
-  if (strands || typeof document === 'undefined') return strands
-  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 16
-  const g = cv.getContext('2d')!
-  for (let x = 0; x < 128; x++) { const v = 110 + Math.floor(Math.random() * 90); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(x, 0, 1, 16) }
-  strands = new THREE.CanvasTexture(cv); strands.wrapS = strands.wrapT = THREE.RepeatWrapping; strands.repeat.set(3, 1)
-  return strands
-}
-/** Saç: tel-tel bump, məxməri parıltı. */
-const HairMat = ({ c, o }: { c: string; o?: number }) => (
-  <meshPhysicalMaterial color={c} roughness={0.55} sheen={0.9} sheenRoughness={0.35} sheenColor={shade(c, 0.35)} bumpMap={strandTex()} bumpScale={1.2}
-    transparent={o != null} opacity={o ?? 1} clearcoat={0.15} clearcoatRoughness={0.5} />
-)
-/**
- * Fiziki material: parça/saç üçün "sheen" (məxməri parıltı) və toxuma, metal üçün clearcoat.
- * r ≥ 0.7 və metal deyil → parça kimi işlənir.
- */
-const Mat = ({ c, r = 0.75, m = 0, e, o, side, cc, flat }: { c: string; r?: number; m?: number; e?: string; o?: number; side?: THREE.Side; cc?: number; flat?: boolean }) => {
-  const fabric = !flat && r >= 0.7 && m < 0.3 && !e && o == null
-  return (
-    <meshPhysicalMaterial color={c} roughness={r} metalness={m} emissive={e ?? '#000'} emissiveIntensity={e ? 0.9 : 0} transparent={o != null} opacity={o ?? 1} side={side}
-      sheen={fabric ? 0.6 : 0} sheenRoughness={0.55} sheenColor={fabric ? shade(c, 0.25) : '#000'} bumpMap={fabric ? weaveTex() : null} bumpScale={fabric ? 0.6 : 0}
-      clearcoat={cc ?? (m > 0.5 ? 0.6 : 0)} clearcoatRoughness={0.25} envMapIntensity={1} />
-  )
-}
-/** Dəri: yumşaq "subsurface" təəssüratı — isti sheen və bir az emissiv. */
-const Skin = ({ c }: { c: string }) => (
-  <meshPhysicalMaterial color={c} roughness={0.52} metalness={0} sheen={0.35} sheenRoughness={0.7} sheenColor={shade(c, 0.12)} emissive={shade(c, -0.35)} emissiveIntensity={0.08} clearcoat={0.04} clearcoatRoughness={0.6} />
-)
-/** Başın səthində nöqtə (üz elementləri üçün). */
-const onFace = (x: number, y: number, lift = 0.006): [number, number, number] => {
-  const dy = (y - HEAD_Y) / 0.95
-  const z = Math.sqrt(Math.max(0, HEAD_R * HEAD_R - x * x - dy * dy)) * 0.95
-  return [x, y, z + lift]
-}
-const faceRot = (x: number): [number, number, number] => [0, Math.atan2(x, 0.36), 0]
-
-function starShape(r1: number, r2: number) {
-  const s = new THREE.Shape()
-  for (let i = 0; i < 10; i++) { const a = (i / 10) * Math.PI * 2 + Math.PI / 2, r = i % 2 ? r2 : r1; const p = [Math.cos(a) * r, Math.sin(a) * r] as const; if (i) s.lineTo(p[0], p[1]); else s.moveTo(p[0], p[1]) }
-  s.closePath(); return s
-}
-function heartShape(k: number) {
-  const s = new THREE.Shape(); s.moveTo(0, -0.6 * k)
-  s.bezierCurveTo(-1.1 * k, 0.05 * k, -0.6 * k, 0.9 * k, 0, 0.4 * k)
-  s.bezierCurveTo(0.6 * k, 0.9 * k, 1.1 * k, 0.05 * k, 0, -0.6 * k)
-  return s
+const TORSO_Z = 0.84
+function useTorsoGeo() {
+  return useMemo(() => {
+    const N = 40, pts: THREE.Vector2[] = []
+    for (let i = 0; i <= N; i++) { const y = TORSO.y0 + (i / N) * (TORSO.y1 - TORSO.y0); pts.push(new THREE.Vector2(Math.max(0.0001, torsoR(y)), y)) }
+    return new THREE.LatheGeometry(pts, 56, Math.PI, Math.PI * 2) // tikiş arxada, u=0.5 öndə
+  }, [])
 }
 
-// ---------- üz ----------
-function Eye({ x, kind, color, side, skin }: { x: number; kind: AvatarConfig['eyes']; color: string; side: 1 | -1; skin: string }) {
-  const y = 2.0, p = onFace(x, y), rot = faceRot(x)
-  const star = useMemo(() => new THREE.ExtrudeGeometry(starShape(0.07, 0.03), { depth: 0.01, bevelEnabled: false }), [])
-  const lid = useRef<THREE.Group>(null), iris = useRef<THREE.Group>(null)
-  const k = kind === 'wink' && side === 1 ? 'happy' : kind
-  // göz qırpma (hər ~4 san) + bəbəklərin incə hərəkəti
-  useFrame(({ clock, pointer }) => {
-    const t = clock.elapsedTime
-    if (lid.current) {
-      const ph = (t + 0.3) % 4.2
-      const close = ph < 0.16 ? Math.sin((ph / 0.16) * Math.PI) : 0
-      const base = k === 'angry' ? 0.42 : 0.12
-      lid.current.scale.y = base + (1 - base) * close
-    }
-    if (iris.current) { iris.current.position.x = THREE.MathUtils.clamp(pointer.x * 0.012, -0.012, 0.012); iris.current.position.y = THREE.MathUtils.clamp(pointer.y * 0.008, -0.008, 0.008) }
+// ───────────────────────── üz ─────────────────────────
+function Face({ cfg, still }: { cfg: AvatarConfig; still: boolean }) {
+  const key = [cfg.eyes, cfg.eyeColor, cfg.brows, cfg.mouth, cfg.blush, cfg.freckles, cfg.facial, cfg.hairColor, cfg.skin].join('|')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const maps = useMemo(() => ({ open: paintFace(cfg, false), shut: paintFace(cfg, true) }), [key])
+  useEffect(() => () => { maps.open.dispose(); maps.shut.dispose() }, [maps])
+  const mat = useRef<THREE.MeshBasicMaterial>(null)
+  useFrame(({ clock }) => {
+    if (!mat.current || still) return
+    const t = clock.elapsedTime % 4.2, shut = t > 4.05 || (t > 1.9 && t < 1.98)
+    const want = shut ? maps.shut : maps.open
+    if (mat.current.map !== want) { mat.current.map = want; mat.current.needsUpdate = true }
   })
-  if (k === 'happy') return <mesh position={[p[0], p[1] - 0.01, p[2]]} rotation={rot}><torusGeometry args={[0.05, 0.015, 8, 20, Math.PI]} /><Mat c="#1B1210" r={0.4} /></mesh>
-  if (k === 'sleepy') return <mesh position={p} rotation={[rot[0], rot[1], 0]}><torusGeometry args={[0.05, 0.014, 8, 20, Math.PI]} /><Mat c="#1B1210" r={0.4} /></mesh>
-  if (k === 'star') return <mesh geometry={star} position={[p[0], p[1], p[2] - 0.004]} rotation={rot}><Mat c={GOLD} r={0.3} e="#7A5200" /></mesh>
-  const big = k === 'sparkle' ? 1.3 : 1
   return (
-    <group position={p} rotation={rot}>
-      {/* göz alması (yaş parıltı — clearcoat) */}
-      <mesh scale={[1, 1.15, 0.45]}><sphereGeometry args={[0.058 * big, 24, 18]} /><meshPhysicalMaterial color="#FBFBFD" roughness={0.18} clearcoat={1} clearcoatRoughness={0.08} /></mesh>
-      <group ref={iris}>
-        <mesh position={[0, -0.004, 0.018]} scale={[1, 1.1, 0.4]}><sphereGeometry args={[0.042 * big, 24, 18]} /><meshPhysicalMaterial color={color} roughness={0.25} clearcoat={1} clearcoatRoughness={0.05} /></mesh>
-        <mesh position={[0, -0.004, 0.024]} scale={[1, 1.1, 0.4]}><torusGeometry args={[0.036 * big, 0.004, 6, 24]} /><meshBasicMaterial color={shade(color, -0.25)} /></mesh>
-        <mesh position={[0, -0.004, 0.028]} scale={[1, 1.1, 0.4]}><sphereGeometry args={[0.022 * big, 16, 12]} /><meshPhysicalMaterial color="#07070A" roughness={0.1} clearcoat={1} /></mesh>
-        <mesh position={[0.016 * big, 0.02 * big, 0.036]}><sphereGeometry args={[0.011 * big, 10, 8]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
-        <mesh position={[-0.012 * big, -0.018 * big, 0.034]}><sphereGeometry args={[0.005 * big, 8, 6]} /><meshBasicMaterial color="#FFFFFF" /></mesh>
-      </group>
-      {k === 'sparkle' && <mesh position={[-0.02, -0.025, 0.036]}><sphereGeometry args={[0.007, 8, 6]} /><meshBasicMaterial color="#FFFFFF" /></mesh>}
-      {/* üst göz qapağı: qırpanda aşağı enir */}
-      <group ref={lid} position={[0, 0.07 * big, 0.004]} scale={[1, 0.12, 1]}>
-        <mesh position={[0, -0.07 * big, 0]} scale={[1.1, 1.22, 0.54]}><sphereGeometry args={[0.058 * big, 24, 16]} /><Skin c={shade(skin, -0.02)} /></mesh>
-      </group>
-      {k === 'lashes' && [-0.5, 0, 0.5].map((a, i) => <mesh key={i} position={[side * 0.03 + a * 0.03, 0.07, 0]} rotation={[0, 0, a * -0.6 - side * 0.4]}><boxGeometry args={[0.008, 0.035, 0.008]} /><Mat c="#1B1210" flat /></mesh>)}
-    </group>
-  )
-}
-
-function Brows({ kind, color }: { kind: AvatarConfig['brows']; color: string }) {
-  if (kind === 'none') return null
-  const c = shade(color, -0.08)
-  return (
-    <>
-      {([-1, 1] as const).map((s) => {
-        const x = s * 0.14
-        let y = 2.11, z = 0, thick = 0.022
-        if (kind === 'thick') thick = 0.038
-        if (kind === 'raised' && s === 1) y = 2.15
-        if (kind === 'angry') z = s * 0.35
-        if (kind === 'worried') z = -s * 0.3
-        if (kind === 'soft') z = -s * 0.08
-        const p = onFace(x, y, 0.012)
-        return <mesh key={s} position={p} rotation={[0, faceRot(x)[1], z]}><boxGeometry args={[0.12, thick, 0.02]} /><Mat c={c} /></mesh>
-      })}
-    </>
-  )
-}
-
-function Mouth({ kind }: { kind: AvatarConfig['mouth'] }) {
-  const y = 1.82, p = onFace(0, y, 0.004)
-  const dark = '#3A1414', pink = '#F27A8C'
-  switch (kind) {
-    case 'grin': return (
-      <group position={p}>
-        <mesh rotation={[0, 0, Math.PI]}><circleGeometry args={[0.085, 24, 0, Math.PI]} /><Mat c={dark} side={THREE.DoubleSide} /></mesh>
-        <mesh position={[0, -0.018, 0.002]}><boxGeometry args={[0.13, 0.028, 0.004]} /><Mat c="#FFFFFF" r={0.3} /></mesh>
-      </group>)
-    case 'open': return (
-      <group position={p}>
-        <mesh scale={[1, 0.8, 0.3]}><sphereGeometry args={[0.06, 20, 14]} /><Mat c={dark} /></mesh>
-        <mesh position={[0, -0.025, 0.012]} scale={[1, 0.6, 0.3]}><sphereGeometry args={[0.035, 16, 10]} /><Mat c={pink} /></mesh>
-      </group>)
-    case 'o': return <mesh position={p}><torusGeometry args={[0.03, 0.013, 8, 20]} /><Mat c={dark} /></mesh>
-    case 'neutral': return <mesh position={p} rotation={[0, 0, Math.PI / 2]}><capsuleGeometry args={[0.011, 0.08, 4, 8]} /><Mat c={dark} /></mesh>
-    case 'smirk': return <mesh position={[p[0] + 0.02, p[1] + 0.008, p[2]]} rotation={[0, 0, Math.PI + 0.35]}><torusGeometry args={[0.055, 0.013, 8, 20, Math.PI * 0.75]} /><Mat c={dark} /></mesh>
-    case 'tongue': return (
-      <group position={p}>
-        <mesh rotation={[0, 0, Math.PI]}><torusGeometry args={[0.065, 0.014, 8, 20, Math.PI]} /><Mat c={dark} /></mesh>
-        <mesh position={[0.015, -0.06, 0.008]} scale={[1, 1.2, 0.5]}><sphereGeometry args={[0.03, 16, 10]} /><Mat c={pink} /></mesh>
-      </group>)
-    case 'cat': return (
-      <group position={p}>
-        {[-1, 1].map((s) => <mesh key={s} position={[s * 0.028, 0, 0]} rotation={[0, 0, Math.PI]}><torusGeometry args={[0.028, 0.011, 8, 16, Math.PI]} /><Mat c={dark} /></mesh>)}
-      </group>)
-    default: return <mesh position={p} rotation={[0, 0, Math.PI]}><torusGeometry args={[0.07, 0.015, 8, 24, Math.PI]} /><Mat c={dark} /></mesh>
-  }
-}
-
-function Glasses({ kind, color }: { kind: AvatarConfig['glasses']; color: string }) {
-  const y = 2.0
-  const heart = useMemo(() => new THREE.ExtrudeGeometry(heartShape(0.075), { depth: 0.01, bevelEnabled: false }), [])
-  if (kind === 'none') return null
-  if (kind === 'visor') return (
-    <mesh position={[0, y, 0.02]} rotation={[0, 0, 0]}>
-      <cylinderGeometry args={[0.43, 0.43, 0.13, 32, 1, true, -Math.PI * 0.32, Math.PI * 0.64]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.6} transparent opacity={0.85} side={THREE.DoubleSide} roughness={0.2} metalness={0.3} />
+    <mesh renderOrder={2}>
+      <sphereGeometry args={[0.5035, 48, 48, Math.PI / 2 - FACE.phi, FACE.phi * 2, FACE.theta0, FACE.thetaLen]} />
+      <meshBasicMaterial ref={mat} map={maps.open} transparent depthWrite={false} toneMapped={false} polygonOffset polygonOffsetFactor={-2} />
     </mesh>
   )
-  if (kind === 'monocle') { const p = onFace(0.14, y, 0.055); return (
-    <group position={p} rotation={faceRot(0.14)}>
-      <mesh><torusGeometry args={[0.075, 0.01, 8, 28]} /><Mat c={GOLD} r={0.3} m={0.7} /></mesh>
-      <mesh><circleGeometry args={[0.07, 24]} /><meshStandardMaterial color="#BFE3FF" transparent opacity={0.25} /></mesh>
-      <mesh position={[0.06, -0.14, -0.02]} rotation={[0, 0, 0.3]}><cylinderGeometry args={[0.004, 0.004, 0.22]} /><Mat c={GOLD} m={0.7} r={0.3} /></mesh>
-    </group>) }
+}
+
+function heartShape(k: number) {
+  const s = new THREE.Shape()
+  s.moveTo(0, -0.9 * k); s.bezierCurveTo(-1.3 * k, 0, -0.7 * k, 1.05 * k, 0, 0.45 * k); s.bezierCurveTo(0.7 * k, 1.05 * k, 1.3 * k, 0, 0, -0.9 * k)
+  return s
+}
+const EYE: V3 = [0.162, -0.012, 0.478]
+function Glasses({ kind, color }: { kind: AvatarConfig['glasses']; color: string }) {
+  if (kind === 'none') return null
+  if (kind === 'visor') return (
+    <group position={[0, EYE[1], 0]}>
+      <mesh castShadow><cylinderGeometry args={[0.535, 0.535, 0.17, 48, 1, true, -1.2, 2.4]} /><M c={color} r={0.15} m={0.3} cc={1} e={shade(color, 0.12)} side={THREE.DoubleSide} /></mesh>
+      <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.515, 0.03, 10, 48]} /><M c="#1B1D2E" r={0.4} /></mesh>
+    </group>
+  )
+  const lens = kind === 'sun' ? '#14151F' : kind === 'heart' ? '#FF8FB8' : '#DCEBFF'
+  const one = (side: 1 | -1) => (
+    <group key={side} position={[side * EYE[0], EYE[1], EYE[2] + 0.035]} rotation={[0, side * 0.33, 0]}>
+      {kind === 'heart' ? <>
+        <mesh position={[0, 0.01, 0]}><extrudeGeometry args={[heartShape(0.105), { depth: 0.02, bevelEnabled: true, bevelSize: 0.012, bevelThickness: 0.01, bevelSegments: 3 }]} /><M c={color} r={0.35} /></mesh>
+        <mesh position={[0, 0.01, 0.034]}><shapeGeometry args={[heartShape(0.082)]} /><M c={lens} r={0.1} cc={1} o={0.75} /></mesh>
+      </> : kind === 'square' ? <>
+        <RoundedBox args={[0.215, 0.165, 0.03]} radius={0.035} smoothness={4} castShadow><M c={color} r={0.35} /></RoundedBox>
+        <RoundedBox args={[0.172, 0.122, 0.036]} radius={0.025} smoothness={4}><M c="#CFE3FF" r={0.08} cc={1} o={0.9} /></RoundedBox>
+      </> : <>
+        <mesh castShadow><torusGeometry args={[0.098, kind === 'sun' ? 0.017 : 0.014, 12, 40]} /><M c={color} r={0.35} m={kind === 'monocle' ? 0.8 : 0} /></mesh>
+        <mesh><circleGeometry args={[0.096, 40]} /><M c={lens} r={0.08} cc={1} o={kind === 'sun' ? 0.94 : 0.32} /></mesh>
+      </>}
+    </group>
+  )
+  if (kind === 'monocle') return (
+    <group>
+      {one(1)}
+      <mesh position={[0.3, -0.2, 0.42]} rotation={[0, 0, -0.25]}><cylinderGeometry args={[0.004, 0.004, 0.36, 6]} /><M c={GOLD} m={0.9} r={0.25} /></mesh>
+    </group>
+  )
   return (
     <group>
-      {([-1, 1] as const).map((s) => {
-        const p = onFace(s * 0.14, y, 0.055), r = faceRot(s * 0.14)
-        if (kind === 'heart') return <group key={s} position={p} rotation={r}><mesh geometry={heart} position={[0, 0, -0.005]}><meshStandardMaterial color={color} transparent opacity={0.75} roughness={0.2} /></mesh></group>
-        if (kind === 'square') return (
-          <group key={s} position={p} rotation={r}>
-            <mesh position={[0, 0.06, 0]}><boxGeometry args={[0.17, 0.018, 0.018]} /><Mat c={color} r={0.4} /></mesh>
-            <mesh position={[0, -0.06, 0]}><boxGeometry args={[0.17, 0.018, 0.018]} /><Mat c={color} r={0.4} /></mesh>
-            <mesh position={[-0.076, 0, 0]}><boxGeometry args={[0.018, 0.13, 0.018]} /><Mat c={color} r={0.4} /></mesh>
-            <mesh position={[0.076, 0, 0]}><boxGeometry args={[0.018, 0.13, 0.018]} /><Mat c={color} r={0.4} /></mesh>
-          </group>)
-        return (
-          <group key={s} position={p} rotation={r}>
-            <mesh><torusGeometry args={[0.078, 0.013, 8, 28]} /><Mat c={color} r={0.35} m={0.2} /></mesh>
-            {kind === 'sun' && <mesh scale={[1, 0.85, 1]}><circleGeometry args={[0.075, 28]} /><meshStandardMaterial color="#0E0F18" transparent opacity={0.92} roughness={0.1} metalness={0.4} /></mesh>}
-          </group>)
-      })}
-      <mesh position={onFace(0, y + 0.01, 0.06)}><boxGeometry args={[0.07, 0.015, 0.015]} /><Mat c={color} /></mesh>
-      {([-1, 1] as const).map((s) => <mesh key={`a${s}`} position={[s * 0.4, y + 0.01, 0.1]} rotation={[0, s * 0.25, 0]}><boxGeometry args={[0.012, 0.012, 0.18]} /><Mat c={color} /></mesh>)}
+      {one(1)}{one(-1)}
+      <mesh position={[0, EYE[1] + 0.01, EYE[2] + 0.062]} rotation={[0, 0, Math.PI / 2]}><capsuleGeometry args={[0.012, 0.09, 4, 10]} /><M c={color} r={0.35} /></mesh>
+      {([1, -1] as const).map((s) => <mesh key={s} position={[s * 0.4, EYE[1] + 0.005, 0.27]} rotation={[Math.PI / 2, 0, s * 0.42]}><capsuleGeometry args={[0.011, 0.4, 4, 8]} /><M c={color} r={0.35} /></mesh>)}
     </group>
   )
 }
 
-function FacialHair({ kind, color }: { kind: AvatarConfig['facial']; color: string }) {
-  if (kind === 'none') return null
-  const c = shade(color, -0.04)
-  const mustache = <group>{([-1, 1] as const).map((s) => <mesh key={s} position={onFace(s * 0.046, 1.872, 0.012)} rotation={[0, s * 0.25, s * -0.32]} scale={[1.05, 0.42, 0.55]}><sphereGeometry args={[0.056, 18, 12]} /><HairMat c={c} /></mesh>)}</group>
-  if (kind === 'mustache') return mustache
-  if (kind === 'goatee') return <group>{mustache}<mesh position={onFace(0, 1.735, -0.03)} scale={[0.9, 1.25, 0.8]}><sphereGeometry args={[0.062, 18, 14]} /><HairMat c={c} /></mesh></group>
-  const beard = kind === 'beard'
-  // çənə forması ilə eyni mərkəz — saqqal üzü "maska" kimi örtmür, çənəni qucaqlayır
-  return (
-    <group position={[0, HEAD_Y - 0.17, 0.07]}>
-      <mesh scale={[0.86, 0.66, 0.82]}><sphereGeometry args={[beard ? 0.322 : 0.304, 40, 24, 0, Math.PI * 2, 1.5, Math.PI - 1.5]} />{beard ? <HairMat c={c} /> : <HairMat c={c} o={0.42} />}</mesh>
-      {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.255, 0.12, -0.09]} scale={[0.35, 1, 0.6]}><capsuleGeometry args={[beard ? 0.06 : 0.05, 0.12, 6, 10]} />{beard ? <HairMat c={c} /> : <HairMat c={c} o={0.42} />}</mesh>)}
-      {beard && <><mesh position={[0, -0.17, 0.12]} scale={[1.15, 0.9, 0.8]}><sphereGeometry args={[0.11, 20, 14]} /><HairMat c={c} /></mesh>{mustache && <group position={[0, -(HEAD_Y - 0.17), -0.07]}>{mustache}</group>}</>}
-    </group>
-  )
-}
-
-// ---------- saç ----------
-function Hair({ kind, color, hat }: { kind: AvatarConfig['hair']; color: string; hat: boolean }) {
-  const c = color, top = !hat
-  const curls = useMemo(() => {
-    const pts: [number, number, number][] = []
-    const n = 34
-    for (let i = 0; i < n; i++) {
-      const y = 1 - (i / (n - 1)) * 1.1, r = Math.sqrt(Math.max(0, 1 - y * y)), a = i * 2.39996
-      if (y < 0.1) continue
-      const x = Math.cos(a) * r, z = Math.sin(a) * r
-      if (z > 0.55 && y < 0.55) continue
-      pts.push([x * 0.42, y * 0.42, z * 0.42])
-    }
-    return pts
-  }, [])
+// ───────────────────────── saç ─────────────────────────
+const TILT = 0.46
+/** Papaq altında qalan saç: yalnız yanlar və arxa (üst həcmlər gizlədilir). */
+function HairStyle({ kind, c, hat }: { kind: Hair; c: string; hat: boolean }) {
+  const hi = shade(c, 0.03)
+  const base = (len = 0.53, r = 0.528) => <Shell r={r} len={Math.PI * len} tilt={TILT} c={c} />
+  /** təpədə yumşaq həcm (örtüklə birləşir) */
+  const dome = (h = 0.38, w = 0.515) => <Blob p={[0, 0.2, -0.04]} s={[w, h, w]} c={c} r={0.7} />
+  /** yana daranmış kəkil: üst-üstə düşən iki tutam */
+  const fringe = (x = 0, w = 0.34, lift = 0) => <>
+    <Blob p={[x + 0.06, 0.33 + lift, 0.325]} s={[w * 0.86, 0.105, 0.175]} rot={[0.7, 0, -0.22]} c={hi} r={0.7} />
+    <Blob p={[x - 0.2, 0.305 + lift, 0.3]} s={[w * 0.5, 0.09, 0.15]} rot={[0.62, 0, 0.5]} c={c} r={0.7} />
+  </>
   if (kind === 'bald') return null
-  // papaq varsa saç onun altında qalır (bir az kiçik qapaq, kəkil yox)
-  const cap = (rad = 0.425, theta = 1.28, tilt = -0.32, o?: number) => (
-    <mesh rotation={[tilt, 0, 0]} castShadow><sphereGeometry args={[hat ? Math.min(rad, 0.412) : rad, 48, 24, 0, Math.PI * 2, 0, theta]} /><HairMat c={c} o={o} /></mesh>
-  )
-  /** Alına düşən kəkil: başı qucaqlayan sferik zolaq (öndə). shift — yan ayırma üçün sürüşmə. */
-  const fringe = (shift = 0, depth = 0.9) => !hat && (
-    <group rotation={[0, shift, 0]}>
-      <mesh rotation={[-0.08, 0, 0]}><sphereGeometry args={[0.432, 40, 16, Math.PI / 2 - 0.95, 1.9, 0.18, depth]} /><HairMat c={c} /></mesh>
+  if (kind === 'buzz') return <Shell r={0.509} len={Math.PI * 0.5} tilt={TILT} c={c} rough={0.95} />
+  if (kind === 'short') return <>{base()}{!hat && <>{dome()}{fringe(0, 0.36)}</>}</>
+  if (kind === 'sidepart') return <>{base()}{!hat && <>
+    <Blob p={[0.1, 0.36, 0.27]} s={[0.36, 0.14, 0.25]} rot={[0.5, 0, -0.32]} c={hi} r={0.7} />
+    <Blob p={[-0.3, 0.3, 0.2]} s={[0.17, 0.12, 0.26]} rot={[0.4, 0, 0.5]} c={c} r={0.7} />
+    {dome(0.39)}</>}</>
+  if (kind === 'curly' || kind === 'afro') {
+    if (kind === 'afro' && !hat) return <>
+      <Blob p={[0, 0.27, -0.09]} s={0.62} c={c} r={0.95} cc={0} />
+      {Array.from({ length: 70 }, (_, i) => { const a = i * 2.39996, y = 1 - (i + 0.5) / 70 * 1.5, rr = Math.sqrt(Math.max(0, 1 - y * y)); return <Blob key={i} p={[Math.cos(a) * rr * 0.55, 0.27 + y * 0.55, -0.09 + Math.sin(a) * rr * 0.55]} s={0.125} c={c} r={0.95} cc={0} /> })}
+    </>
+    const n = hat ? 0 : 34
+    return <>{base(0.54)}
+      {Array.from({ length: n }, (_, i) => { const a = i * 2.39996, y = 1 - (i + 0.5) / n * 0.9, rr = Math.sqrt(Math.max(0, 1 - y * y)); const v = new THREE.Vector3(Math.cos(a) * rr, y, Math.sin(a) * rr).applyAxisAngle(new THREE.Vector3(1, 0, 0), -TILT).multiplyScalar(0.535); return <Blob key={i} p={[v.x, v.y, v.z]} s={0.105} c={i % 2 ? hi : c} r={0.9} cc={0} /> })}
+      {hat && ([1, -1] as const).map((s) => <Blob key={s} p={[s * 0.5, -0.02, -0.08]} s={kind === 'afro' ? 0.2 : 0.13} c={c} r={0.9} cc={0} />)}
+      {hat && <Blob p={[0, -0.08, -0.46]} s={[0.3, 0.16, 0.14]} c={c} r={0.9} cc={0} />}
+    </>
+  }
+  if (kind === 'bun') return <>{base()}{!hat && <>{fringe(0, 0.34, 0.02)}<Blob p={[0, 0.56, -0.14]} s={0.17} c={hi} r={0.7} /><mesh position={[0, 0.44, -0.12]} rotation={[Math.PI / 2 - 0.2, 0, 0]}><torusGeometry args={[0.1, 0.025, 10, 24]} /><M c={shade(c, -0.1)} /></mesh></>}{hat && <Blob p={[0, -0.1, -0.52]} s={0.14} c={hi} r={0.7} />}</>
+  if (kind === 'ponytail') return <>{base()}{!hat && fringe(-0.06, 0.34)}
+    <Blob p={[0, 0.1, -0.53]} s={0.115} c={shade(c, -0.08)} r={0.7} />
+    <Blob p={[0, -0.16, -0.62]} s={[0.115, 0.3, 0.12]} rot={[0.28, 0, 0]} c={hi} r={0.7} />
+    <Blob p={[0, -0.4, -0.66]} s={[0.07, 0.12, 0.07]} rot={[0.2, 0, 0]} c={hi} r={0.7} /></>
+  if (kind === 'long' || kind === 'wavy') return <>{base(0.55)}
+    <Blob p={[0, -0.2, -0.17]} s={[0.545, 0.56, 0.4]} c={c} r={0.7} />
+    {([1, -1] as const).map((s) => <group key={s}>
+      <Blob p={[s * 0.47, -0.2, 0.1]} s={[0.085, 0.36, 0.13]} rot={[0, 0, s * 0.06]} c={hi} r={0.7} />
+      {kind === 'wavy' && [0, 1, 2, 3].map((i) => <Blob key={i} p={[s * (0.53 + (i % 2) * 0.05), -0.05 - i * 0.17, -0.08]} s={[0.12, 0.13, 0.22]} c={i % 2 ? c : hi} r={0.7} />)}
+    </group>)}
+    {!hat && <><Blob p={[0.16, 0.33, 0.32]} s={[0.25, 0.11, 0.18]} rot={[0.6, 0, -0.5]} c={hi} r={0.7} /><Blob p={[-0.18, 0.33, 0.31]} s={[0.23, 0.11, 0.18]} rot={[0.6, 0, 0.5]} c={hi} r={0.7} /></>}</>
+  if (kind === 'bob') return <>{base(0.55)}
+    <Blob p={[0, -0.04, -0.1]} s={[0.57, 0.41, 0.46]} c={c} r={0.7} />
+    {([1, -1] as const).map((s) => <Blob key={s} p={[s * 0.46, -0.1, 0.13]} s={[0.1, 0.27, 0.15]} c={hi} r={0.7} />)}
+    {!hat && <Blob p={[0, 0.28, 0.35]} s={[0.4, 0.11, 0.16]} rot={[0.66, 0, 0]} c={hi} r={0.7} />}</>
+  if (kind === 'mohawk') return <><Shell r={0.509} len={Math.PI * 0.5} tilt={TILT} c={shade(c, -0.08)} rough={0.95} />
+    {!hat && [0, 1, 2, 3, 4, 5, 6].map((i) => { const a = -0.75 + i * 0.36; return <Blob key={i} p={[0, Math.cos(a) * 0.56, -Math.sin(a) * 0.56 + 0.02]} s={[0.085, 0.2 - Math.abs(i - 3) * 0.014, 0.14]} rot={[-a, 0, 0]} c={i % 2 ? hi : c} r={0.7} /> })}</>
+  if (kind === 'spiky') return <>{base()}{!hat && Array.from({ length: 13 }, (_, i) => {
+    const a = i * 2.39996, y = 1 - (i + 0.5) / 13 * 0.75, rr = Math.sqrt(1 - y * y)
+    const v = new THREE.Vector3(Math.cos(a) * rr, y, Math.sin(a) * rr).applyAxisAngle(new THREE.Vector3(1, 0, 0), -0.25)
+    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), v.clone().normalize()), e = new THREE.Euler().setFromQuaternion(q)
+    return <mesh key={i} position={[v.x * 0.58, v.y * 0.58, v.z * 0.58]} rotation={e} castShadow><coneGeometry args={[0.135, 0.3, 14]} /><M c={i % 2 ? hi : c} r={0.7} /></mesh>
+  })}</>
+  // pigtails
+  return <>{base()}{!hat && fringe(0, 0.36)}
+    {([1, -1] as const).map((s) => <group key={s}>
+      <Blob p={[s * 0.55, 0.04, -0.06]} s={0.15} c={hi} r={0.7} />
+      <Blob p={[s * 0.62, -0.22, -0.06]} s={[0.115, 0.22, 0.115]} rot={[0, 0, s * 0.2]} c={c} r={0.7} />
+      <mesh position={[s * 0.5, 0.1, -0.06]} rotation={[0, 0, Math.PI / 2 + s * 0.3]}><torusGeometry args={[0.06, 0.022, 8, 20]} /><M c="#FF5C8A" /></mesh>
+    </group>)}</>
+}
+/** Saçın təpə hündürlüyü — tac, halə və s. üçün. */
+const hairTop = (k: Hair) => (k === 'afro' ? 0.86 : k === 'bun' ? 0.7 : k === 'mohawk' || k === 'spiky' ? 0.7 : k === 'bald' || k === 'buzz' ? 0.5 : 0.56)
+
+// ───────────────────────── papaqlar ─────────────────────────
+const COVERING = ['cap', 'backcap', 'beanie', 'bucket', 'beret', 'cowboy', 'tophat', 'wizard', 'bandana'] as const
+const covers = (h: AvatarConfig['hat']) => (COVERING as readonly string[]).includes(h)
+function lathe(pts: [number, number][], seg = 48) { return new THREE.LatheGeometry(pts.map(([r, y]) => new THREE.Vector2(r, y)), seg) }
+function Hat({ kind, c }: { kind: AvatarConfig['hat']; c: string }) {
+  const dk = shade(c, -0.1), R = 0.545
+  const brimGeo = useMemo(() => kind === 'bucket' ? lathe([[0.5, 0.02], [0.6, -0.04], [0.74, -0.15], [0.75, -0.17], [0.6, -0.06], [0.5, 0]])
+    : kind === 'cowboy' ? lathe([[0.4, 0.0], [0.58, -0.02], [0.72, 0.04], [0.77, 0.11], [0.75, 0.13], [0.58, 0.02], [0.4, 0.03]])
+    : kind === 'wizard' ? lathe([[0.3, 0.02], [0.56, -0.01], [0.72, -0.04], [0.73, -0.02], [0.56, 0.03], [0.3, 0.05]])
+    : kind === 'tophat' ? lathe([[0.3, 0.0], [0.62, 0.0], [0.66, 0.03], [0.62, 0.04], [0.3, 0.04]]) : null, [kind])
+  if (kind === 'none') return null
+  // ── başı örtən papaqlar: arxaya əyilmiş qrup (ön kənar alında, arxa ənsədə)
+  if (kind === 'cap' || kind === 'backcap') return (
+    <group rotation={[-0.2, kind === 'backcap' ? Math.PI : 0, 0]}>
+      <Shell r={R} len={Math.PI * 0.46} c={c} rough={0.75} />
+      <mesh position={[0, 0.535, 0]}><sphereGeometry args={[0.035, 12, 10]} /><M c={dk} /></mesh>
+      <mesh position={[0, 0.0, 0.6]} rotation={[0.42, 0, 0]} scale={[1, 0.16, 0.9]} castShadow><sphereGeometry args={[0.36, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><M c={dk} r={0.6} side={THREE.DoubleSide} /></mesh>
+      <mesh position={[0, 0.22, 0.5]} rotation={[-0.4, 0, 0]}><circleGeometry args={[0.085, 24]} /><M c="#fff" r={0.6} /></mesh>
     </group>
   )
+  if (kind === 'beanie') return (
+    <group rotation={[-0.34, 0, 0]}>
+      <Shell r={R} len={Math.PI * 0.5} c={c} rough={0.95} y={0.02} />
+      <mesh position={[0, 0.03, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow><torusGeometry args={[0.535, 0.07, 14, 48]} /><M c={dk} r={0.95} cc={0} /></mesh>
+      <Blob p={[0, 0.6, 0]} s={0.11} c="#F5F5F7" r={1} cc={0} />
+    </group>
+  )
+  if (kind === 'bandana') return (
+    <group rotation={[-0.38, 0, 0]}>
+      <Shell r={0.522} len={Math.PI * 0.47} c={c} rough={0.8} />
+      <mesh position={[0, 0.05, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.52, 0.035, 10, 48]} /><M c={dk} r={0.8} /></mesh>
+      <Blob p={[0, 0.02, -0.56]} s={0.07} c={dk} />
+      {([1, -1] as const).map((s) => <Blob key={s} p={[s * 0.09, -0.1, -0.6]} s={[0.05, 0.13, 0.03]} rot={[0.3, 0, s * 0.5]} c={c} />)}
+      {[0, 1, 2, 3, 4].map((i) => <Blob key={i} p={[Math.sin(i * 1.3 + 0.4) * 0.3, 0.42 - (i % 2) * 0.08, 0.26 * Math.cos(i * 1.3 + 0.4)]} s={0.035} c="#fff" />)}
+    </group>
+  )
+  if (kind === 'beret') return (
+    <group position={[0.04, 0.26, -0.02]} rotation={[-0.2, 0, -0.24]}>
+      <Blob p={[0.06, 0.1, 0]} s={[0.54, 0.14, 0.52]} c={c} r={0.9} cc={0} />
+      <mesh position={[0, 0.02, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.44, 0.04, 10, 40]} /><M c={dk} r={0.9} /></mesh>
+      <mesh position={[0, 0.27, 0]}><cylinderGeometry args={[0.015, 0.02, 0.07, 8]} /><M c={dk} /></mesh>
+    </group>
+  )
+  // ── kənarlı papaqlar
+  const rim = kind === 'bucket' ? 0.16 : 0.24
   return (
-    <group position={[0, HEAD_Y, 0]}>
-      {kind === 'buzz' ? cap(0.408, 1.25, -0.3, 0.9) : cap()}
-      {kind === 'short' && fringe(0, 0.82)}
-      {kind === 'sidepart' && <>{fringe(-0.25, 0.86)}{!hat && <mesh position={[0.1, 0.3, 0.22]} rotation={[0.7, 0.3, -0.5]} scale={[0.32, 0.075, 0.14]}><sphereGeometry args={[1, 24, 12]} /><HairMat c={c} /></mesh>}</>}
-      {kind === 'curly' && curls.map((p, i) => <mesh key={i} position={[p[0], p[1] + 0.02, p[2] - 0.02]}><sphereGeometry args={[0.085, 12, 10]} /><HairMat c={c} /></mesh>)}
-      {kind === 'afro' && <mesh position={[0, hat ? 0.05 : 0.14, -0.14]} scale={hat ? [1.05, 0.8, 0.8] : [1.25, 1.08, 0.9]}><sphereGeometry args={[0.52, 32, 24]} /><HairMat c={c} /></mesh>}
-      {kind === 'bun' && top && <><mesh position={[0, 0.47, -0.06]}><sphereGeometry args={[0.16, 20, 16]} /><HairMat c={c} /></mesh><mesh position={[0, 0.36, -0.04]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.1, 0.025, 8, 20]} /><Mat c={shade(c, -0.15)} /></mesh></>}
-      {kind === 'ponytail' && <>
-        <mesh position={[0, 0.02, -0.45]} rotation={[0.45, 0, 0]}><capsuleGeometry args={[0.1, 0.42, 6, 14]} /><HairMat c={c} /></mesh>
-        <mesh position={[0, 0.2, -0.4]} rotation={[1.1, 0, 0]}><torusGeometry args={[0.08, 0.025, 8, 18]} /><Mat c="#F0262F" /></mesh>
+    <group position={[0, rim, 0]} rotation={[-0.2, 0, 0]}>
+      {brimGeo && <mesh geometry={brimGeo} castShadow receiveShadow><M c={kind === 'bucket' ? c : dk} r={0.75} side={THREE.DoubleSide} /></mesh>}
+      {kind === 'bucket' && <Shell r={R} len={Math.PI * 0.42} c={c} rough={0.8} y={-0.08} />}
+      {kind === 'cowboy' && <>
+        <mesh position={[0, 0.29, 0]} scale={[1, 1, 0.92]} castShadow><cylinderGeometry args={[0.34, 0.41, 0.56, 40]} /><M c={c} r={0.75} /></mesh>
+        <Blob p={[0, 0.52, 0]} s={[0.34, 0.07, 0.31]} c={c} r={0.75} />
+        <mesh position={[0, 0.07, 0]} scale={[1, 1, 0.92]}><cylinderGeometry args={[0.415, 0.42, 0.07, 40]} /><M c="#2A1A12" r={0.6} /></mesh>
+        <Blob p={[0, 0.07, 0.39]} s={0.035} c={GOLD} m={0.9} r={0.3} />
       </>}
-      {(kind === 'long' || kind === 'wavy') && <>
-        <mesh position={[0, -0.25, -0.13]} scale={[1.07, 1.55, 0.62]} castShadow><sphereGeometry args={[0.42, 36, 24]} /><HairMat c={c} /></mesh>
-        {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.35, -0.24, 0.0]} rotation={[0.05, 0, s * 0.05]} scale={[0.85, 1, 0.6]}><capsuleGeometry args={[0.11, 0.46, 8, 16]} /><HairMat c={c} /></mesh>)}
-        {fringe(0.15, 0.7)}
-        {kind === 'wavy' && ([-1, 1] as const).flatMap((s) => [0, 1, 2].map((i) => <mesh key={`${s}${i}`} position={[s * (0.41 + (i % 2) * 0.03), -0.05 - i * 0.17, 0.08]}><sphereGeometry args={[0.07, 12, 10]} /><HairMat c={c} /></mesh>))}
+      {kind === 'tophat' && <>
+        <mesh position={[0, 0.34, 0]} castShadow><cylinderGeometry args={[0.36, 0.33, 0.62, 44]} /><M c={c} r={0.4} cc={0.6} /></mesh>
+        <mesh position={[0, 0.1, 0]}><cylinderGeometry args={[0.337, 0.335, 0.11, 44]} /><M c="#F0262F" r={0.5} /></mesh>
       </>}
-      {kind === 'bob' && <>
-        {/* çənəyə qədər "dəbilqə" — üz açıq qalır */}
-        <mesh scale={[1.04, 1, 1]}><sphereGeometry args={[0.445, 48, 28, Math.PI / 2 + 0.78, Math.PI * 2 - 1.56, 0.2, 1.75]} /><HairMat c={c} /></mesh>
-        {fringe(0, 0.95)}
+      {kind === 'wizard' && <>
+        <mesh position={[0, 0.52, -0.02]} rotation={[-0.1, 0, 0]} castShadow><coneGeometry args={[0.42, 1.02, 40]} /><M c={c} r={0.8} /></mesh>
+        <Blob p={[0, 1.0, -0.12]} s={0.05} c={GOLD} e={GOLD} />
+        <mesh position={[0, 0.07, 0]}><cylinderGeometry args={[0.405, 0.42, 0.08, 40]} /><M c={GOLD} m={0.8} r={0.3} /></mesh>
+        {[0, 1, 2, 3, 4, 5].map((i) => { const a = i * 1.9, h = 0.2 + (i % 3) * 0.2, r = 0.42 * (1 - h / 1.02) + 0.012; return <Blob key={i} p={[Math.sin(a) * r, h + 0.02, Math.cos(a) * r - 0.02]} s={0.028} c={GOLD} e={GOLD} /> })}
       </>}
-      {kind === 'mohawk' && top && [0, 1, 2, 3, 4, 5].map((i) => { const a = -0.55 + i * 0.36; return <mesh key={i} position={[0, Math.cos(a) * 0.43, Math.sin(a) * 0.43]} rotation={[a, 0, 0]}><coneGeometry args={[0.075, 0.26, 10]} /><HairMat c={c} /></mesh> })}
-      {kind === 'spiky' && top && Array.from({ length: 11 }, (_, i) => { const a = (i / 11) * Math.PI * 2, tilt = 0.75; const dir = new THREE.Vector3(Math.cos(a) * Math.sin(tilt), Math.cos(tilt), Math.sin(a) * Math.sin(tilt) - 0.15).normalize(); const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir); return <mesh key={i} position={dir.clone().multiplyScalar(0.4).toArray()} quaternion={q}><coneGeometry args={[0.08, 0.24, 10]} /><HairMat c={c} /></mesh> })}
-      {kind === 'spiky' && top && <mesh position={[0, 0.47, 0]}><coneGeometry args={[0.08, 0.24, 10]} /><HairMat c={c} /></mesh>}
-      {kind === 'pigtails' && ([-1, 1] as const).map((s) => <group key={s}>
-        <mesh position={[s * 0.5, -0.05, -0.05]}><sphereGeometry args={[0.15, 18, 14]} /><HairMat c={c} /></mesh>
-        <mesh position={[s * 0.4, 0.02, -0.04]} rotation={[0, 0, Math.PI / 2]}><torusGeometry args={[0.06, 0.022, 8, 16]} /><Mat c="#EC4899" /></mesh>
+    </group>
+  )
+}
+/** Başı örtməyən aksesuarlar (saçın üstündə oturur). */
+function HeadTopper({ kind, c, top }: { kind: AvatarConfig['hat']; c: string; top: number }) {
+  if (kind === 'crown') return (
+    <group position={[0, top - 0.06, 0]} rotation={[-0.14, 0, 0]}>
+      <mesh castShadow><cylinderGeometry args={[0.3, 0.27, 0.13, 40, 1, true]} /><M c={GOLD} m={0.95} r={0.22} side={THREE.DoubleSide} /></mesh>
+      {Array.from({ length: 7 }, (_, i) => { const a = (i / 7) * Math.PI * 2; return <group key={i} position={[Math.sin(a) * 0.3, 0.11, Math.cos(a) * 0.3]}>
+        <mesh castShadow><coneGeometry args={[0.065, 0.16, 4]} /><M c={GOLD} m={0.95} r={0.22} /></mesh>
+        <Blob p={[0, 0.1, 0]} s={0.028} c={i % 2 ? '#F0262F' : '#3B82F6'} r={0.15} cc={1} />
+      </group> })}
+      <mesh position={[0, -0.05, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.275, 0.02, 8, 40]} /><M c={GOLD} m={0.95} r={0.22} /></mesh>
+    </group>
+  )
+  if (kind === 'halo') return <mesh position={[0, top + 0.16, 0]} rotation={[Math.PI / 2 - 0.12, 0, 0]}><torusGeometry args={[0.27, 0.032, 14, 48]} /><M c="#FFE9A3" e="#FFD45E" r={0.3} /></mesh>
+  if (kind === 'headphones') return (
+    <group>
+      <mesh rotation={[0, 0, 0]} position={[0, 0.02, 0]}><torusGeometry args={[Math.max(0.56, top + 0.04), 0.03, 12, 48, Math.PI]} /><M c="#1B1D2E" r={0.4} /></mesh>
+      {([1, -1] as const).map((s) => <group key={s} position={[s * 0.54, -0.02, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <mesh castShadow><cylinderGeometry args={[0.15, 0.15, 0.1, 32]} /><M c={c} r={0.4} cc={0.6} /></mesh>
+        <mesh position={[0, -s * 0.05, 0]}><cylinderGeometry args={[0.13, 0.15, 0.05, 32]} /><M c="#1B1D2E" r={0.8} /></mesh>
+        <mesh position={[0, s * 0.052, 0]}><cylinderGeometry args={[0.07, 0.07, 0.01, 24]} /><M c="#fff" e={c} /></mesh>
       </group>)}
     </group>
   )
-}
-
-// ---------- papaqlar ----------
-function Hat({ kind, color }: { kind: AvatarConfig['hat']; color: string }) {
-  if (kind === 'none') return null
-  const c = color, y = HEAD_Y
-  switch (kind) {
-    case 'cap': case 'backcap': { const f = kind === 'cap' ? 1 : -1; return (
-      <group position={[0, y + 0.04, 0]}>
-        <mesh rotation={[-0.15, 0, 0]} scale={[1, 0.82, 1]}><sphereGeometry args={[0.445, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><Mat c={c} /></mesh>
-        <mesh position={[0, 0.06, f * 0.42]} rotation={[f * 0.12, 0, 0]} scale={[1, 1, 1.25]}><cylinderGeometry args={[0.27, 0.27, 0.03, 28, 1, false, f === 1 ? -Math.PI / 2 : Math.PI / 2, Math.PI]} /><Mat c={shade(c, -0.08)} /></mesh>
-        <mesh position={[0, 0.37, -0.06]}><sphereGeometry args={[0.035, 10, 8]} /><Mat c={shade(c, -0.1)} /></mesh>
-      </group>) }
-    case 'beanie': return (
-      <group position={[0, y + 0.03, 0]}>
-        <mesh scale={[1, 1.02, 1]}><sphereGeometry args={[0.45, 32, 18, 0, Math.PI * 2, 0, Math.PI * 0.56]} /><Mat c={c} r={0.95} /></mesh>
-        <mesh position={[0, 0.06, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.43, 0.075, 12, 40]} /><Mat c={shade(c, -0.06)} r={0.95} /></mesh>
-        <mesh position={[0, 0.5, 0]}><sphereGeometry args={[0.11, 16, 12]} /><Mat c="#F5F5F7" r={1} /></mesh>
-      </group>)
-    case 'bucket': return (
-      <group position={[0, y + 0.25, 0]} rotation={[-0.08, 0, 0]}>
-        <mesh><cylinderGeometry args={[0.36, 0.45, 0.32, 32]} /><Mat c={c} r={0.9} /></mesh>
-        <mesh position={[0, -0.15, 0]} rotation={[0, 0, 0]}><cylinderGeometry args={[0.66, 0.62, 0.025, 36]} /><Mat c={shade(c, -0.05)} r={0.9} /></mesh>
-      </group>)
-    case 'beret': return <mesh position={[0.06, y + 0.31, -0.02]} rotation={[0, 0, -0.22]} scale={[1.08, 0.34, 1.02]}><sphereGeometry args={[0.44, 32, 20]} /><Mat c={c} r={0.95} /></mesh>
-    case 'cowboy': return (
-      <group position={[0, y + 0.31, 0]} rotation={[-0.05, 0, 0]}>
-        <mesh><cylinderGeometry args={[0.3, 0.37, 0.34, 28]} /><Mat c={c} r={0.85} /></mesh>
-        <mesh position={[0, 0.17, 0]} scale={[1, 0.3, 0.75]}><sphereGeometry args={[0.3, 20, 12]} /><Mat c={c} r={0.85} /></mesh>
-        <mesh position={[0, -0.13, 0]} scale={[1, 1, 0.82]}><cylinderGeometry args={[0.78, 0.78, 0.03, 40]} /><Mat c={shade(c, -0.05)} r={0.85} /></mesh>
-        {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.74, -0.06, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1, 0.82]}><torusGeometry args={[0.08, 0.03, 8, 16, Math.PI]} /><Mat c={shade(c, -0.05)} /></mesh>)}
-        <mesh position={[0, -0.08, 0]}><cylinderGeometry args={[0.375, 0.375, 0.06, 28, 1, true]} /><Mat c="#3B2A20" side={THREE.DoubleSide} /></mesh>
-      </group>)
-    case 'tophat': return (
-      <group position={[0, y + 0.34, 0]}>
-        <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.3, 0.3, 0.55, 32]} /><Mat c={c} r={0.4} /></mesh>
-        <mesh position={[0, 0, 0]}><cylinderGeometry args={[0.305, 0.305, 0.09, 32]} /><Mat c={shade(c === '#111827' ? '#F0262F' : c, -0.25)} /></mesh>
-        <mesh position={[0, -0.06, 0]}><cylinderGeometry args={[0.5, 0.5, 0.03, 36]} /><Mat c={c} r={0.4} /></mesh>
-      </group>)
-    case 'wizard': return (
-      <group position={[0, y + 0.3, 0]} rotation={[-0.12, 0, 0.08]}>
-        <mesh position={[0, 0.42, -0.04]} rotation={[-0.15, 0, -0.12]}><coneGeometry args={[0.38, 0.95, 32]} /><Mat c={c} r={0.8} /></mesh>
-        <mesh><cylinderGeometry args={[0.64, 0.64, 0.03, 36]} /><Mat c={c} r={0.8} /></mesh>
-        {[[0.12, 0.3, 0.27], [-0.1, 0.55, 0.18], [0.04, 0.12, 0.33]].map((p, i) => <mesh key={i} position={p as [number, number, number]}><sphereGeometry args={[0.035, 8, 6]} /><Mat c={GOLD} e="#B07800" /></mesh>)}
-      </group>)
-    case 'crown': return (
-      <group position={[0, y + 0.34, 0]}>
-        <mesh><cylinderGeometry args={[0.32, 0.3, 0.16, 32, 1, true]} /><Mat c={GOLD} r={0.25} m={0.8} side={THREE.DoubleSide} /></mesh>
-        {Array.from({ length: 6 }, (_, i) => { const a = (i / 6) * Math.PI * 2; return <group key={i}>
-          <mesh position={[Math.sin(a) * 0.31, 0.15, Math.cos(a) * 0.31]}><coneGeometry args={[0.06, 0.16, 8]} /><Mat c={GOLD} r={0.25} m={0.8} /></mesh>
-          <mesh position={[Math.sin(a) * 0.325, 0, Math.cos(a) * 0.325]}><sphereGeometry args={[0.03, 10, 8]} /><Mat c={['#F0262F', '#3B82F6', '#3CCB7F'][i % 3]} r={0.1} m={0.3} /></mesh>
-        </group> })}
-      </group>)
-    case 'headphones': return (
-      <group position={[0, y, 0]}>
-        <mesh rotation={[0, 0, 0]}><torusGeometry args={[0.46, 0.035, 10, 40, Math.PI]} /><Mat c={c} r={0.4} /></mesh>
-        {([-1, 1] as const).map((s) => <group key={s} position={[s * 0.44, -0.02, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <mesh><cylinderGeometry args={[0.14, 0.14, 0.1, 24]} /><Mat c={c} r={0.4} /></mesh>
-          <mesh position={[0, s * -0.06, 0]}><cylinderGeometry args={[0.11, 0.11, 0.03, 24]} /><Mat c="#111827" /></mesh>
-        </group>)}
-      </group>)
-    case 'bandana': return (
-      <group position={[0, y + 0.12, 0]} rotation={[-0.15, 0, 0]}>
-        <mesh rotation={[Math.PI / 2, 0, 0]} scale={[1, 1.02, 1]}><torusGeometry args={[0.415, 0.065, 10, 40]} /><Mat c={c} r={0.9} /></mesh>
-        <mesh position={[0, 0, -0.44]}><sphereGeometry args={[0.07, 12, 10]} /><Mat c={c} r={0.9} /></mesh>
-        {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.07, -0.13, -0.48]} rotation={[0.3, 0, s * 0.4]}><boxGeometry args={[0.08, 0.22, 0.02]} /><Mat c={c} r={0.9} /></mesh>)}
-      </group>)
-    case 'halo': return <Floating y={y + 0.62}><mesh rotation={[Math.PI / 2 - 0.15, 0, 0]}><torusGeometry args={[0.3, 0.032, 12, 40]} /><meshStandardMaterial color="#FFE69A" emissive="#FFC531" emissiveIntensity={1.4} roughness={0.2} /></mesh></Floating>
-    case 'cat': return (
-      <group position={[0, y, 0]}>
-        {([-1, 1] as const).map((s) => <group key={s} position={[s * 0.26, 0.36, -0.02]} rotation={[0, 0, s * -0.38]}>
-          <mesh><coneGeometry args={[0.13, 0.27, 4]} /><Mat c={c} /></mesh>
-          <mesh position={[0, -0.02, 0.05]} scale={[0.6, 0.7, 0.4]}><coneGeometry args={[0.13, 0.27, 4]} /><Mat c="#F9A8D4" /></mesh>
-        </group>)}
-      </group>)
-    case 'horns': return (
-      <group position={[0, y, 0]}>
-        {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.24, 0.36, 0.06]} rotation={[0.2, 0, s * -0.45]}><coneGeometry args={[0.07, 0.3, 14]} /><Mat c={c} r={0.4} /></mesh>)}
-      </group>)
-    case 'flowers': return (
-      <group position={[0, y + 0.2, 0]} rotation={[-0.25, 0, 0]}>
-        {Array.from({ length: 10 }, (_, i) => { const a = (i / 10) * Math.PI * 2; return <group key={i} position={[Math.sin(a) * 0.4, 0, Math.cos(a) * 0.4]}>
-          <mesh><sphereGeometry args={[0.065, 12, 10]} /><Mat c={['#EC4899', '#FFC531', '#F5F5F7', '#A855F7', '#F0262F'][i % 5]} r={0.7} /></mesh>
-          <mesh position={[0, 0.03, 0.03]}><sphereGeometry args={[0.025, 8, 6]} /><Mat c="#FFC531" /></mesh>
-        </group> })}
-      </group>)
-  }
+  if (kind === 'cat') return <>{([1, -1] as const).map((s) => <group key={s} position={[s * 0.27, top - 0.07, 0.02]} rotation={[0, 0, -s * 0.36]}>
+    <mesh castShadow scale={[1, 1, 0.6]}><coneGeometry args={[0.14, 0.26, 4]} /><M c={c} r={0.8} /></mesh>
+    <mesh position={[0, -0.01, 0.05]} scale={[0.6, 0.62, 0.3]}><coneGeometry args={[0.14, 0.26, 4]} /><M c="#FFB3C7" r={0.8} /></mesh>
+  </group>)}</>
+  if (kind === 'horns') return <>{([1, -1] as const).map((s) => <group key={s} position={[s * 0.26, top - 0.08, 0.04]} rotation={[0.1, 0, -s * 0.55]}>
+    <mesh castShadow><coneGeometry args={[0.085, 0.27, 20]} /><M c={c} r={0.3} cc={0.8} /></mesh>
+  </group>)}</>
+  if (kind === 'flowers') return (
+    <group position={[0, 0.2, 0]} rotation={[-0.32, 0, 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.535, 0.022, 8, 48]} /><M c="#3CCB7F" r={0.8} /></mesh>
+      {Array.from({ length: 12 }, (_, i) => { const a = (i / 12) * Math.PI * 2, col = ['#FF7AA8', '#FFC531', '#F5F5F7', '#A855F7'][i % 4]; return <group key={i} position={[Math.sin(a) * 0.545, 0.01, Math.cos(a) * 0.545]}>
+        {[0, 1, 2, 3, 4].map((j) => <Blob key={j} p={[Math.cos(j * 1.257) * 0.042, Math.sin(j * 1.257) * 0.042, 0]} s={0.034} c={col} r={0.7} />)}
+        <Blob p={[0, 0, 0.012]} s={0.026} c={GOLD} />
+      </group> })}
+    </group>
+  )
+  void c
   return null
 }
 
-function Floating({ y, children }: { y: number; children: React.ReactNode }) {
-  const r = useRef<THREE.Group>(null)
-  useFrame(({ clock }) => { if (r.current) r.current.position.y = y + Math.sin(clock.elapsedTime * 2) * 0.025 })
-  return <group ref={r} position={[0, y, 0]}>{children}</group>
+// ───────────────────────── bədən hissələri ─────────────────────────
+function Shoe({ x, kind, c, skin }: { x: number; kind: AvatarConfig['shoes']; c: string; skin: string }) {
+  const sole = kind === 'boots' ? '#2A1A12' : kind === 'loafers' ? '#1B1D2E' : '#F5F5F7'
+  if (kind === 'slides') return (
+    <group position={[x, 0, 0.05]}>
+      <Blob p={[0, 0.075, 0]} s={[0.1, 0.06, 0.17]} c={skin} />
+      <RoundedBox args={[0.23, 0.045, 0.4]} radius={0.02} position={[0, 0.024, 0.01]} castShadow><M c={c} r={0.8} /></RoundedBox>
+      <mesh position={[0, 0.085, 0.06]} rotation={[Math.PI / 2, 0, Math.PI / 2]} scale={[1, 1, 0.8]}><torusGeometry args={[0.105, 0.03, 10, 24, Math.PI]} /><M c={c} r={0.8} /></mesh>
+    </group>
+  )
+  const tall = kind === 'hightops' ? 0.14 : kind === 'boots' ? 0.2 : 0
+  return (
+    <group position={[x, 0, 0.045]}>
+      <RoundedBox args={[0.25, 0.05, 0.41]} radius={0.024} position={[0, 0.025, 0]} castShadow><M c={sole} r={0.7} /></RoundedBox>
+      <Blob p={[0, 0.095, 0.0]} s={[0.118, kind === 'loafers' ? 0.07 : 0.09, 0.195]} c={c} r={kind === 'loafers' ? 0.3 : 0.6} cc={kind === 'loafers' ? 0.8 : 0.22} />
+      {tall > 0 && <mesh position={[0, 0.12 + tall / 2, -0.045]} castShadow><cylinderGeometry args={[0.108, 0.115, tall, 24]} /><M c={c} r={0.6} /></mesh>}
+      {kind === 'sneakers' && <Blob p={[0, 0.1, 0.15]} s={[0.1, 0.055, 0.07]} c="#F5F5F7" r={0.7} />}
+      {kind === 'hightops' && <Blob p={[0, 0.1, 0.16]} s={[0.1, 0.06, 0.06]} c="#F5F5F7" r={0.7} />}
+      {(kind === 'sneakers' || kind === 'hightops') && [0, 1].map((i) => <mesh key={i} position={[0, 0.172 - i * 0.012, 0.03 + i * 0.05]} rotation={[0, 0, Math.PI / 2]}><capsuleGeometry args={[0.008, 0.11, 3, 6]} /><M c="#F5F5F7" /></mesh>)}
+      {kind === 'boots' && <mesh position={[0, 0.31, -0.045]}><torusGeometry args={[0.108, 0.018, 8, 24]} /><M c={shade(c, 0.12)} /></mesh>}
+    </group>
+  )
 }
 
-// ---------- geyim naxışı (CanvasTexture) ----------
-function usePattern(cfg: AvatarConfig) {
-  return useMemo(() => {
-    if (cfg.pattern === 'solid' && cfg.top !== 'jersey') return null
-    const cv = document.createElement('canvas'); cv.width = 256; cv.height = 256
-    const g = cv.getContext('2d')!
-    const pat = cfg.top === 'jersey' && cfg.pattern === 'solid' ? 'number' : cfg.pattern
-    if (pat === 'stripes') { g.fillStyle = cfg.topColor2; for (let i = 0; i < 6; i++) g.fillRect(0, 18 + i * 42, 256, 16) }
-    if (pat === 'logo') {
-      g.fillStyle = cfg.topColor2; g.font = '800 92px Figtree, Montserrat, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('J', 116, 132)
-      const gr = g.createLinearGradient(150, 150, 190, 190); gr.addColorStop(0, '#EE1D2C'); gr.addColorStop(1, '#FF8A1A'); g.fillStyle = gr; g.beginPath(); g.arc(166, 166, 14, 0, Math.PI * 2); g.fill()
-    }
-    if (pat === 'number') { g.fillStyle = cfg.topColor2; g.font = '900 140px Montserrat, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(cfg.number), 128, 140) }
-    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4
-    return t
-  }, [cfg.pattern, cfg.top, cfg.topColor2, cfg.number])
+function Legs({ cfg, bw }: { cfg: AvatarConfig; bw: number }) {
+  const dress = cfg.top === 'dress', kind = cfg.bottom, c = cfg.bottomColor, x = 0.118 * bw
+  const bare = dress || kind === 'skirt', short = kind === 'shorts'
+  const rr = kind === 'leggings' ? 0.086 : kind === 'cargo' || kind === 'joggers' ? 0.108 : 0.1
+  const skirtGeo = useMemo(() => dress ? lathe([[0.262, 0.66], [0.3, 0.52], [0.37, 0.3], [0.385, 0.24], [0.36, 0.25], [0.2, 0.5]]) : lathe([[0.27, 0.6], [0.3, 0.5], [0.355, 0.33], [0.365, 0.3], [0.34, 0.31], [0.2, 0.5]]), [dress])
+  return (
+    <group>
+      {([1, -1] as const).map((s) => (
+        <group key={s} position={[s * x, 0, 0]}>
+          {/* ayaq: dəri (şort/yubka/don) və ya şalvar */}
+          <mesh position={[0, 0.3, 0]} castShadow><capsuleGeometry args={[bare || short ? 0.082 : rr, 0.36, 8, 20]} /><M c={bare || short ? cfg.skin : c} r={kind === 'jeans' ? 0.85 : 0.65} /></mesh>
+          {short && !dress && <mesh position={[0, 0.43, 0]} castShadow><cylinderGeometry args={[0.112, 0.118, 0.22, 24]} /><M c={c} r={0.7} /></mesh>}
+          {!bare && !short && kind === 'joggers' && <>
+            <mesh position={[0, 0.135, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.092, 0.03, 10, 24]} /><M c={shade(c, -0.07)} r={0.9} /></mesh>
+            <mesh position={[s * (rr + 0.001), 0.34, 0]}><boxGeometry args={[0.012, 0.36, 0.035]} /><M c="#F5F5F7" /></mesh>
+          </>}
+          {!bare && !short && kind === 'jeans' && <mesh position={[0, 0.15, 0]}><cylinderGeometry args={[rr + 0.012, rr + 0.012, 0.06, 24]} /><M c={shade(c, 0.14)} r={0.85} /></mesh>}
+          {!bare && !short && kind === 'cargo' && <RoundedBox args={[0.07, 0.13, 0.13]} radius={0.02} position={[s * rr, 0.36, 0]} castShadow><M c={shade(c, -0.06)} r={0.8} /></RoundedBox>}
+          <Shoe x={0} kind={cfg.shoes} c={cfg.shoeColor} skin={cfg.skin} />
+        </group>
+      ))}
+      {(dress || kind === 'skirt') && <mesh geometry={skirtGeo} scale={[bw, 1, TORSO_Z + 0.06]} castShadow><M c={dress ? cfg.topColor : c} r={0.7} side={THREE.DoubleSide} /></mesh>}
+      {dress && <mesh position={[0, 0.25, 0]} scale={[bw, 1, TORSO_Z + 0.06]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.378, 0.014, 8, 48]} /><M c={cfg.topColor2} /></mesh>}
+    </group>
+  )
 }
 
-// ---------- personaj ----------
-/** Gövdə profili (lathe): bel daralır, sinə və çiyinlər yumrulanır. y — 0.88…1.60 bərabər addımlarla (UV xətti olsun). */
-const TORSO_Y0 = 0.97, TORSO_Y1 = 1.6
-function torsoR(y: number) {
-  const u = (y - TORSO_Y0) / (TORSO_Y1 - TORSO_Y0)
-  const body = 0.262 + 0.03 * Math.sin(u * Math.PI * 1.25 - 0.4) + 0.012 * Math.cos(u * 9)
-  const top = u > 0.82 ? Math.sqrt(Math.max(0, 1 - ((u - 0.82) / 0.18) ** 2)) : 1 // çiyin dairəviliyi
-  return Math.max(0.0001, body * top)
-}
-function useTorso() {
-  return useMemo(() => {
-    const pts: THREE.Vector2[] = []
-    for (let k = 0; k <= 24; k++) { const y = TORSO_Y0 + (k / 24) * (TORSO_Y1 - TORSO_Y0); pts.push(new THREE.Vector2(k === 0 ? 0.0001 : torsoR(y), y)) }
-    pts.unshift(new THREE.Vector2(0.0001, TORSO_Y0))
-    return new THREE.LatheGeometry(pts, 48, Math.PI, Math.PI * 2)
-  }, [])
+const LONG = ['hoodie', 'jacket', 'sweater', 'shirt'] as const
+function Arm({ side, cfg, refArm, children }: { side: 1 | -1; cfg: AvatarConfig; refArm: React.RefObject<THREE.Group | null>; children?: React.ReactNode }) {
+  const long = (LONG as readonly string[]).includes(cfg.top), sleeve = cfg.top !== 'tank'
+  const c = cfg.top === 'jacket' ? cfg.topColor : cfg.topColor
+  return (
+    <group ref={refArm}>
+      <mesh position={[0, -0.19, 0]} castShadow><capsuleGeometry args={[0.074, 0.26, 8, 20]} /><M c={long ? c : cfg.skin} r={0.65} /></mesh>
+      {sleeve && !long && <mesh position={[0, -0.09, 0]} castShadow><capsuleGeometry args={[0.086, 0.09, 8, 20]} /><M c={c} r={0.65} /></mesh>}
+      {sleeve && !long && cfg.top === 'jersey' && <mesh position={[0, -0.175, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.08, 0.014, 8, 24]} /><M c={cfg.topColor2} /></mesh>}
+      {long && <mesh position={[0, -0.335, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.07, 0.024, 10, 24]} /><M c={cfg.top === 'jacket' ? cfg.topColor2 : shade(c, -0.08)} r={0.9} /></mesh>}
+      <Blob p={[0, -0.41, 0]} s={[0.085, 0.095, 0.085]} c={cfg.skin} />
+      <Blob p={[-side * 0.012, -0.41, 0.07]} s={[0.03, 0.045, 0.035]} c={cfg.skin} />
+      {children}
+    </group>
+  )
 }
 
-export function Character({ cfg, interactive = false }: { cfg: AvatarConfig; interactive?: boolean }) {
+function Neck({ kind, c, zf }: { kind: AvatarConfig['neck']; c: string; zf: number }) {
+  if (kind === 'none') return null
+  if (kind === 'scarf') return (
+    <group position={[0, 1.065, 0]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]} scale={[1.05, 0.9, 1]} castShadow><torusGeometry args={[0.175, 0.075, 16, 40]} /><M c={c} r={0.95} cc={0} /></mesh>
+      <RoundedBox args={[0.13, 0.3, 0.05]} radius={0.02} position={[0.12, -0.17, zf + 0.03]} rotation={[0.12, 0, -0.1]} castShadow><M c={c} r={0.95} cc={0} /></RoundedBox>
+      {[0, 1].map((i) => <mesh key={i} position={[0.125, -0.24 + i * 0.07, zf + 0.06]} rotation={[0.12, 0, -0.1]}><boxGeometry args={[0.132, 0.022, 0.012]} /><M c={shade(c, 0.2)} /></mesh>)}
+    </group>
+  )
+  if (kind === 'chain') return (
+    <group position={[0, 1.0, 0.03]} rotation={[0.95, 0, 0]}>
+      <mesh scale={[1, 1.25, 1]}><torusGeometry args={[0.165, 0.011, 8, 48]} /><M c={c} m={0.95} r={0.2} /></mesh>
+      <Blob p={[0, -0.215, 0.0]} s={[0.04, 0.04, 0.015]} c={c} m={0.95} r={0.2} />
+    </group>
+  )
+  if (kind === 'bowtie') return (
+    <group position={[0, 0.995, zf + 0.035]}>
+      {([1, -1] as const).map((s) => <mesh key={s} position={[s * 0.055, 0, 0]} rotation={[0, 0, s * Math.PI / 2]} scale={[1, 1, 0.5]} castShadow><coneGeometry args={[0.055, 0.1, 16]} /><M c={c} r={0.6} /></mesh>)}
+      <Blob p={[0, 0, 0.005]} s={0.026} c={shade(c, -0.12)} />
+    </group>
+  )
+  // medal
+  return (
+    <group position={[0, 0.98, zf]}>
+      {([1, -1] as const).map((s) => <mesh key={s} position={[s * 0.055, -0.04, 0.02]} rotation={[0.2, 0, s * 0.42]}><boxGeometry args={[0.04, 0.2, 0.008]} /><M c={c} r={0.7} /></mesh>)}
+      <mesh position={[0, -0.16, 0.05]} rotation={[Math.PI / 2 + 0.15, 0, 0]} castShadow><cylinderGeometry args={[0.062, 0.062, 0.016, 28]} /><M c={GOLD} m={0.95} r={0.2} /></mesh>
+      <mesh position={[0, -0.16, 0.06]} rotation={[0.15, 0, 0]}><circleGeometry args={[0.04, 5]} /><M c="#F59E0B" m={0.8} r={0.3} /></mesh>
+    </group>
+  )
+}
+
+function Back({ kind, c, bw, flame, cape }: { kind: AvatarConfig['back']; c: string; bw: number; flame: React.RefObject<THREE.Group | null>; cape: React.RefObject<THREE.Mesh | null> }) {
+  const capeGeo = useMemo(() => new THREE.LatheGeometry([[0.2, 1.05], [0.27, 0.9], [0.33, 0.6], [0.4, 0.3], [0.43, 0.2]].map(([r, y]) => new THREE.Vector2(r, y)), 28, Math.PI * 0.5, Math.PI), [])
+  const zb = -0.2
+  if (kind === 'none') return null
+  if (kind === 'backpack') return (
+    <group position={[0, 0.8, zb - 0.1]}>
+      <RoundedBox args={[0.4 * bw, 0.46, 0.2]} radius={0.08} smoothness={5} castShadow><M c={c} r={0.75} /></RoundedBox>
+      <RoundedBox args={[0.28 * bw, 0.18, 0.08]} radius={0.035} position={[0, -0.09, -0.11]} castShadow><M c={shade(c, -0.08)} r={0.75} /></RoundedBox>
+      <mesh position={[0, 0.03, -0.155]}><boxGeometry args={[0.2, 0.012, 0.012]} /><M c="#C9CDD6" m={0.8} r={0.3} /></mesh>
+      {([1, -1] as const).map((s) => <mesh key={s} position={[s * 0.15 * bw, 0.17, 0.17]} rotation={[0, Math.PI / 2, 0]} scale={[1.05, 1, 1]}><torusGeometry args={[0.165, 0.024, 8, 28, Math.PI]} /><M c={shade(c, -0.14)} r={0.8} /></mesh>)}
+    </group>
+  )
+  if (kind === 'crossbody') return (
+    <group>
+      <mesh position={[0, 0.8, 0]} rotation={[Math.PI / 2, 0.62, 0]} scale={[bw, TORSO_Z, 1]}><torusGeometry args={[0.285, 0.016, 8, 48]} /><M c={shade(c, -0.14)} r={0.8} /></mesh>
+      <RoundedBox args={[0.24, 0.17, 0.09]} radius={0.04} position={[-0.2 * bw, 0.6, 0.2]} rotation={[0, -0.5, 0]} castShadow><M c={c} r={0.7} /></RoundedBox>
+      <mesh position={[-0.2 * bw + 0.035, 0.6, 0.262]} rotation={[0, -0.5, 0]}><boxGeometry args={[0.07, 0.014, 0.01]} /><M c={GOLD} m={0.9} r={0.25} /></mesh>
+    </group>
+  )
+  if (kind === 'tote') return (
+    <group position={[-(0.3 * bw + 0.06), 0.62, 0.02]}>
+      <RoundedBox args={[0.1, 0.3, 0.32]} radius={0.03} castShadow><M c={c} r={0.9} cc={0} /></RoundedBox>
+      <mesh position={[0, 0.28, 0]} rotation={[0, Math.PI / 2, 0]} scale={[0.6, 1.5, 1]}><torusGeometry args={[0.13, 0.013, 8, 24, Math.PI]} /><M c={shade(c, -0.14)} r={0.9} /></mesh>
+      <mesh position={[-0.052, 0, 0]} rotation={[0, -Math.PI / 2, 0]}><circleGeometry args={[0.06, 24]} /><M c="#fff" r={0.8} /></mesh>
+    </group>
+  )
+  if (kind === 'guitar') return (
+    <group position={[0.02, 0.86, zb - 0.1]} rotation={[0, 0, -0.75]}>
+      <Blob p={[0, -0.14, 0]} s={[0.21, 0.19, 0.05]} c={c} r={0.3} cc={0.9} />
+      <Blob p={[0, 0.07, 0]} s={[0.15, 0.14, 0.05]} c={c} r={0.3} cc={0.9} />
+      <mesh position={[0, -0.06, -0.052]} rotation={[0, Math.PI, 0]}><circleGeometry args={[0.055, 24]} /><M c="#1B1D2E" /></mesh>
+      <mesh position={[0, 0.42, 0]}><boxGeometry args={[0.05, 0.5, 0.03]} /><M c="#5B3A24" r={0.6} /></mesh>
+      <RoundedBox args={[0.09, 0.13, 0.035]} radius={0.015} position={[0, 0.72, 0]}><M c="#2A1A12" r={0.6} /></RoundedBox>
+    </group>
+  )
+  if (kind === 'wings') return <>{([1, -1] as const).map((s) => (
+    <group key={s} position={[s * 0.1, 0.92, zb - 0.05]} rotation={[0.1, s * -0.45, s * -0.25]}>
+      {[0, 1, 2, 3].map((i) => <Blob key={i} p={[s * (0.2 + i * 0.07), 0.14 - i * 0.14, -0.02 * i]} s={[0.3 - i * 0.045, 0.09, 0.035]} rot={[0, 0, s * (0.5 - i * 0.28)]} c={i % 2 ? '#EAF1FF' : '#FFFFFF'} r={0.8} cc={0} />)}
+    </group>
+  ))}</>
+  if (kind === 'cape') return (
+    <group>
+      <mesh ref={cape} geometry={capeGeo} scale={[bw * 1.02, 1, 1]} castShadow><M c={c} r={0.8} side={THREE.DoubleSide} /></mesh>
+      <Blob p={[0, 1.03, 0.19]} s={0.035} c={GOLD} m={0.9} r={0.25} />
+    </group>
+  )
+  // jetpack
+  return (
+    <group position={[0, 0.82, zb - 0.1]}>
+      {([1, -1] as const).map((s) => <group key={s} position={[s * 0.12, 0, 0]}>
+        <mesh castShadow><capsuleGeometry args={[0.095, 0.26, 8, 20]} /><M c={c} r={0.3} m={0.5} cc={0.8} /></mesh>
+        <mesh position={[0, -0.25, 0]}><cylinderGeometry args={[0.06, 0.09, 0.08, 20]} /><M c="#3A3D4A" m={0.8} r={0.35} /></mesh>
+        <mesh position={[0, 0.06, -0.085]}><boxGeometry args={[0.06, 0.03, 0.02]} /><M c={GOLD} e={GOLD} /></mesh>
+      </group>)}
+      <RoundedBox args={[0.2, 0.2, 0.1]} radius={0.03} position={[0, 0.02, 0.06]}><M c="#3A3D4A" m={0.6} r={0.4} /></RoundedBox>
+      <group ref={flame}>{([1, -1] as const).map((s) => <group key={s} position={[s * 0.12, -0.4, 0]} rotation={[Math.PI, 0, 0]}>
+        <mesh><coneGeometry args={[0.065, 0.26, 16]} /><M c="#FF7A1A" e="#FF7A1A" o={0.9} /></mesh>
+        <mesh position={[0, -0.04, 0]}><coneGeometry args={[0.035, 0.16, 12]} /><M c="#FFE9A3" e="#FFE9A3" /></mesh>
+      </group>)}</group>
+    </group>
+  )
+}
+
+/** Əldə tutulan əşya (əl qrupunun içində; qol irəli uzanıb — əşya dik qalsın deyə əks fırlanma verilir). */
+function HandItem({ kind, cfg }: { kind: AvatarConfig['hand']; cfg: AvatarConfig }) {
+  if (kind === 'none') return null
+  return (
+    <group position={[0, -0.43, 0.02]} rotation={[1.15, 0, 0]}>
+      {kind === 'book' && <group position={[0, 0.06, 0.06]} rotation={[0.2, 0.3, 0]}>
+        <RoundedBox args={[0.21, 0.28, 0.06]} radius={0.012} castShadow><M c="#3B82F6" r={0.6} /></RoundedBox>
+        <mesh position={[0.008, 0, 0]}><boxGeometry args={[0.2, 0.262, 0.045]} /><M c="#F5F5F7" r={0.9} /></mesh>
+        <mesh position={[0, 0.03, 0.032]}><boxGeometry args={[0.12, 0.05, 0.004]} /><M c={GOLD} /></mesh>
+      </group>}
+      {kind === 'trophy' && <group position={[0, 0.02, 0.03]}>
+        <mesh position={[0, 0.24, 0]} castShadow><cylinderGeometry args={[0.105, 0.045, 0.17, 28]} /><M c={GOLD} m={0.95} r={0.2} /></mesh>
+        {([1, -1] as const).map((s) => <mesh key={s} position={[s * 0.11, 0.25, 0]} rotation={[0, 0, s * -0.2]}><torusGeometry args={[0.045, 0.012, 8, 20]} /><M c={GOLD} m={0.95} r={0.2} /></mesh>)}
+        <mesh position={[0, 0.12, 0]}><cylinderGeometry args={[0.018, 0.018, 0.1, 12]} /><M c={GOLD} m={0.95} r={0.2} /></mesh>
+        <mesh position={[0, 0.05, 0]} castShadow><cylinderGeometry args={[0.06, 0.07, 0.05, 24]} /><M c="#2A1A12" r={0.5} /></mesh>
+      </group>}
+      {kind === 'mic' && <group rotation={[0.2, 0, -0.15]} position={[0, 0.02, 0.03]}>
+        <mesh position={[0, 0.07, 0]} castShadow><cylinderGeometry args={[0.024, 0.02, 0.2, 14]} /><M c="#1B1D2E" r={0.4} /></mesh>
+        <Blob p={[0, 0.2, 0]} s={0.052} c="#C9CDD6" m={0.8} r={0.45} />
+        <mesh position={[0, 0.165, 0]}><cylinderGeometry args={[0.03, 0.026, 0.02, 14]} /><M c={cfg.topColor2} /></mesh>
+      </group>}
+      {kind === 'balloon' && <group position={[0, 0, 0.03]}>
+        <mesh position={[0, 0.34, 0]}><cylinderGeometry args={[0.004, 0.004, 0.68, 5]} /><M c="#F5F5F7" /></mesh>
+        <Blob p={[0, 0.84, 0]} s={[0.18, 0.21, 0.18]} c="#F0262F" r={0.2} cc={1} />
+        <mesh position={[0, 0.63, 0]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.03, 0.04, 10]} /><M c="#F0262F" /></mesh>
+      </group>}
+      {kind === 'phone' && <group position={[0, 0.07, 0.05]} rotation={[-0.25, 0.35, 0]}>
+        <RoundedBox args={[0.12, 0.23, 0.018]} radius={0.016} castShadow><M c="#1B1D2E" r={0.3} cc={0.9} /></RoundedBox>
+        <mesh position={[0, 0, 0.0095]}><planeGeometry args={[0.104, 0.21]} /><M c="#6366F1" e="#4F52D9" r={0.2} /></mesh>
+      </group>}
+      {kind === 'icecream' && <group position={[0, 0.02, 0.03]}>
+        <mesh position={[0, 0.07, 0]} rotation={[Math.PI, 0, 0]} castShadow><coneGeometry args={[0.055, 0.19, 18]} /><M c="#D9A45B" r={0.85} /></mesh>
+        <Blob p={[0, 0.185, 0]} s={0.068} c="#FF9EC0" r={0.5} />
+        <Blob p={[0.02, 0.26, 0]} s={0.052} c="#FFF3D6" r={0.5} />
+        <Blob p={[0.03, 0.31, 0.01]} s={0.02} c="#F0262F" r={0.3} cc={1} />
+      </group>}
+    </group>
+  )
+}
+
+// ───────────────────────── PERSONAJ ─────────────────────────
+/**
+ * @param interactive baş göstəricini izləyir
+ * @param still animasiya yoxdur (kiçik şəkillər üçün sabit kadr)
+ */
+export function Character({ cfg, interactive = false, still = false }: { cfg: AvatarConfig; interactive?: boolean; still?: boolean }) {
+  const root = useRef<THREE.Group>(null), body = useRef<THREE.Group>(null), head = useRef<THREE.Group>(null)
+  const armR = useRef<THREE.Group>(null), armL = useRef<THREE.Group>(null), flame = useRef<THREE.Group>(null), cape = useRef<THREE.Mesh>(null)
   const bw = BUILD[cfg.build as keyof typeof BUILD] ?? 1
-  const root = useRef<THREE.Group>(null), lArm = useRef<THREE.Group>(null), rArm = useRef<THREE.Group>(null), lEl = useRef<THREE.Group>(null), rEl = useRef<THREE.Group>(null)
-  const head = useRef<THREE.Group>(null), chest = useRef<THREE.Group>(null), flame = useRef<THREE.Group>(null), cape = useRef<THREE.Mesh>(null)
-  const pose = useRef({ la: 0.12, ra: 0.12, lx: 0, rx: 0, le: -0.15, re: -0.15, hy: 0, hx: 0 })
-  const tex = usePattern(cfg)
-  const torso = useTorso()
-  const skin = cfg.skin, tc = cfg.topColor, bc = cfg.bottomColor, sc = cfg.shoeColor
-  const sleeves: 'none' | 'short' | 'long' = cfg.top === 'tank' || cfg.top === 'dress' ? 'none' : cfg.top === 'tshirt' || cfg.top === 'jersey' ? 'short' : 'long'
-  const shoulderX = 0.3 * bw + 0.1
-  const hatOn = cfg.hat !== 'none' && cfg.hat !== 'halo' && cfg.hat !== 'headphones' && cfg.hat !== 'cat' && cfg.hat !== 'horns' && cfg.hat !== 'flowers'
+  const torsoGeo = useTorsoGeo()
+  const tKey = [cfg.top, cfg.topColor, cfg.topColor2, cfg.pattern, cfg.number, cfg.bottom, cfg.bottomColor, cfg.skin].join('|')
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const torsoMap = useMemo(() => paintTorso(cfg), [tKey])
+  useEffect(() => () => torsoMap.dispose(), [torsoMap])
+  const holding = cfg.hand !== 'none'
+  const hatOn = covers(cfg.hat), top = hairTop(cfg.hat === 'none' || !hatOn ? cfg.hair : 'bald')
+  const shoulderX = 0.262 * bw + 0.012
+  const pose = useRef({ rz: 0.2, lz: 0.2, rx: 0, lx: 0 })
 
   useFrame(({ clock, pointer }, dt) => {
-    const t = clock.elapsedTime
-    if (!root.current || !lArm.current || !rArm.current || !head.current) return
+    const t = still ? 0.9 : clock.elapsedTime, k = still ? 1 : 1 - Math.exp(-dt * 9)
     const p = cfg.pose
-    root.current.position.y = p === 'cheer' ? Math.abs(Math.sin(t * 4)) * 0.08 : p === 'dance' ? Math.abs(Math.sin(t * 5)) * 0.05 : Math.sin(t * 1.6) * 0.008
-    root.current.rotation.y = p === 'dance' ? Math.sin(t * 2.5) * 0.35 : 0
-    root.current.rotation.z = p === 'idle' || p === 'wave' ? Math.sin(t * 0.55) * 0.012 : 0 // ağırlığı ayaqdan ayağa keçirmə
-    if (chest.current) { const b = Math.sin(t * 1.7); chest.current.scale.set(1 + b * 0.006, 1 + b * 0.008, 1 + b * 0.014) } // nəfəs
-    // hədəf bucaqlar ("çölə" müsbət): sol qol −z, sağ qol +z
-    let la = 0.12, ra = 0.12, le = -0.18, re = -0.18
-    if (p === 'wave') { ra = 2.2 + Math.sin(t * 7) * 0.28; re = -0.55 + Math.sin(t * 7) * 0.25 }
-    if (p === 'cheer') { la = 2.45 + Math.sin(t * 8) * 0.12; ra = 2.45 + Math.sin(t * 8) * 0.12; le = re = -0.25 }
-    if (p === 'dance') { la = 0.75 + Math.sin(t * 5) * 0.65; ra = 0.75 + Math.sin(t * 5 + Math.PI) * 0.65; le = -0.9 + Math.sin(t * 5) * 0.4; re = -0.9 - Math.sin(t * 5) * 0.4 }
-    const holding = cfg.hand !== 'none' && p === 'idle'
-    if (holding) { ra = 0.16; re = -1.05 }
-    const lx = la > 1.2 ? 0.35 : 0, rx = holding ? -0.25 : ra > 1.2 ? 0.35 : 0
-    // yumşaq keçid (pozalar arasında sıçrayış olmasın)
-    const P = pose.current, k = 1 - Math.exp(-dt * 9)
-    P.la += (la - P.la) * k; P.ra += (ra - P.ra) * k; P.lx += (lx - P.lx) * k; P.rx += (rx - P.rx) * k; P.le += (le - P.le) * k; P.re += (re - P.re) * k
-    lArm.current.rotation.set(P.lx, 0, -P.la); rArm.current.rotation.set(P.rx, 0, P.ra)
-    if (lEl.current) lEl.current.rotation.x = P.le
-    if (rEl.current) rEl.current.rotation.x = P.re
-    // baş: incə yellənmə + (studiyada) kursoru izləmə
-    const hy = interactive ? THREE.MathUtils.clamp(pointer.x, -1, 1) * 0.4 : 0, hx = interactive ? THREE.MathUtils.clamp(-pointer.y, -1, 1) * 0.18 : 0
-    P.hy += (hy - P.hy) * (1 - Math.exp(-dt * 4)); P.hx += (hx - P.hx) * (1 - Math.exp(-dt * 4))
-    head.current.rotation.set(Math.sin(t * 0.7) * 0.03 + P.hx, P.hy, Math.sin(t * 0.9) * 0.035 + (p === 'dance' ? Math.sin(t * 5) * 0.08 : 0))
-    if (flame.current) flame.current.scale.y = 0.8 + Math.sin(t * 30) * 0.2
-    if (cape.current) cape.current.rotation.x = 0.12 + Math.sin(t * 2) * 0.04
+    let bob = Math.sin(t * 1.7) * 0.008, sway = 0, rz = 0.2 + Math.sin(t * 1.7) * 0.03, lz = 0.2 + Math.sin(t * 1.7 + 0.6) * 0.03, rx = Math.sin(t * 1.7) * 0.05, lx = -Math.sin(t * 1.7) * 0.05, tilt = Math.sin(t * 0.9) * 0.035
+    if (p === 'wave') { lz = 2.3 + Math.sin(t * 6) * 0.28; lx = -0.15; tilt = 0.09 }
+    if (p === 'cheer') { rz = 2.15 + Math.sin(t * 5) * 0.12; lz = 2.15 + Math.sin(t * 5 + 0.5) * 0.12; bob = Math.abs(Math.sin(t * 5)) * 0.06; rx = lx = 0 }
+    if (p === 'dance') { sway = Math.sin(t * 3.4) * 0.1; bob = Math.abs(Math.sin(t * 3.4)) * 0.045; rz = 1.25 + Math.sin(t * 3.4) * 0.75; lz = 1.25 - Math.sin(t * 3.4) * 0.75; rx = lx = -0.2; tilt = -sway * 0.8 }
+    if (holding) { rz = 0.12; rx = -1.15 + Math.sin(t * 1.7) * 0.03 }
+    const q = pose.current
+    q.rz += (rz - q.rz) * k; q.lz += (lz - q.lz) * k; q.rx += (rx - q.rx) * k; q.lx += (lx - q.lx) * k
+    if (armR.current) armR.current.rotation.set(q.rx, 0, q.rz)
+    if (armL.current) armL.current.rotation.set(q.lx, 0, -q.lz)
+    if (body.current) { body.current.position.y = bob; body.current.rotation.z = sway }
+    if (head.current) {
+      const ty = interactive && !still ? pointer.x * 0.42 : 0, tx = interactive && !still ? -pointer.y * 0.22 : 0
+      head.current.rotation.y += (ty - head.current.rotation.y) * k * 0.6
+      head.current.rotation.x += (tx - head.current.rotation.x) * k * 0.6
+      head.current.rotation.z = tilt
+    }
+    if (flame.current) flame.current.scale.y = 0.85 + Math.sin(t * 22) * 0.18
+    if (cape.current) cape.current.rotation.x = 0.05 + Math.sin(t * 1.6) * 0.03
   })
-
-  const legX = 0.13 * bw
-  const dress = cfg.top === 'dress'
-  const legCover = dress ? (cfg.bottom === 'leggings' ? 'leggings' : 'skin') : cfg.bottom
-  const pants = legCover !== 'shorts' && legCover !== 'skirt' && legCover !== 'skin'
 
   return (
     <group ref={root}>
-      {/* ayaqqabılar */}
-      {([-1, 1] as const).map((s) => <Shoe key={s} x={s * legX} kind={cfg.shoes} color={sc} skin={skin} />)}
-      {/* ayaqlar: bud + baldır (konusvari), diz */}
-      {([-1, 1] as const).map((s) => (
-        <group key={s} position={[s * legX, 0, 0]}>
-          {!pants ? <>
-            <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.088, 0.072, 0.4, 20]} /><Skin c={skin} /></mesh>
-            <mesh position={[0, 0.5, 0.005]}><sphereGeometry args={[0.09, 18, 14]} /><Skin c={skin} /></mesh>
-            <mesh position={[0, 0.7, 0]}><cylinderGeometry args={[0.112, 0.09, 0.4, 20]} /><Skin c={skin} /></mesh>
-            {legCover === 'shorts' && <mesh position={[0, 0.76, 0]}><cylinderGeometry args={[0.138, 0.128, 0.3, 22]} /><Mat c={bc} /></mesh>}
-          </> : <>
-            <mesh position={[0, 0.32, 0]}><cylinderGeometry args={[legCover === 'leggings' ? 0.1 : 0.118, legCover === 'joggers' ? 0.092 : legCover === 'leggings' ? 0.078 : 0.112, 0.44, 22]} /><Mat c={bc} r={legCover === 'jeans' ? 0.95 : 0.8} /></mesh>
-            <mesh position={[0, 0.54, 0]}><sphereGeometry args={[legCover === 'leggings' ? 0.1 : 0.118, 20, 14]} /><Mat c={bc} r={legCover === 'jeans' ? 0.95 : 0.8} /></mesh>
-            <mesh position={[0, 0.74, 0]}><cylinderGeometry args={[legCover === 'leggings' ? 0.115 : 0.135, legCover === 'leggings' ? 0.1 : 0.118, 0.42, 22]} /><Mat c={bc} r={legCover === 'jeans' ? 0.95 : 0.8} /></mesh>
-            {legCover === 'joggers' && <mesh position={[0, 0.13, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.092, 0.024, 8, 20]} /><Mat c={shade(bc, -0.1)} /></mesh>}
-            {legCover === 'joggers' && <mesh position={[s * 0.118, 0.5, 0]} rotation={[0, 0, s * 0.03]}><boxGeometry args={[0.012, 0.74, 0.04]} /><Mat c="#F5F5F7" /></mesh>}
-            {legCover === 'jeans' && <><mesh position={[0, 0.12, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.112, 0.02, 8, 20]} /><Mat c={shade(bc, 0.15)} /></mesh>
-              <mesh position={[s * 0.06, 0.82, 0.1]} rotation={[0.25, 0, 0]}><boxGeometry args={[0.07, 0.004, 0.03]} /><Mat c={shade(bc, 0.2)} flat /></mesh></>}
-            {legCover === 'cargo' && <RoundedBox args={[0.1, 0.14, 0.05]} radius={0.015} position={[s * 0.125, 0.62, 0.02]} rotation={[0, s * 0.9, 0]}><Mat c={shade(bc, -0.08)} /></RoundedBox>}
-          </>}
-        </group>
-      ))}
-      {/* omba */}
-      {!dress && legCover !== 'skin' && legCover !== 'skirt' && <RoundedBox args={[0.58 * bw, 0.28, 0.36]} radius={0.12} smoothness={5} position={[0, 0.93, 0]}><Mat c={bc} r={legCover === 'jeans' ? 0.95 : 0.8} /></RoundedBox>}
-      {!dress && pants && <mesh position={[0, 1.04, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[bw * 1.02, 0.62, 1]}><torusGeometry args={[0.278, 0.018, 8, 40]} /><Mat c={shade(bc, -0.12)} /></mesh>}
-      {(legCover === 'skirt' || dress) && <mesh position={[0, 0.78, 0]}><cylinderGeometry args={[0.28 * bw, 0.46 * bw, 0.42, 40, 1, true]} /><Mat c={dress ? tc : bc} side={THREE.DoubleSide} /></mesh>}
-      {legCover === 'skirt' && !dress && <RoundedBox args={[0.54 * bw, 0.18, 0.32]} radius={0.08} position={[0, 0.98, 0]}><Mat c={bc} /></RoundedBox>}
-
-      {/* gövdə (nəfəs alır) */}
-      <group ref={chest} position={[0, 0.97, 0]}>
-        <group position={[0, -0.97, 0]}>
-          <mesh geometry={torso} scale={[bw, 1, 0.64]} castShadow><Mat c={tc} r={cfg.top === 'jacket' ? 0.55 : 0.85} /></mesh>
-          {tex && <mesh geometry={torso} scale={[bw * 1.006, 1.001, 0.645]} renderOrder={1}><meshPhysicalMaterial map={tex} transparent roughness={0.8} sheen={0.4} sheenColor="#ffffff" polygonOffset polygonOffsetFactor={-2} depthWrite={false} /></mesh>}
-          <TopDetails cfg={cfg} bw={bw} />
-        </group>
-      </group>
-
-      {/* qollar */}
-      <Arm side={-1} armRef={lArm} elbowRef={lEl} cfg={cfg} sleeves={sleeves} shoulderX={shoulderX} /><Arm side={1} armRef={rArm} elbowRef={rEl} cfg={cfg} sleeves={sleeves} shoulderX={shoulderX} />
-
-      {/* boyun + boyun aksesuarı */}
-      <mesh position={[0, 1.62, 0]}><cylinderGeometry args={[0.085, 0.105, 0.2, 20]} /><Skin c={skin} /></mesh>
-      <Neck kind={cfg.neck} color={cfg.neckColor} />
-      <Back kind={cfg.back} color={cfg.backColor} bw={bw} flame={flame} cape={cape} />
-
-      {/* baş */}
-      <group ref={head} position={[0, 1.66, 0]}>
-        <group position={[0, -1.66, 0]}>
-          <mesh position={[0, HEAD_Y, 0]} scale={[1, 0.96, 0.95]} castShadow><sphereGeometry args={[HEAD_R, 64, 48]} /><Skin c={skin} /></mesh>
-          {/* çənə və yanaqlar — üzə həcm */}
-          <mesh position={[0, HEAD_Y - 0.17, 0.07]} scale={[0.84, 0.62, 0.78]}><sphereGeometry args={[0.3, 40, 28]} /><Skin c={skin} /></mesh>
-          {([-1, 1] as const).map((s) => <group key={s} position={[s * 0.392, HEAD_Y - 0.02, 0]} rotation={[0, s * 0.25, 0]}>
-            <mesh scale={[0.55, 1, 0.8]}><sphereGeometry args={[0.085, 20, 14]} /><Skin c={shade(skin, -0.03)} /></mesh>
-            <mesh position={[s * 0.02, 0, 0.015]} rotation={[0, s * Math.PI / 2, 0]} scale={[0.7, 1, 1]}><torusGeometry args={[0.042, 0.011, 8, 18]} /><Skin c={shade(skin, -0.08)} /></mesh>
-          </group>)}
-          {/* burun: körpü + uc + pərlər */}
-          <mesh position={onFace(0, 1.95, -0.03)} rotation={[-0.35, 0, 0]}><capsuleGeometry args={[0.022, 0.06, 6, 12]} /><Skin c={shade(skin, -0.02)} /></mesh>
-          <mesh position={onFace(0, 1.915, -0.006)}><sphereGeometry args={[0.036, 20, 14]} /><Skin c={shade(skin, -0.03)} /></mesh>
-          {([-1, 1] as const).map((s) => <mesh key={s} position={onFace(s * 0.028, 1.905, -0.016)}><sphereGeometry args={[0.022, 14, 10]} /><Skin c={shade(skin, -0.04)} /></mesh>)}
-          <Eye x={-0.14} side={-1} kind={cfg.eyes} color={cfg.eyeColor} skin={skin} />
-          <Eye x={0.14} side={1} kind={cfg.eyes} color={cfg.eyeColor} skin={skin} />
-          <Brows kind={cfg.eyes === 'angry' && cfg.brows === 'soft' ? 'angry' : cfg.brows} color={cfg.hairColor} />
-          <Mouth kind={cfg.mouth} />
-          {cfg.blush && ([-1, 1] as const).map((s) => <mesh key={s} position={onFace(s * 0.23, 1.89, 0.003)} rotation={faceRot(s * 0.23)}><circleGeometry args={[0.055, 24]} /><meshBasicMaterial color="#FF6B8B" transparent opacity={0.28} depthWrite={false} /></mesh>)}
-          {cfg.freckles && ([-1, 1] as const).flatMap((s) => [[0.2, 1.93], [0.25, 1.9], [0.19, 1.88], [0.24, 1.94]].map(([x, y], i) => <mesh key={`${s}${i}`} position={onFace(s * x, y, 0.004)}><sphereGeometry args={[0.009, 6, 6]} /><Mat c="#8A5A32" flat /></mesh>))}
-          <FacialHair kind={cfg.facial} color={cfg.hairColor} />
-          <Hair kind={cfg.hair} color={cfg.hairColor} hat={hatOn} />
-          <Glasses kind={cfg.glasses} color={cfg.glassesColor} />
-          <Hat kind={cfg.hat} color={cfg.hatColor} />
+      <Legs cfg={cfg} bw={bw} />
+      <group ref={body}>
+        {/* gövdə */}
+        <mesh geometry={torsoGeo} scale={[bw, 1, TORSO_Z]} castShadow receiveShadow><M map={torsoMap} r={0.68} /></mesh>
+        {cfg.top === 'hoodie' && <Blob p={[0, 1.03, -0.17]} s={[0.25 * bw, 0.12, 0.13]} rot={[-0.5, 0, 0]} c={shade(cfg.topColor, -0.05)} r={0.8} />}
+        {cfg.top === 'jacket' && <mesh position={[0, 1.06, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 0.9, 1]}><torusGeometry args={[0.15, 0.04, 10, 32]} /><M c={cfg.topColor2} r={0.9} /></mesh>}
+        {cfg.top === 'sweater' && <mesh position={[0, 1.065, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 0.9, 1]}><torusGeometry args={[0.145, 0.05, 12, 32]} /><M c={shade(cfg.topColor, -0.06)} r={0.95} cc={0} /></mesh>}
+        <Neck kind={cfg.neck} c={cfg.neckColor} zf={torsoR(0.99) * TORSO_Z} />
+        <Back kind={cfg.back} c={cfg.backColor} bw={bw} flame={flame} cape={cape} />
+        {/* qollar */}
+        <group position={[shoulderX, 1.0, 0]}><Arm side={1} cfg={cfg} refArm={armR}><HandItem kind={cfg.hand} cfg={cfg} /></Arm></group>
+        <group position={[-shoulderX, 1.0, 0]}><Arm side={-1} cfg={cfg} refArm={armL} /></group>
+        {/* baş */}
+        <group position={[0, HEAD_Y, 0]} ref={head}>
+          <group scale={[1, 0.93, 0.95]}>
+            <mesh castShadow><sphereGeometry args={[0.5, 64, 48]} /><M c={cfg.skin} r={0.6} /></mesh>
+            {([1, -1] as const).map((s) => <Blob key={s} p={[s * 0.492, -0.045, 0]} s={[0.05, 0.085, 0.07]} c={cfg.skin} r={0.6} />)}
+            <Blob p={[0, -0.085, 0.497]} s={[0.036, 0.03, 0.03]} c={shade(cfg.skin, -0.05)} r={0.6} />
+            <Face cfg={cfg} still={still} />
+            <Glasses kind={cfg.glasses} color={cfg.glassesColor} />
+            <HairStyle kind={cfg.hair} c={cfg.hairColor} hat={hatOn} />
+            {hatOn ? <Hat kind={cfg.hat} c={cfg.hatColor} /> : <HeadTopper kind={cfg.hat} c={cfg.hatColor} top={top} />}
+          </group>
         </group>
       </group>
     </group>
   )
-}
-
-/** Əl: ovuc + baş barmaq + dörd barmaq (bir az bükülü). */
-function Hand({ skin, side, grip = false }: { skin: string; side: 1 | -1; grip?: boolean }) {
-  const curl = grip ? 1.1 : 0.35
-  return (
-    <group>
-      <RoundedBox args={[0.1, 0.1, 0.055]} radius={0.025} smoothness={3} position={[0, -0.03, 0]}><Skin c={skin} /></RoundedBox>
-      {[-0.034, -0.011, 0.012, 0.034].map((x, i) => (
-        <group key={i} position={[x, -0.075, 0.004]} rotation={[-curl, 0, 0]}>
-          <mesh position={[0, -0.028 + (i === 0 || i === 3 ? 0.006 : 0), 0]}><capsuleGeometry args={[0.0125, i === 0 || i === 3 ? 0.032 : 0.042, 4, 8]} /><Skin c={skin} /></mesh>
-        </group>
-      ))}
-      <group position={[side * -0.052, -0.035, 0.018]} rotation={[-0.4, 0, side * -0.7]}>
-        <mesh position={[0, -0.025, 0]}><capsuleGeometry args={[0.014, 0.036, 4, 8]} /><Skin c={skin} /></mesh>
-      </group>
-    </group>
-  )
-}
-
-function Arm({ side, armRef, elbowRef, cfg, sleeves, shoulderX }: { side: 1 | -1; armRef: React.RefObject<THREE.Group | null>; elbowRef: React.RefObject<THREE.Group | null>; cfg: AvatarConfig; sleeves: 'none' | 'short' | 'long'; shoulderX: number }) {
-  const tc = cfg.topColor, skin = cfg.skin
-  const upper = sleeves === 'long' ? tc : null
-  const fore = sleeves === 'long' ? tc : null
-  const joint = sleeves === 'none' ? null : tc
-  const holding = side === 1 && cfg.hand !== 'none'
-  return (
-    <group ref={armRef} position={[side * shoulderX, 1.48, 0]}>
-      {/* çiyin oynağı */}
-      <mesh><sphereGeometry args={[0.105, 22, 16]} />{joint ? <Mat c={joint} r={0.85} /> : <Skin c={skin} />}</mesh>
-      {/* bazu */}
-      <mesh position={[0, -0.15, 0]}><capsuleGeometry args={[0.088, 0.22, 8, 16]} />{upper ? <Mat c={upper} r={0.85} /> : <Skin c={skin} />}</mesh>
-      {sleeves === 'short' && <mesh position={[0, -0.09, 0]}><cylinderGeometry args={[0.112, 0.104, 0.2, 20]} /><Mat c={tc} /></mesh>}
-      {sleeves === 'short' && cfg.top === 'jersey' && <mesh position={[0, -0.185, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.104, 0.013, 8, 22]} /><Mat c={cfg.topColor2} /></mesh>}
-      {/* dirsək və qolun aşağı hissəsi */}
-      <group ref={elbowRef} position={[0, -0.3, 0]}>
-        <mesh><sphereGeometry args={[0.082, 18, 14]} />{fore ? <Mat c={fore} r={0.85} /> : <Skin c={skin} />}</mesh>
-        <mesh position={[0, -0.13, 0]}><capsuleGeometry args={[0.074, 0.2, 8, 16]} />{fore ? <Mat c={fore} r={0.85} /> : <Skin c={skin} />}</mesh>
-        {sleeves === 'long' && (cfg.top === 'hoodie' || cfg.top === 'sweater') && <mesh position={[0, -0.24, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.074, 0.02, 8, 20]} /><Mat c={cfg.top === 'sweater' ? cfg.topColor2 : shade(tc, -0.08)} /></mesh>}
-        <group position={[0, -0.27, 0]}><Hand skin={skin} side={side} grip={holding} /></group>
-        {side === 1 && <group position={[0, 0.3, 0]}><HandItem kind={cfg.hand} cfg={cfg} /></group>}
-        {side === -1 && cfg.back === 'tote' && <group position={[-0.03, -0.36, 0.03]}>
-          <mesh position={[0, -0.02, 0]} scale={[0.8, 1.6, 1]}><torusGeometry args={[0.06, 0.01, 6, 16, Math.PI]} /><Mat c={shade(cfg.backColor, -0.2)} /></mesh>
-          <RoundedBox args={[0.26, 0.3, 0.06]} radius={0.03} position={[0, -0.2, 0]}><Mat c={cfg.backColor} r={0.9} /></RoundedBox>
-        </group>}
-      </group>
-    </group>
-  )
-}
-
-function TopDetails({ cfg, bw }: { cfg: AvatarConfig; bw: number }) {
-  const tc = cfg.topColor, c2 = cfg.topColor2
-  switch (cfg.top) {
-    case 'hoodie': return <>
-      <mesh position={[0, 1.58, -0.13]} rotation={[Math.PI / 2 - 0.35, 0, 0]}><torusGeometry args={[0.24, 0.1, 12, 28]} /><Mat c={shade(tc, -0.05)} r={0.9} /></mesh>
-      <RoundedBox args={[0.36 * bw, 0.16, 0.05]} radius={0.04} position={[0, 1.03, 0.185]}><Mat c={shade(tc, -0.06)} r={0.9} /></RoundedBox>
-      {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.07, 1.42, 0.2]}><cylinderGeometry args={[0.009, 0.009, 0.2, 8]} /><Mat c={c2} /></mesh>)}
-    </>
-    case 'jacket': return <>
-      <mesh position={[0, 1.55, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.15, 0.045, 10, 28]} /><Mat c={c2} r={0.9} /></mesh>
-      <mesh position={[0, 1.0, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[bw, 0.64, 1]}><torusGeometry args={[torsoR(1.0) + 0.012, 0.035, 10, 48]} /><Mat c={c2} r={0.9} /></mesh>
-      <mesh position={[0, 1.22, torsoR(1.22) * 0.64 + 0.004]}><boxGeometry args={[0.012, 0.62, 0.01]} /><Mat c="#C9CDD8" m={0.8} r={0.3} /></mesh>
-      <mesh position={[-0.17 * bw, 1.36, 0.19]} rotation={[0, 0, 0.6]}><boxGeometry args={[0.05, 0.02, 0.01]} /><Mat c={c2} /></mesh>
-    </>
-    case 'sweater': return <>
-      <mesh position={[0, 1.0, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[bw, 0.64, 1]}><torusGeometry args={[torsoR(1.0) + 0.012, 0.035, 10, 48]} /><Mat c={c2} r={0.95} /></mesh>
-      <mesh position={[0, 1.55, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.13, 0.035, 10, 28]} /><Mat c={c2} r={0.95} /></mesh>
-    </>
-    case 'shirt': return <>
-      {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.07, 1.52, 0.15]} rotation={[0.3, 0, s * 0.9]}><coneGeometry args={[0.06, 0.12, 3]} /><Mat c={shade(tc, 0.04)} /></mesh>)}
-      <mesh position={[0, 1.48, 0.2]}><boxGeometry args={[0.06, 0.06, 0.03]} /><Mat c={c2} /></mesh>
-      <mesh position={[0, 1.27, 0.2]} scale={[1, 1, 0.3]}><coneGeometry args={[0.05, 0.38, 4]} /><Mat c={c2} /></mesh>
-    </>
-    case 'tank': return <>{([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.15 * bw, 1.53, 0]}><boxGeometry args={[0.06, 0.05, 0.27]} /><Mat c={tc} /></mesh>)}</>
-    case 'dress': return <mesh position={[0, 1.0, 0]} rotation={[Math.PI / 2, 0, 0]} scale={[bw, 0.64, 1]}><torusGeometry args={[torsoR(1.0) + 0.006, 0.022, 8, 48]} /><Mat c={c2} /></mesh>
-    default: return <mesh position={[0, 1.55, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.12, 0.022, 8, 24]} /><Mat c={cfg.top === 'jersey' ? c2 : shade(tc, -0.06)} /></mesh>
-  }
-}
-
-function Shoe({ x, kind, color, skin }: { x: number; kind: AvatarConfig['shoes']; color: string; skin: string }) {
-  const sole = kind === 'boots' ? '#2B1B12' : kind === 'loafers' ? '#3B2A20' : '#F5F5F7'
-  const h = kind === 'hightops' ? 0.22 : kind === 'boots' ? 0.26 : kind === 'loafers' ? 0.09 : kind === 'slides' ? 0.04 : 0.12
-  return (
-    <group position={[x, 0, 0.04]}>
-      <RoundedBox args={[0.19, 0.04, 0.32]} radius={0.018} position={[0, 0.02, 0]}><Mat c={sole} r={0.9} /></RoundedBox>
-      {kind === 'slides' ? <>
-        <mesh position={[0, 0.07, 0.03]}><boxGeometry args={[0.2, 0.05, 0.12]} /><Mat c={color} r={0.6} /></mesh>
-        <mesh position={[0, 0.07, 0.12]} scale={[1, 0.6, 0.8]}><sphereGeometry args={[0.07, 12, 8]} /><Mat c={skin} r={0.6} /></mesh>
-      </> : <RoundedBox args={[0.18, h, 0.3]} radius={Math.min(0.06, h / 2.2)} position={[0, 0.04 + h / 2, 0]}><Mat c={color} r={kind === 'loafers' ? 0.35 : 0.7} /></RoundedBox>}
-      {(kind === 'sneakers' || kind === 'hightops') && <mesh position={[0, 0.04 + h * 0.6, 0.152]}><boxGeometry args={[0.1, 0.012, 0.004]} /><Mat c={shade(color, -0.25)} /></mesh>}
-    </group>
-  )
-}
-
-function Neck({ kind, color }: { kind: AvatarConfig['neck']; color: string }) {
-  switch (kind) {
-    case 'scarf': return <>
-      <mesh position={[0, 1.57, 0]} rotation={[Math.PI / 2, 0, 0]}><torusGeometry args={[0.15, 0.07, 12, 28]} /><Mat c={color} r={0.95} /></mesh>
-      <RoundedBox args={[0.12, 0.34, 0.04]} radius={0.02} position={[-0.09, 1.38, 0.21]} rotation={[0, 0, 0.08]}><Mat c={color} r={0.95} /></RoundedBox>
-    </>
-    case 'chain': return <>
-      <mesh position={[0, 1.5, 0.06]} rotation={[Math.PI / 2 - 0.45, 0, 0]}><torusGeometry args={[0.17, 0.012, 8, 32]} /><Mat c={GOLD} m={0.8} r={0.25} /></mesh>
-      <mesh position={[0, 1.36, 0.2]}><sphereGeometry args={[0.035, 12, 10]} /><Mat c={color} m={0.4} r={0.2} /></mesh>
-    </>
-    case 'bowtie': return <group position={[0, 1.52, 0.2]}>
-      {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.05, 0, 0]} rotation={[0, 0, s * Math.PI / 2]}><coneGeometry args={[0.04, 0.09, 4]} /><Mat c={color} /></mesh>)}
-      <mesh><sphereGeometry args={[0.022, 10, 8]} /><Mat c={shade(color, -0.12)} /></mesh>
-    </group>
-    case 'medal': return <>
-      {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.05, 1.42, 0.2]} rotation={[0, 0, s * 0.35]}><boxGeometry args={[0.04, 0.22, 0.01]} /><Mat c={color} /></mesh>)}
-      <mesh position={[0, 1.29, 0.21]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.06, 0.06, 0.015, 24]} /><Mat c={GOLD} m={0.85} r={0.25} /></mesh>
-    </>
-  }
-  return null
-}
-
-function Back({ kind, color, bw, flame, cape }: { kind: AvatarConfig['back']; color: string; bw: number; flame: React.RefObject<THREE.Group | null>; cape: React.RefObject<THREE.Mesh | null> }) {
-  switch (kind) {
-    case 'backpack': return <>
-      <RoundedBox args={[0.44 * bw, 0.5, 0.2]} radius={0.08} position={[0, 1.22, -0.29]}><Mat c={color} r={0.8} /></RoundedBox>
-      <RoundedBox args={[0.28 * bw, 0.18, 0.06]} radius={0.04} position={[0, 1.08, -0.41]}><Mat c={shade(color, -0.08)} r={0.8} /></RoundedBox>
-      {/* qayışlar çiynin üstündən keçir: arxadan önə qövs + öndə aşağı enən hissə */}
-      {([-1, 1] as const).map((s) => <group key={s} position={[s * 0.17 * bw, 0, 0]}>
-        <mesh position={[0, 1.37, -0.01]} rotation={[0, Math.PI / 2, 0]}><torusGeometry args={[0.2, 0.022, 8, 28, Math.PI]} /><Mat c={shade(color, -0.15)} /></mesh>
-        <mesh position={[0, 1.26, torsoR(1.26) * 0.64 + 0.01]}><boxGeometry args={[0.045, 0.24, 0.014]} /><Mat c={shade(color, -0.15)} /></mesh>
-      </group>)}
-    </>
-    case 'crossbody': return <>
-      <mesh position={[0, 1.22, 0]} rotation={[0, 0, 0.75]} scale={[1.05 * bw, 1, 0.68]}><torusGeometry args={[0.38, 0.016, 6, 40]} /><Mat c={shade(color, -0.2)} /></mesh>
-      <RoundedBox args={[0.2, 0.15, 0.08]} radius={0.04} position={[0.14 * bw, 0.97, 0.22]}><Mat c={color} r={0.6} /></RoundedBox>
-    </>
-    case 'tote': return null // sol əldə tutulur (Arm)
-    case 'guitar': return (
-      <group position={[0, 1.15, -0.3]} rotation={[0, 0, 0.6]}>
-        <mesh position={[0, -0.12, 0]} scale={[1, 1, 0.35]}><sphereGeometry args={[0.2, 20, 14]} /><Mat c={color} r={0.35} /></mesh>
-        <mesh position={[0, 0.1, 0]} scale={[1, 1, 0.35]}><sphereGeometry args={[0.15, 20, 14]} /><Mat c={color} r={0.35} /></mesh>
-        <mesh position={[0, 0.42, 0]}><boxGeometry args={[0.06, 0.5, 0.04]} /><Mat c="#3B2A20" /></mesh>
-        <mesh position={[0, 0.7, 0]}><boxGeometry args={[0.09, 0.1, 0.04]} /><Mat c="#1F1611" /></mesh>
-        <mesh position={[0, -0.02, -0.075]} rotation={[Math.PI / 2, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 0.01, 18]} /><Mat c="#111" /></mesh>
-      </group>)
-    case 'wings': return <>{([-1, 1] as const).map((s) => (
-      <group key={s} position={[s * 0.12, 1.32, -0.25]} rotation={[0.1, s * 0.5, s * -0.35]}>
-        {[0, 1, 2].map((i) => <mesh key={i} position={[s * (0.22 + i * 0.07), 0.1 - i * 0.13, -i * 0.02]} rotation={[0, 0, s * (0.4 + i * 0.15)]} scale={[0.32 - i * 0.05, 0.1, 0.05]}><sphereGeometry args={[1, 18, 12]} /><Mat c={color} r={0.9} /></mesh>)}
-      </group>))}</>
-    case 'cape': return <mesh ref={cape} position={[0, 1.0, -0.2]} rotation={[0.12, 0, 0]}><cylinderGeometry args={[0.36 * bw, 0.5 * bw, 1.0, 28, 1, true, Math.PI * 0.6, Math.PI * 0.8]} /><Mat c={color} r={0.6} side={THREE.DoubleSide} /></mesh>
-    case 'jetpack': return <group position={[0, 1.15, -0.3]}>
-      {([-1, 1] as const).map((s) => <group key={s} position={[s * 0.12, 0, 0]}>
-        <mesh><cylinderGeometry args={[0.1, 0.1, 0.45, 18]} /><Mat c={color} m={0.6} r={0.3} /></mesh>
-        <mesh position={[0, 0.24, 0]}><sphereGeometry args={[0.1, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2]} /><Mat c={color} m={0.6} r={0.3} /></mesh>
-        <mesh position={[0, -0.26, 0]}><cylinderGeometry args={[0.07, 0.09, 0.07, 16]} /><Mat c="#374151" m={0.7} r={0.3} /></mesh>
-      </group>)}
-      <group ref={flame} position={[0, -0.32, 0]}>
-        {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.12, -0.1, 0]} rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.06, 0.24, 14]} /><meshStandardMaterial color="#FFB020" emissive="#FF6A00" emissiveIntensity={2} transparent opacity={0.9} /></mesh>)}
-      </group>
-    </group>
-  }
-  return null
-}
-
-function HandItem({ kind, cfg }: { kind: AvatarConfig['hand']; cfg: AvatarConfig }) {
-  const at: [number, number, number] = [0.03, -0.66, 0.06]
-  switch (kind) {
-    case 'book': return <RoundedBox args={[0.2, 0.26, 0.06]} radius={0.015} position={at} rotation={[0.2, 0.3, 0]}><Mat c={cfg.topColor2 === cfg.topColor ? '#3B82F6' : cfg.topColor2} r={0.7} /></RoundedBox>
-    case 'trophy': return <group position={[0.03, -0.62, 0.08]} scale={0.9}>
-      <mesh position={[0, 0.14, 0]}><cylinderGeometry args={[0.1, 0.05, 0.16, 20]} /><Mat c={GOLD} m={0.85} r={0.25} /></mesh>
-      {([-1, 1] as const).map((s) => <mesh key={s} position={[s * 0.1, 0.15, 0]} rotation={[0, 0, s * Math.PI / 2]}><torusGeometry args={[0.04, 0.012, 6, 14, Math.PI]} /><Mat c={GOLD} m={0.85} r={0.25} /></mesh>)}
-      <mesh position={[0, 0.03, 0]}><cylinderGeometry args={[0.02, 0.02, 0.08, 10]} /><Mat c={GOLD} m={0.85} r={0.25} /></mesh>
-      <mesh position={[0, -0.02, 0]}><boxGeometry args={[0.12, 0.04, 0.08]} /><Mat c="#3B2A20" /></mesh>
-    </group>
-    case 'mic': return <group position={[0.03, -0.6, 0.06]} rotation={[0.5, 0, 0]}>
-      <mesh><cylinderGeometry args={[0.025, 0.02, 0.2, 12]} /><Mat c="#1F2937" /></mesh>
-      <mesh position={[0, 0.13, 0]}><sphereGeometry args={[0.05, 16, 12]} /><Mat c="#9CA3AF" m={0.7} r={0.4} /></mesh>
-    </group>
-    case 'balloon': return <group position={[0.03, -0.62, 0.02]}>
-      <mesh position={[0, 0.45, 0]}><cylinderGeometry args={[0.003, 0.003, 0.9, 4]} /><Mat c="#E5E7EB" /></mesh>
-      <Floating y={0.98}><mesh scale={[1, 1.15, 1]}><sphereGeometry args={[0.2, 24, 18]} /><Mat c={cfg.backColor} r={0.25} /></mesh></Floating>
-    </group>
-    case 'phone': return <group position={at} rotation={[0.3, 0, 0]}>
-      <RoundedBox args={[0.1, 0.19, 0.02]} radius={0.01}><Mat c="#111827" r={0.3} /></RoundedBox>
-      <mesh position={[0, 0, 0.011]}><planeGeometry args={[0.085, 0.165]} /><meshStandardMaterial color="#6366F1" emissive="#6366F1" emissiveIntensity={0.8} /></mesh>
-    </group>
-    case 'icecream': return <group position={[0.03, -0.58, 0.06]}>
-      <mesh rotation={[Math.PI, 0, 0]}><coneGeometry args={[0.06, 0.18, 14]} /><Mat c="#D9A066" /></mesh>
-      <mesh position={[0, 0.11, 0]}><sphereGeometry args={[0.07, 16, 12]} /><Mat c="#F9A8D4" /></mesh>
-      <mesh position={[0, 0.2, 0]}><sphereGeometry args={[0.06, 16, 12]} /><Mat c="#86EFAC" /></mesh>
-    </group>
-  }
-  return null
 }

@@ -13,6 +13,7 @@ import { aiRoutes, migrateAi } from './ai.js'
 import { mailRoutes } from './campaigns.js'
 import { learnRoutes } from './learn.js'
 import { publicPageRoutes } from './publicPages.js'
+import { mediaRoutes } from './media.js'
 import { fileRoutes, migrateFiles } from './files.js'
 import { clearAll, commit, DbError, getDoc, migrate, pool, runQuery, type Query, type Write } from './store.js'
 
@@ -66,6 +67,7 @@ aiRoutes(app)
 mailRoutes(app)
 learnRoutes(app)
 publicPageRoutes(app)
+mediaRoutes(app)
 fileRoutes(app)
 await realtimeRoutes(app)
 

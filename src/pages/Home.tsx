@@ -37,7 +37,7 @@ export default function Home() {
         <Logo size={38} />
         <nav className="flex items-center gap-1.5 sm:gap-2" aria-label={t.menu.account}>
           <Link to="/pricing" className="btn btn-ghost-dark btn-sm hidden md:inline-flex">{t.acct.pricingTitle}</Link>
-          {signedIn ? <><NotificationBell load={notices} /><AccountMenu uid={user!.uid} name={name} email={user!.email} photo={user!.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} /></> : <>
+          {signedIn ? <><NotificationBell load={notices} /><AccountMenu uid={user!.uid} name={name} email={user!.email} photo={profile?.photoURL || user!.photoURL} badge={profile ? (profile.type === 'student' ? t.menu.student : t.menu.trainer) : undefined} links={links} /></> : <>
             <LangSwitch />
             <Link to="/start" className="btn btn-ghost-dark btn-sm hidden sm:inline-flex">{t.acct.signIn}</Link>
             <Link to="/start" className="btn btn-primary btn-sm whitespace-nowrap">{t.acct.signUp}<ArrowRight /></Link>

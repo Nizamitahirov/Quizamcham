@@ -1,3 +1,5 @@
+import { PhotoUpload } from '../../components/PhotoUpload'
+import { saveProfile } from '../../firebase/db'
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
@@ -77,7 +79,13 @@ export default function Account() {
   return (
     <StudentShell back={back} title={A.myAccount}>
         <div className="-mb-3 flex flex-wrap items-center gap-4">
-          <UserAvatar uid={user.uid} name={`${profile.firstName} ${profile.lastName}`} photo={user.photoURL} size={64} ring />
+          <PhotoUpload value={profile.photoURL} size={64} onChange={async (url) => {
+            await updateMyProfile(user.uid, { photoURL: url || user.photoURL || '' })
+            // təlimçi profili (lobbidə oyunçulara görünən şəkil) də yenilənir
+            if (profile.type !== 'student') await saveProfile(user.uid, { photoUrl: url }).catch(() => {})
+          }}>
+            <UserAvatar uid={user.uid} name={`${profile.firstName} ${profile.lastName}`} photo={profile.photoURL || user.photoURL} size={64} ring />
+          </PhotoUpload>
           <div className="mr-auto"><h1 className="text-3xl font-extrabold">{A.myAccount}</h1><p className="text-sm text-muted">{user.email} · {A.types[profile.type]?.title}</p></div>
           <Link to="/avatar" className="btn btn-secondary btn-sm"><Sparkles />{t.menu.avatar}</Link>
         </div>
