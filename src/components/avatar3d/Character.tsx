@@ -118,7 +118,7 @@ function Glasses({ kind, color }: { kind: AvatarConfig['glasses']; color: string
 // ───────────────────────── saç ─────────────────────────
 const TILT = 0.46
 /** Papaq altında qalan saç: yalnız yanlar və arxa (üst həcmlər gizlədilir). */
-function HairStyle({ kind, c, hat }: { kind: Hair; c: string; hat: boolean }) {
+function HairStyle({ kind, c, hat, skin }: { kind: Hair; c: string; hat: boolean; skin: string }) {
   const hi = shade(c, 0.03)
   const base = (len = 0.53, r = 0.528) => <Shell r={r} len={Math.PI * len} tilt={TILT} c={c} />
   /** təpədə yumşaq həcm (örtüklə birləşir) */
@@ -163,8 +163,17 @@ function HairStyle({ kind, c, hat }: { kind: Hair; c: string; hat: boolean }) {
     <Blob p={[0, -0.04, -0.1]} s={[0.57, 0.41, 0.46]} c={c} r={0.7} />
     {([1, -1] as const).map((s) => <Blob key={s} p={[s * 0.46, -0.1, 0.13]} s={[0.1, 0.27, 0.15]} c={hi} r={0.7} />)}
     {!hat && <Blob p={[0, 0.28, 0.35]} s={[0.4, 0.11, 0.16]} rot={[0.66, 0, 0]} c={hi} r={0.7} />}</>
-  if (kind === 'mohawk') return <><Shell r={0.509} len={Math.PI * 0.5} tilt={TILT} c={shade(c, -0.08)} rough={0.95} />
-    {!hat && [0, 1, 2, 3, 4, 5, 6].map((i) => { const a = -0.75 + i * 0.36; return <Blob key={i} p={[0, Math.cos(a) * 0.56, -Math.sin(a) * 0.56 + 0.02]} s={[0.085, 0.2 - Math.abs(i - 3) * 0.014, 0.14]} rot={[-a, 0, 0]} c={i % 2 ? hi : c} r={0.7} /> })}</>
+  if (kind === 'mohawk') {
+    // yanlar qırxılmış (dəri ilə qarışıq ton), ortada alından ənsəyə arxaya əyilmiş yumru "qanadlar"
+    const shaved = '#' + new THREE.Color(c).lerp(new THREE.Color(skin), 0.6).getHexString()
+    return <><Shell r={0.507} len={Math.PI * 0.5} tilt={TILT} c={shaved} rough={0.95} />
+      {!hat && Array.from({ length: 9 }, (_, i) => {
+        const a = -0.85 + i * 0.27, h = 0.27 - Math.abs(i - 3) * 0.022
+        return <group key={i} position={[0, Math.cos(a) * 0.49, -Math.sin(a) * 0.49]} rotation={[-a - 0.55, 0, 0]}>
+          <mesh position={[0, h / 2 - 0.03, 0]} scale={[0.55, 1, 1]} castShadow><coneGeometry args={[0.15, h, 18]} /><M c={i % 2 ? hi : c} r={0.7} /></mesh>
+        </group>
+      })}</>
+  }
   if (kind === 'spiky') return <>{base()}{!hat && Array.from({ length: 13 }, (_, i) => {
     const a = i * 2.39996, y = 1 - (i + 0.5) / 13 * 0.75, rr = Math.sqrt(1 - y * y)
     const v = new THREE.Vector3(Math.cos(a) * rr, y, Math.sin(a) * rr).applyAxisAngle(new THREE.Vector3(1, 0, 0), -0.25)
@@ -559,7 +568,7 @@ export function Character({ cfg, interactive = false, still = false }: { cfg: Av
             <Blob p={[0, -0.085, 0.497]} s={[0.036, 0.03, 0.03]} c={shade(cfg.skin, -0.05)} r={0.6} />
             <Face cfg={cfg} still={still} />
             <Glasses kind={cfg.glasses} color={cfg.glassesColor} />
-            <HairStyle kind={cfg.hair} c={cfg.hairColor} hat={hatOn} />
+            <HairStyle kind={cfg.hair} c={cfg.hairColor} hat={hatOn} skin={cfg.skin} />
             {hatOn ? <Hat kind={cfg.hat} c={cfg.hatColor} /> : <HeadTopper kind={cfg.hat} c={cfg.hatColor} top={top} />}
           </group>
         </group>
