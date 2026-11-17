@@ -26,6 +26,7 @@
     "vitest.jabr.config.ts",
     "tests/**/*.ts",
     "playwright.config.ts",
-    "e2e/**/*.ts"
+    "e2e/**/*.ts",
+    "playwright.jabr.config.ts"
   ]
 }
